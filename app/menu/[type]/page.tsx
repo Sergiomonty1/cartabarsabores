@@ -42,7 +42,16 @@ export default function MenuPage({ params }: { params: { type: string } }) {
     const btn = navRef.current.querySelector(
       `[data-cat="${activeCategory}"]`
     ) as HTMLElement | null
-    btn?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' })
+    if (btn) {
+      // Only scroll the nav bar horizontally, not the whole page
+      const nav = navRef.current.querySelector('.overflow-x-auto')
+      if (nav) {
+        const navRect = nav.getBoundingClientRect()
+        const btnRect = btn.getBoundingClientRect()
+        const scrollLeft = btn.offsetLeft - navRect.width / 2 + btnRect.width / 2
+        nav.scrollTo({ left: scrollLeft, behavior: 'smooth' })
+      }
+    }
   }, [activeCategory])
 
   if (!menu) {
