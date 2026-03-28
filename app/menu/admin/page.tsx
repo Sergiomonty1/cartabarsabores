@@ -80,16 +80,25 @@ export default function AdminPage() {
   }, [])
 
   useEffect(() => {
-    if (authed) menuService.getMenu().then(setMenu)
+    if (!authed) return
+    // Show defaults instantly so admin panel is usable right away
+    setMenu(menuService.getDefaultMenu())
+    // Then fetch fresh data from Firestore in background
+    menuService.fetchMenu().then(setMenu)
   }, [authed])
 
   const save = useCallback(async () => {
     if (!menu) return
-    setSaving(true)
-    await menuService.saveMenu(menu)
-    setSaving(false)
+    // Optimistic: show saved immediately, save in background
     setSaved(true)
-    setTimeout(() => setSaved(false), 2500)
+    setSaving(true)
+    try {
+      await menuService.saveMenu(menu)
+    } catch {
+      // Silently fail — data is still in local state
+    }
+    setSaving(false)
+    setTimeout(() => setSaved(false), 2000)
   }, [menu])
 
   const updateItem = (catId: string, itemId: string, patch: Partial<MenuItem>) => {

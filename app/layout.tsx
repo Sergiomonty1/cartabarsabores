@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from 'next'
 import '@/styles/globals.css'
 
 export const metadata: Metadata = {
-  title: 'Carta — La Taberna',
+  title: 'Carta — Sabores',
   description: 'Consulta nuestra carta de tapas y medias raciones. Actualizada en tiempo real.',
   icons: { icon: '/favicon.ico' },
 }

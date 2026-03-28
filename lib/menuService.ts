@@ -5,7 +5,7 @@ import type { MenuCategory, MenuItem, MenuData } from '@/types/menu'
 const MENU_COLLECTION = 'menu'
 
 const defaultMenuData: MenuData = {
-  barName: 'La Taberna',
+  barName: 'Sabores',
   categories: [
     {
       id: 'entrantes',
@@ -120,14 +120,22 @@ const defaultMenuData: MenuData = {
 }
 
 export const menuService = {
-  async getMenu(): Promise<MenuData> {
+  /** Return defaults instantly. Call fetchMenu() in background for fresh data. */
+  getDefaultMenu(): MenuData {
+    return JSON.parse(JSON.stringify(defaultMenuData))
+  },
+
+  /** Fetch from Firestore (may be slow on first load). Seeds defaults if empty. */
+  async fetchMenu(): Promise<MenuData> {
     try {
       const docRef = doc(db, MENU_COLLECTION, 'data')
       const snap = await getDoc(docRef)
       if (snap.exists()) {
         return snap.data() as MenuData
       }
-      await setDoc(docRef, { ...defaultMenuData, updatedAt: new Date().toISOString() })
+      // Seed defaults
+      const seeded = { ...defaultMenuData, updatedAt: new Date().toISOString() }
+      await setDoc(docRef, seeded)
       return defaultMenuData
     } catch {
       return defaultMenuData
