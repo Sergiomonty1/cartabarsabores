@@ -89,16 +89,17 @@ export default function AdminPage() {
 
   const save = useCallback(async () => {
     if (!menu) return
-    // Optimistic: show saved immediately, save in background
-    setSaved(true)
     setSaving(true)
+    setSaved(false)
     try {
       await menuService.saveMenu(menu)
-    } catch {
-      // Silently fail — data is still in local state
+      setSaved(true)
+      setTimeout(() => setSaved(false), 2500)
+    } catch (err) {
+      console.error('Error saving menu:', err)
+    } finally {
+      setSaving(false)
     }
-    setSaving(false)
-    setTimeout(() => setSaved(false), 2000)
   }, [menu])
 
   const updateItem = (catId: string, itemId: string, patch: Partial<MenuItem>) => {
@@ -337,16 +338,26 @@ export default function AdminPage() {
                                 Tapa €
                               </label>
                               <input
-                                type="number"
-                                step="0.10"
-                                value={item.priceTapa}
+                                type="text"
+                                inputMode="decimal"
+                                value={item.priceTapa === 0 ? '' : item.priceTapa}
                                 onChange={(e) => {
-                                  const v = parseFloat(e.target.value) || 0
+                                  const raw = e.target.value.replace(',', '.')
+                                  if (raw === '' || raw === '.') {
+                                    updateItem(cat.id, item.id, {
+                                      priceTapa: 0,
+                                      ...(item.samePrice ? { priceMedia: 0 } : {}),
+                                    })
+                                    return
+                                  }
+                                  if (!/^\d*\.?\d{0,2}$/.test(raw)) return
+                                  const v = parseFloat(raw) || 0
                                   updateItem(cat.id, item.id, {
                                     priceTapa: v,
                                     ...(item.samePrice ? { priceMedia: v } : {}),
                                   })
                                 }}
+                                placeholder="0.00"
                                 className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-white focus:outline-none mt-1"
                               />
                             </div>
@@ -355,14 +366,21 @@ export default function AdminPage() {
                                 Media €
                               </label>
                               <input
-                                type="number"
-                                step="0.10"
-                                value={item.priceMedia}
-                                onChange={(e) =>
+                                type="text"
+                                inputMode="decimal"
+                                value={item.priceMedia === 0 ? '' : item.priceMedia}
+                                onChange={(e) => {
+                                  const raw = e.target.value.replace(',', '.')
+                                  if (raw === '' || raw === '.') {
+                                    updateItem(cat.id, item.id, { priceMedia: 0 })
+                                    return
+                                  }
+                                  if (!/^\d*\.?\d{0,2}$/.test(raw)) return
                                   updateItem(cat.id, item.id, {
-                                    priceMedia: parseFloat(e.target.value) || 0,
+                                    priceMedia: parseFloat(raw) || 0,
                                   })
-                                }
+                                }}
+                                placeholder="0.00"
                                 disabled={item.samePrice}
                                 className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-white focus:outline-none disabled:opacity-20 mt-1"
                               />
