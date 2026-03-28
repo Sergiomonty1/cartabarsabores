@@ -4,7 +4,7 @@ import React, { useEffect, useState, useCallback } from 'react'
 import type { MenuData, MenuCategory, MenuItem } from '@/types/menu'
 import { menuService } from '@/lib/menuService'
 
-const PASSCODE = '1234'
+const PASSCODE = '1111'
 
 /* ──────── passcode gate ──────── */
 function PasscodeGate({ onUnlock }: { onUnlock: () => void }) {
