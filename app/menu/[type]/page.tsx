@@ -318,6 +318,7 @@ export default function MenuPage({ params }: { params: { type: string } }) {
                 className="divide-y divide-white/[0.03]"
               >
                 {cat.items
+                  .filter((item) => item.name && item.name.trim() !== '')
                   .sort((a, b) => a.order - b.order)
                   .map((item) => {
                     const displayPrice = item.samePrice

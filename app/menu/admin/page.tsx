@@ -143,10 +143,14 @@ export default function AdminPage() {
 
   useEffect(() => {
     if (!authed) return
+    const filterBebidas = (m: MenuData): MenuData => ({
+      ...m,
+      categories: m.categories.filter((c) => c.id !== 'bebidas'),
+    })
     // Show defaults instantly so admin panel is usable right away
-    setMenu(menuService.getDefaultMenu())
+    setMenu(filterBebidas(menuService.getDefaultMenu()))
     // Then fetch fresh data from Firestore in background
-    menuService.fetchMenu().then(setMenu)
+    menuService.fetchMenu().then((fresh) => setMenu(filterBebidas(fresh)))
   }, [authed])
 
   const save = useCallback(async () => {
@@ -155,7 +159,19 @@ export default function AdminPage() {
     setSaved(false)
     setSaveError('')
     try {
-      await menuService.saveMenu(menu)
+      // Clean before saving: remove bebidas and empty-name items
+      const cleanMenu = {
+        ...menu,
+        categories: menu.categories
+          .filter((c) => c.id !== 'bebidas')
+          .map((c) => ({
+            ...c,
+            items: c.items.filter((it) => it.name && it.name.trim() !== ''),
+          })),
+      }
+      await menuService.saveMenu(cleanMenu)
+      // Update local state with cleaned data
+      setMenu(cleanMenu)
       setSaved(true)
       setTimeout(() => setSaved(false), 2500)
     } catch (err: any) {
@@ -203,13 +219,16 @@ export default function AdminPage() {
     if (!menu) return
     const cat = menu.categories.find((c) => c.id === catId)
     if (!cat) return
+    const maxOrder = cat.items.length > 0
+      ? Math.max(...cat.items.map((it) => it.order))
+      : -1
     const newItem: MenuItem = {
       id: `${catId}-${Date.now()}`,
-      name: 'Nuevo plato',
+      name: '',
       priceTapa: 0,
       priceMedia: 0,
       samePrice: true,
-      order: cat.items.length,
+      order: maxOrder + 1,
     }
     setMenu({
       ...menu,
@@ -266,7 +285,9 @@ export default function AdminPage() {
     )
   }
 
-  const sorted = [...menu.categories].sort((a, b) => a.order - b.order)
+  const sorted = [...menu.categories]
+    .filter((c) => c.id !== 'bebidas')
+    .sort((a, b) => a.order - b.order)
 
   return (
     <div className="min-h-screen bg-[#0d0d0d] text-white pb-32">
@@ -401,6 +422,9 @@ export default function AdminPage() {
                             className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-white focus:outline-none focus:ring-1 focus:ring-amber-500/40"
                             placeholder="Nombre del plato"
                             autoFocus
+                            onFocus={(e) => {
+                              if (e.target.value === '') e.target.select()
+                            }}
                           />
                           <div className="flex gap-2.5 items-end">
                             <div className="flex-1">
