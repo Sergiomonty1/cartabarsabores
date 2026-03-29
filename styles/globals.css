@@ -15,7 +15,7 @@ html {
 }
 
 body {
-  background: #0d0d0d;
+  background: #080808;
   color: #faf5ef;
   font-family: 'Inter', system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
@@ -25,39 +25,83 @@ body {
 
 /* Scrollbar */
 ::-webkit-scrollbar { width: 4px; }
-::-webkit-scrollbar-track { background: #0d0d0d; }
+::-webkit-scrollbar-track { background: #080808; }
 ::-webkit-scrollbar-thumb { background: #d97706; border-radius: 2px; }
 
 ::selection {
   background: #d97706;
-  color: #0d0d0d;
+  color: #080808;
 }
 
 /* Hide scrollbar on nav */
 .scrollbar-hide::-webkit-scrollbar { display: none; }
 .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
 
-/* Stagger animation delay utility */
-@keyframes fade-up {
-  from { opacity: 0; transform: translateY(12px); }
-  to { opacity: 1; transform: translateY(0); }
+/* ─── Gradient Orbs (morphing background) ─── */
+.orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  will-change: transform;
 }
-.animate-fade-up {
-  animation: fade-up 0.5s ease-out both;
+.orb-1 {
+  width: 400px;
+  height: 400px;
+  top: -100px;
+  left: -100px;
+  background: radial-gradient(circle, rgba(245, 158, 11, 0.06), transparent 70%);
+  animation: orbFloat1 20s ease-in-out infinite;
+}
+.orb-2 {
+  width: 350px;
+  height: 350px;
+  top: 40%;
+  right: -120px;
+  background: radial-gradient(circle, rgba(249, 115, 22, 0.04), transparent 70%);
+  animation: orbFloat2 25s ease-in-out infinite;
+}
+.orb-3 {
+  width: 300px;
+  height: 300px;
+  bottom: 10%;
+  left: 30%;
+  background: radial-gradient(circle, rgba(217, 119, 6, 0.035), transparent 70%);
+  animation: orbFloat3 22s ease-in-out infinite;
 }
 
-/* Floating particles */
-@keyframes floatParticle {
-  0%, 100% { transform: translateY(0) translateX(0) scale(1); }
-  25% { transform: translateY(-30px) translateX(15px) scale(1.1); }
-  50% { transform: translateY(-10px) translateX(-10px) scale(0.95); }
-  75% { transform: translateY(-40px) translateX(20px) scale(1.05); }
+@keyframes orbFloat1 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(60px, 80px) scale(1.15); }
+  66% { transform: translate(-40px, 40px) scale(0.9); }
 }
-.animate-float-particle {
-  animation: floatParticle 14s ease-in-out infinite;
+@keyframes orbFloat2 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(-50px, -60px) scale(1.1); }
+  66% { transform: translate(30px, 50px) scale(0.85); }
+}
+@keyframes orbFloat3 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(40px, -50px) scale(1.2); }
+  66% { transform: translate(-60px, 30px) scale(0.95); }
 }
 
-/* Shimmer sweep for dividers */
+/* ─── Film grain overlay ─── */
+.noise-bg {
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 128px 128px;
+}
+
+/* ─── Slow spin for glow ring ─── */
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+.animate-spin-slow {
+  animation: spin-slow 20s linear infinite;
+}
+
+/* ─── Shimmer sweep for dividers ─── */
 @keyframes shimmer {
   0% { transform: translateX(-100%); }
   100% { transform: translateX(500%); }
@@ -66,11 +110,38 @@ body {
   animation: shimmer 3s ease-in-out infinite;
 }
 
-/* Pulsing glow behind hero title */
+/* ─── Menu item hover glow trail ─── */
+.menu-item-hover {
+  position: relative;
+  overflow: hidden;
+}
+.menu-item-hover::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    300px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
+    rgba(245, 158, 11, 0.025),
+    transparent 60%
+  );
+  opacity: 0;
+  transition: opacity 0.4s;
+  pointer-events: none;
+}
+.menu-item-hover:hover::before {
+  opacity: 1;
+}
+
+/* ─── Pulsing glow behind hero title ─── */
 @keyframes pulseGlow {
   0%, 100% { opacity: 1; transform: translateX(-50%) scale(1); }
   50% { opacity: 0.6; transform: translateX(-50%) scale(1.15); }
 }
 .animate-pulse-glow {
   animation: pulseGlow 4s ease-in-out infinite;
+}
+
+/* ─── Font display class ─── */
+.font-display {
+  font-family: 'Playfair Display', 'Georgia', serif;
 }
