@@ -159,9 +159,12 @@ export default function AdminPage() {
       setSaved(true)
       setTimeout(() => setSaved(false), 2500)
     } catch (err: any) {
-      console.error('Error saving menu:', err)
-      setSaveError(err?.message?.includes('timeout') ? 'Timeout — revisa tu conexión' : 'Error al guardar')
-      setTimeout(() => setSaveError(''), 4000)
+      const msg = err?.code === 'permission-denied'
+        ? 'Sin permisos — actualiza las reglas de Firestore'
+        : err?.message || 'Error desconocido'
+      console.error('Save error:', err?.code, err?.message, err)
+      setSaveError(msg)
+      setTimeout(() => setSaveError(''), 6000)
     } finally {
       setSaving(false)
     }

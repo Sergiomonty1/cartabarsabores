@@ -144,12 +144,10 @@ export const menuService = {
 
   async saveMenu(data: MenuData): Promise<void> {
     const docRef = doc(db, MENU_COLLECTION, 'data')
-    const payload = { ...data, updatedAt: new Date().toISOString() }
-    // Timeout after 10s so the UI doesn't hang forever
-    const timeout = new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error('Save timeout – check connection')), 10000)
-    )
-    await Promise.race([setDoc(docRef, payload), timeout])
+    // Clean data: remove undefined values that Firestore rejects
+    const clean = JSON.parse(JSON.stringify(data))
+    clean.updatedAt = new Date().toISOString()
+    await setDoc(docRef, clean)
   },
 
   getDefaults(): MenuData {
