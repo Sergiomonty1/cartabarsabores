@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 120" fill="none">
+  <!-- Background circle glow -->
+  <circle cx="140" cy="60" r="50" fill="url(#glow)" opacity="0.15"/>
+  
+  <!-- Fork icon -->
+  <g transform="translate(56, 28)" stroke="#f59e0b" stroke-width="1.5" stroke-linecap="round" fill="none" opacity="0.7">
+    <line x1="0" y1="0" x2="0" y2="30"/>
+    <line x1="0" y1="30" x2="0" y2="60"/>
+    <line x1="-5" y1="0" x2="-5" y2="16"/>
+    <line x1="5" y1="0" x2="5" y2="16"/>
+    <path d="M-5 16 Q-5 22 0 22 Q5 22 5 16"/>
+  </g>
+
+  <!-- Knife icon -->
+  <g transform="translate(224, 28)" stroke="#f59e0b" stroke-width="1.5" stroke-linecap="round" fill="none" opacity="0.7">
+    <line x1="0" y1="22" x2="0" y2="60"/>
+    <path d="M0 0 Q8 8 4 22 L0 22 Z" fill="#f59e0b" opacity="0.3"/>
+  </g>
+
+  <!-- Decorative line left -->
+  <line x1="70" y1="60" x2="105" y2="60" stroke="#f59e0b" stroke-width="0.8" opacity="0.4"/>
+  
+  <!-- Decorative line right -->
+  <line x1="175" y1="60" x2="210" y2="60" stroke="#f59e0b" stroke-width="0.8" opacity="0.4"/>
+
+  <!-- Small diamond left -->
+  <polygon points="108,60 111,57 114,60 111,63" fill="#f59e0b" opacity="0.5"/>
+  
+  <!-- Small diamond right -->
+  <polygon points="166,60 169,57 172,60 169,63" fill="#f59e0b" opacity="0.5"/>
+
+  <!-- Subtitle "Bar & Restaurante" -->
+  <text x="140" y="95" text-anchor="middle" fill="#f59e0b" font-family="Inter, system-ui, sans-serif" font-size="9" letter-spacing="4" opacity="0.5" font-weight="500">BAR &amp; RESTAURANTE</text>
+
+  <defs>
+    <radialGradient id="glow">
+      <stop offset="0%" stop-color="#f59e0b"/>
+      <stop offset="100%" stop-color="#f59e0b" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+</svg>

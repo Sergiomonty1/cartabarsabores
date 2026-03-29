@@ -1,10 +1,71 @@
 'use client'
 
-import React, { useEffect, useState, useCallback } from 'react'
+import React, { useEffect, useState, useCallback, useRef } from 'react'
 import type { MenuData, MenuCategory, MenuItem } from '@/types/menu'
 import { menuService } from '@/lib/menuService'
 
 const PASSCODE = '1111'
+
+/* ──────── price input with local string state ──────── */
+function PriceInput({
+  value,
+  onChange,
+  disabled,
+  placeholder = '0.00',
+}: {
+  value: number
+  onChange: (v: number) => void
+  disabled?: boolean
+  placeholder?: string
+}) {
+  const [raw, setRaw] = useState(() =>
+    value === 0 ? '' : value.toString()
+  )
+  const prevValue = useRef(value)
+
+  // Sync from parent when value changes externally (e.g. samePrice toggle)
+  useEffect(() => {
+    if (value !== prevValue.current) {
+      prevValue.current = value
+      setRaw(value === 0 ? '' : value.toString())
+    }
+  }, [value])
+
+  return (
+    <input
+      type="text"
+      inputMode="decimal"
+      value={raw}
+      onChange={(e) => {
+        let v = e.target.value.replace(',', '.')
+        // Allow empty, just dots, or valid decimal patterns while typing
+        if (v === '' || v === '.') {
+          setRaw(v)
+          onChange(0)
+          return
+        }
+        // Allow partial input like "4." or "4.5" while typing
+        if (/^\d*\.?\d{0,2}$/.test(v)) {
+          setRaw(v)
+          const num = parseFloat(v)
+          if (!isNaN(num)) {
+            prevValue.current = num
+            onChange(num)
+          }
+        }
+      }}
+      onBlur={() => {
+        // Clean up display on blur
+        const num = parseFloat(raw) || 0
+        prevValue.current = num
+        setRaw(num === 0 ? '' : num.toString())
+      }}
+      placeholder={placeholder}
+      disabled={disabled}
+      className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-white focus:outline-none disabled:opacity-20 mt-1"
+    />
+  )
+}
 
 /* ──────── passcode gate ──────── */
 function PasscodeGate({ onUnlock }: { onUnlock: () => void }) {
@@ -69,6 +130,7 @@ export default function AdminPage() {
   const [menu, setMenu] = useState<MenuData | null>(null)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [saveError, setSaveError] = useState('')
   const [editingItem, setEditingItem] = useState<{
     catId: string
     itemId: string
@@ -91,12 +153,15 @@ export default function AdminPage() {
     if (!menu) return
     setSaving(true)
     setSaved(false)
+    setSaveError('')
     try {
       await menuService.saveMenu(menu)
       setSaved(true)
       setTimeout(() => setSaved(false), 2500)
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error saving menu:', err)
+      setSaveError(err?.message?.includes('timeout') ? 'Timeout — revisa tu conexión' : 'Error al guardar')
+      setTimeout(() => setSaveError(''), 4000)
     } finally {
       setSaving(false)
     }
@@ -222,12 +287,14 @@ export default function AdminPage() {
               onClick={save}
               disabled={saving}
               className={`px-5 py-1.5 rounded-lg text-sm font-bold transition-all ${
-                saved
+                saveError
+                  ? 'bg-red-500 text-white'
+                  : saved
                   ? 'bg-green-500 text-black'
                   : 'bg-amber-500 text-black hover:bg-amber-400'
               }`}
             >
-              {saving ? 'Guardando…' : saved ? '✓ Guardado' : 'Guardar'}
+              {saving ? 'Guardando…' : saveError ? '✕ Error' : saved ? '✓ Guardado' : 'Guardar'}
             </button>
           </div>
         </div>
@@ -337,52 +404,26 @@ export default function AdminPage() {
                               <label className="text-[10px] text-white/25 uppercase font-semibold">
                                 Tapa €
                               </label>
-                              <input
-                                type="text"
-                                inputMode="decimal"
-                                value={item.priceTapa === 0 ? '' : item.priceTapa}
-                                onChange={(e) => {
-                                  const raw = e.target.value.replace(',', '.')
-                                  if (raw === '' || raw === '.') {
-                                    updateItem(cat.id, item.id, {
-                                      priceTapa: 0,
-                                      ...(item.samePrice ? { priceMedia: 0 } : {}),
-                                    })
-                                    return
-                                  }
-                                  if (!/^\d*\.?\d{0,2}$/.test(raw)) return
-                                  const v = parseFloat(raw) || 0
+                              <PriceInput
+                                value={item.priceTapa}
+                                onChange={(v) =>
                                   updateItem(cat.id, item.id, {
                                     priceTapa: v,
                                     ...(item.samePrice ? { priceMedia: v } : {}),
                                   })
-                                }}
-                                placeholder="0.00"
-                                className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-white focus:outline-none mt-1"
+                                }
                               />
                             </div>
                             <div className="flex-1">
                               <label className="text-[10px] text-white/25 uppercase font-semibold">
                                 Media €
                               </label>
-                              <input
-                                type="text"
-                                inputMode="decimal"
-                                value={item.priceMedia === 0 ? '' : item.priceMedia}
-                                onChange={(e) => {
-                                  const raw = e.target.value.replace(',', '.')
-                                  if (raw === '' || raw === '.') {
-                                    updateItem(cat.id, item.id, { priceMedia: 0 })
-                                    return
-                                  }
-                                  if (!/^\d*\.?\d{0,2}$/.test(raw)) return
-                                  updateItem(cat.id, item.id, {
-                                    priceMedia: parseFloat(raw) || 0,
-                                  })
-                                }}
-                                placeholder="0.00"
+                              <PriceInput
+                                value={item.priceMedia}
+                                onChange={(v) =>
+                                  updateItem(cat.id, item.id, { priceMedia: v })
+                                }
                                 disabled={item.samePrice}
-                                className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-white focus:outline-none disabled:opacity-20 mt-1"
                               />
                             </div>
                             <label className="flex items-center gap-1.5 cursor-pointer select-none pb-2">
@@ -489,13 +530,17 @@ export default function AdminPage() {
             onClick={save}
             disabled={saving}
             className={`w-full py-3.5 rounded-2xl font-bold text-sm tracking-wide transition-all active:scale-[0.98] ${
-              saved
+              saveError
+                ? 'bg-red-500 text-white'
+                : saved
                 ? 'bg-green-500 text-black'
                 : 'bg-amber-500 text-black hover:bg-amber-400'
             }`}
           >
             {saving
               ? 'Guardando…'
+              : saveError
+              ? `✕ ${saveError}`
               : saved
               ? '✓ Cambios guardados'
               : 'Guardar cambios'}

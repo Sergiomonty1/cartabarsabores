@@ -144,7 +144,12 @@ export const menuService = {
 
   async saveMenu(data: MenuData): Promise<void> {
     const docRef = doc(db, MENU_COLLECTION, 'data')
-    await setDoc(docRef, { ...data, updatedAt: new Date().toISOString() })
+    const payload = { ...data, updatedAt: new Date().toISOString() }
+    // Timeout after 10s so the UI doesn't hang forever
+    const timeout = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('Save timeout – check connection')), 10000)
+    )
+    await Promise.race([setDoc(docRef, payload), timeout])
   },
 
   getDefaults(): MenuData {

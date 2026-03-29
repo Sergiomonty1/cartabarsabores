@@ -117,6 +117,15 @@ export default function MenuPage({ params }: { params: { type: string } }) {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
         >
+          {/* Logo */}
+          <motion.img
+            src="/logo.svg"
+            alt="Sabores"
+            className="mx-auto w-44 h-auto mb-4 opacity-80"
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 0.8, scale: 1 }}
+            transition={{ duration: 0.6, delay: 0.1 }}
+          />
           <p className="text-amber-400/50 text-[10px] font-semibold tracking-[0.35em] uppercase mb-3">
             Bienvenido a
           </p>
