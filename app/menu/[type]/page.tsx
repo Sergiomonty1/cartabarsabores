@@ -117,24 +117,6 @@ export default function MenuPage({ params }: { params: { type: string } }) {
     .filter((c) => c.id !== 'bebidas')
     .sort((a, b) => a.order - b.order)
 
-  // Staggered container variant
-  const containerVariants = {
-    hidden: {},
-    visible: {
-      transition: { staggerChildren: 0.04 },
-    },
-  }
-
-  const itemVariants = {
-    hidden: { opacity: 0, y: 12, filter: 'blur(4px)' },
-    visible: {
-      opacity: 1,
-      y: 0,
-      filter: 'blur(0px)',
-      transition: { duration: 0.4, ease: [0.22, 1, 0.36, 1] },
-    },
-  }
-
   return (
     <div className="min-h-screen bg-[#080808] text-white overflow-x-hidden relative">
       <GradientOrbs />
@@ -310,17 +292,11 @@ export default function MenuPage({ params }: { params: { type: string } }) {
               viewport={{ once: true, margin: '-20px' }}
               transition={{ duration: 0.5, delay: 0.1 }}
             >
-              <motion.div
-                variants={containerVariants}
-                initial="hidden"
-                whileInView="visible"
-                viewport={{ once: true, margin: '-20px' }}
-                className="divide-y divide-white/[0.03]"
-              >
+              <div className="divide-y divide-white/[0.03]">
                 {cat.items
                   .filter((item) => item.name && item.name.trim() !== '')
                   .sort((a, b) => a.order - b.order)
-                  .map((item) => {
+                  .map((item, i) => {
                     const displayPrice = item.samePrice
                       ? item.priceTapa
                       : isTapas
@@ -330,7 +306,14 @@ export default function MenuPage({ params }: { params: { type: string } }) {
                     return (
                       <motion.div
                         key={item.id}
-                        variants={itemVariants}
+                        initial={{ opacity: 0, y: 12, filter: 'blur(4px)' }}
+                        whileInView={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+                        viewport={{ once: true, margin: '-10px' }}
+                        transition={{
+                          duration: 0.4,
+                          delay: i * 0.04,
+                          ease: [0.22, 1, 0.36, 1],
+                        }}
                         className={`group py-3.5 px-4 rounded-xl transition-all duration-300 hover:bg-amber-500/[0.04] menu-item-hover ${
                           displayPrice === 0 ? 'text-center' : 'flex items-baseline gap-2'
                         }`}
@@ -353,7 +336,7 @@ export default function MenuPage({ params }: { params: { type: string } }) {
                       </motion.div>
                     )
                   })}
-              </motion.div>
+              </div>
             </motion.div>
 
             {catIndex < sorted.length - 1 && <GoldenDivider />}
