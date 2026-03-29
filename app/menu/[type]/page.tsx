@@ -117,15 +117,37 @@ export default function MenuPage({ params }: { params: { type: string } }) {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
         >
-          {/* Logo */}
-          <motion.img
-            src="/logo.svg"
-            alt="Sabores"
-            className="mx-auto w-44 h-auto mb-4 opacity-80"
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 0.8, scale: 1 }}
-            transition={{ duration: 0.6, delay: 0.1 }}
-          />
+          {/* Inline Logo */}
+          <motion.div
+            className="mx-auto w-16 h-16 mb-4 flex items-center justify-center"
+            initial={{ opacity: 0, scale: 0.8, rotate: -10 }}
+            animate={{ opacity: 1, scale: 1, rotate: 0 }}
+            transition={{ duration: 0.6, delay: 0.1, type: 'spring', stiffness: 200 }}
+          >
+            <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
+              <circle cx="32" cy="32" r="30" stroke="url(#logoGrad)" strokeWidth="1.5" opacity="0.4"/>
+              <circle cx="32" cy="32" r="22" stroke="#f59e0b" strokeWidth="0.5" opacity="0.15"/>
+              {/* Fork */}
+              <g stroke="#fbbf24" strokeWidth="1.2" strokeLinecap="round" opacity="0.9">
+                <line x1="24" y1="18" x2="24" y2="28"/>
+                <line x1="24" y1="28" x2="24" y2="46"/>
+                <line x1="21" y1="18" x2="21" y2="26"/>
+                <line x1="27" y1="18" x2="27" y2="26"/>
+                <path d="M21 26 Q21 30 24 30 Q27 30 27 26"/>
+              </g>
+              {/* Knife */}
+              <g stroke="#fbbf24" strokeWidth="1.2" strokeLinecap="round" opacity="0.9">
+                <line x1="40" y1="30" x2="40" y2="46"/>
+                <path d="M40 18 Q46 24 43 30 L40 30 Z" fill="#fbbf24" fillOpacity="0.2"/>
+              </g>
+              <defs>
+                <linearGradient id="logoGrad" x1="0" y1="0" x2="64" y2="64">
+                  <stop offset="0%" stopColor="#fbbf24"/>
+                  <stop offset="100%" stopColor="#d97706"/>
+                </linearGradient>
+              </defs>
+            </svg>
+          </motion.div>
           <p className="text-amber-400/50 text-[10px] font-semibold tracking-[0.35em] uppercase mb-3">
             Bienvenido a
           </p>
@@ -250,21 +272,25 @@ export default function MenuPage({ params }: { params: { type: string } }) {
                         delay: i * 0.04,
                         ease: [0.22, 1, 0.36, 1],
                       }}
-                      className="group flex items-baseline gap-2 py-3.5 px-3 -mx-3 rounded-xl transition-all duration-300 hover:bg-amber-500/[0.03] hover:shadow-[inset_0_0_20px_rgba(245,158,11,0.02)]"
+                      className={`group py-3.5 px-3 -mx-3 rounded-xl transition-all duration-300 hover:bg-amber-500/[0.03] hover:shadow-[inset_0_0_20px_rgba(245,158,11,0.02)] ${
+                        displayPrice === 0 ? 'text-center' : 'flex items-baseline gap-2'
+                      }`}
                     >
-                      <span className="text-[0.9rem] text-amber-100/80 leading-snug flex-shrink-0 max-w-[70%] group-hover:text-amber-100 transition-colors">
-                        {item.name}
-                      </span>
-                      <span className="flex-1 border-b border-dotted border-white/[0.06] min-w-[1.5rem] self-end mb-1.5 group-hover:border-amber-500/15 transition-colors" />
-                      <span
-                        className={`font-semibold tracking-wide whitespace-nowrap transition-colors ${
-                          displayPrice === 0
-                            ? 'text-amber-400/40 text-xs italic'
-                            : 'text-amber-400/90 text-sm group-hover:text-amber-300'
-                        }`}
-                      >
-                        {fmt(displayPrice)}
-                      </span>
+                      {displayPrice === 0 ? (
+                        <span className="text-[0.9rem] text-amber-100/80 leading-snug group-hover:text-amber-100 transition-colors">
+                          {item.name}
+                        </span>
+                      ) : (
+                        <>
+                          <span className="text-[0.9rem] text-amber-100/80 leading-snug flex-shrink-0 max-w-[70%] group-hover:text-amber-100 transition-colors">
+                            {item.name}
+                          </span>
+                          <span className="flex-1 border-b border-dotted border-white/[0.06] min-w-[1.5rem] self-end mb-1.5 group-hover:border-amber-500/15 transition-colors" />
+                          <span className="text-amber-400/90 text-sm font-semibold tracking-wide whitespace-nowrap transition-colors group-hover:text-amber-300">
+                            {fmt(displayPrice)}
+                          </span>
+                        </>
+                      )}
                     </motion.div>
                   )
                 })}
