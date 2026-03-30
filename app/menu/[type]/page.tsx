@@ -226,7 +226,7 @@ export default function MenuPage({ params }: { params: { type: string } }) {
               className={`flex-shrink-0 px-4 py-2 rounded-full text-xs font-semibold tracking-wide transition-all duration-300 ${
                 activeCategory === `cat-${cat.id}`
                   ? 'bg-gradient-to-r from-sky-300 to-blue-400 text-white shadow-lg shadow-sky-300/30 scale-105'
-                  : 'bg-sky-50 text-sky-600 hover:bg-sky-100 hover:text-sky-700'
+                  : 'bg-white/[0.04] text-white/30 hover:bg-white/[0.08] hover:text-white/50'
               }`}
             >
               {cat.icon && <span className="mr-1.5">{cat.icon}</span>}
@@ -267,7 +267,7 @@ export default function MenuPage({ params }: { params: { type: string } }) {
                 </motion.span>
               )}
               <motion.h2
-                className="text-xl font-display font-bold text-gray-900 tracking-tight"
+                className="text-xl font-display font-bold text-white tracking-tight"
                 initial={{ opacity: 0, x: -15 }}
                 whileInView={{ opacity: 1, x: 0 }}
                 viewport={{ once: true }}
@@ -314,21 +314,21 @@ export default function MenuPage({ params }: { params: { type: string } }) {
                           delay: i * 0.04,
                           ease: [0.22, 1, 0.36, 1],
                         }}
-                        className={`group py-3.5 px-4 rounded-xl transition-all duration-300 hover:bg-sky-200/[0.12] menu-item-hover ${
+                        className={`group py-3.5 px-4 rounded-xl transition-all duration-300 hover:bg-sky-400/[0.12] menu-item-hover ${
                           displayPrice === 0 ? 'text-center' : 'flex items-baseline gap-2'
                         }`}
                       >
                         {displayPrice === 0 ? (
-                          <span className="text-[0.9rem] text-sky-700/70 leading-snug group-hover:text-sky-900 transition-colors">
+                          <span className="text-[0.9rem] text-white/70 leading-snug group-hover:text-white transition-colors">
                             {item.name}
                           </span>
                         ) : (
                           <>
-                            <span className="text-[0.9rem] text-sky-700/75 leading-snug flex-shrink-0 max-w-[70%] group-hover:text-sky-900 transition-colors duration-300">
+                            <span className="text-[0.9rem] text-white/75 leading-snug flex-shrink-0 max-w-[70%] group-hover:text-white transition-colors duration-300">
                               {item.name}
                             </span>
-                            <span className="flex-1 border-b border-dotted border-gray-300/[0.04] min-w-[1.5rem] self-end mb-1.5 group-hover:border-sky-400/20 transition-colors duration-500" />
-                            <span className="text-sky-600/90 text-sm font-semibold tracking-wide whitespace-nowrap transition-all duration-300 group-hover:text-sky-800 group-hover:scale-105">
+                            <span className="flex-1 border-b border-dotted border-white/[0.04] min-w-[1.5rem] self-end mb-1.5 group-hover:border-white/20 transition-colors duration-500" />
+                            <span className="text-white/90 text-sm font-semibold tracking-wide whitespace-nowrap transition-all duration-300 group-hover:text-white group-hover:scale-105">
                               {fmt(displayPrice)}
                             </span>
                           </>

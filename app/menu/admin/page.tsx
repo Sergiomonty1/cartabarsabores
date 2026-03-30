@@ -279,7 +279,7 @@ export default function AdminPage() {
 
   if (!menu) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-white">
+      <div className="min-h-screen flex items-center justify-center bg-[#071a35]">
         <div className="w-8 h-8 border-2 border-sky-300 border-t-transparent rounded-full animate-spin" />
       </div>
     )
@@ -290,13 +290,13 @@ export default function AdminPage() {
     .sort((a, b) => a.order - b.order)
 
   return (
-    <div className="min-h-screen bg-white text-gray-900 pb-32">
+    <div className="min-h-screen bg-[#0d0d0d] text-white pb-32">
       {/* ─── top bar ─── */}
-      <div className="sticky top-0 z-50 bg-white/95 backdrop-blur-xl border-b border-gray-200/[0.04] px-4 py-3.5">
+      <div className="sticky top-0 z-50 bg-[#0d0d0d]/95 backdrop-blur-xl border-b border-white/[0.04] px-4 py-3.5">
         <div className="max-w-2xl mx-auto flex items-center justify-between">
           <div>
-            <h1 className="text-lg font-bold text-sky-800">Admin — Carta</h1>
-            <p className="text-xs text-gray-500 mt-0.5">
+            <h1 className="text-lg font-bold text-sky-100">Admin — Carta</h1>
+            <p className="text-xs text-white/30 mt-0.5">
               Edita los platos y precios
             </p>
           </div>
