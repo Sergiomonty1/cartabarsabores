@@ -40,7 +40,7 @@ function GoldenDivider() {
 /* ─── Letter-by-letter text reveal ─── */
 function AnimatedTitle({ text }: { text: string }) {
   return (
-    <h1 className="text-5xl sm:text-6xl font-display font-bold tracking-tight leading-none">
+    <h1 className="text-5xl sm:text-6xl font-display font-bold tracking-tight leading-none text-white drop-shadow-[0_0_30px_rgba(255,255,255,0.4)]">
       {text.split('').map((char, i) => (
         <motion.span
           key={i}
@@ -48,16 +48,10 @@ function AnimatedTitle({ text }: { text: string }) {
           animate={{ opacity: 1, y: 0, rotateX: 0 }}
           transition={{
             duration: 0.5,
-            delay: 0.3 + i * 0.06,
+            delay: 0.3 + i * 0.05,
             ease: [0.22, 1, 0.36, 1],
           }}
           className="inline-block"
-          style={{
-            background: 'linear-gradient(135deg, #60a5fa, #3b82f6, #0ea5e9)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            backgroundClip: 'text',
-          }}
         >
           {char === ' ' ? '\u00A0' : char}
         </motion.span>
@@ -187,15 +181,24 @@ export default function MenuPage({ params }: { params: { type: string } }) {
           initial={{ opacity: 0, scale: 0.7, y: 10 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           transition={{ duration: 0.7, delay: 0.8, type: 'spring' }}
-          className="mt-6 inline-flex items-center gap-2.5 px-6 py-2.5 rounded-full border border-sky-300/15 bg-sky-300/[0.04] backdrop-blur-xl shadow-[0_0_40px_rgba(135,206,235,0.08)]"
+          className="mt-6 inline-flex items-center rounded-full bg-white/10 p-1 border border-white/20 backdrop-blur-xl"
         >
-          <span className="relative flex h-2 w-2">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-sky-200 opacity-50" />
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-sky-200 shadow-[0_0_8px_rgba(135,206,235,0.6)]" />
-          </span>
-          <span className="text-sm font-semibold text-sky-600/80 tracking-wider uppercase">
-            {label}
-          </span>
+          <a
+            href="/menu/tapas"
+            className={`flex-1 text-center px-4 py-2 rounded-full font-semibold transition ${
+              isTapas ? 'bg-white text-[#031f4a] shadow-md' : 'text-white/70 hover:text-white'
+            }`}
+          >
+            Tapas
+          </a>
+          <a
+            href="/menu/medias"
+            className={`flex-1 text-center px-4 py-2 rounded-full font-semibold transition ${
+              !isTapas ? 'bg-white text-[#031f4a] shadow-md' : 'text-white/70 hover:text-white'
+            }`}
+          >
+            Media
+          </a>
         </motion.div>
 
         <div className="mt-8 mx-auto w-32">
@@ -344,39 +347,7 @@ export default function MenuPage({ params }: { params: { type: string } }) {
         ))}
       </div>
 
-      {/* ─── Bottom bar with glow pulse ─── */}
-      <div className="fixed bottom-0 left-0 right-0 z-50 px-4 pb-5 pt-8 bg-gradient-to-t from-[#080808] via-[#080808]/95 to-transparent pointer-events-none">
-        <motion.div
-          className="pointer-events-auto max-w-lg mx-auto"
-          initial={{ y: 30, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 1, duration: 0.6, type: 'spring' }}
-        >
-          <a
-            href={isTapas ? '/menu/medias' : '/menu/tapas'}
-            className="group relative flex items-center justify-center gap-2.5 w-full py-4 rounded-2xl bg-gradient-to-r from-sky-600/12 to-blue-700/10 border border-sky-500/20 text-sky-100 text-sm font-semibold tracking-wide transition-all hover:from-sky-600/20 hover:to-blue-700/20 hover:border-sky-400/30 active:scale-[0.98] backdrop-blur-xl overflow-hidden"
-          >
-            {/* Glow sweep on hover */}
-            <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
-              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-sky-400/10 to-transparent animate-shimmer" />
-            </div>
-            <svg
-              className="w-4 h-4 relative z-10 transition-transform group-hover:rotate-180 duration-500"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={2}
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"
-              />
-            </svg>
-            <span className="relative z-10">Ver carta de {isTapas ? 'Medias Raciones' : 'Tapas'}</span>
-          </a>
-        </motion.div>
-      </div>
+
     </div>
   )
 }
