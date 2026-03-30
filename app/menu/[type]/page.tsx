@@ -31,8 +31,8 @@ function GoldenDivider() {
       viewport={{ once: true }}
       transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
     >
-      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-sky-400/40 to-transparent" />
-      <div className="absolute inset-0 w-20 bg-gradient-to-r from-transparent via-sky-300/70 to-transparent animate-shimmer" />
+      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-sky-200/40 to-transparent" />
+      <div className="absolute inset-0 w-20 bg-gradient-to-r from-transparent via-sky-100/70 to-transparent animate-shimmer" />
     </motion.div>
   )
 }
@@ -172,7 +172,7 @@ export default function MenuPage({ params }: { params: { type: string } }) {
           </motion.div>
 
           <motion.p
-            className="text-sky-300/40 text-[10px] font-semibold tracking-[0.4em] uppercase mb-3"
+            className="text-sky-500/60 text-[10px] font-semibold tracking-[0.4em] uppercase mb-3"
             initial={{ opacity: 0, letterSpacing: '0.8em' }}
             animate={{ opacity: 1, letterSpacing: '0.4em' }}
             transition={{ duration: 1, delay: 0.2 }}
@@ -187,13 +187,13 @@ export default function MenuPage({ params }: { params: { type: string } }) {
           initial={{ opacity: 0, scale: 0.7, y: 10 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           transition={{ duration: 0.7, delay: 0.8, type: 'spring' }}
-          className="mt-6 inline-flex items-center gap-2.5 px-6 py-2.5 rounded-full border border-sky-500/15 bg-sky-500/[0.04] backdrop-blur-xl shadow-[0_0_40px_rgba(56,189,248,0.08)]"
+          className="mt-6 inline-flex items-center gap-2.5 px-6 py-2.5 rounded-full border border-sky-300/15 bg-sky-300/[0.04] backdrop-blur-xl shadow-[0_0_40px_rgba(135,206,235,0.08)]"
         >
           <span className="relative flex h-2 w-2">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-sky-400 opacity-50" />
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-sky-400 shadow-[0_0_8px_rgba(56,189,248,0.6)]" />
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-sky-200 opacity-50" />
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-sky-200 shadow-[0_0_8px_rgba(135,206,235,0.6)]" />
           </span>
-          <span className="text-sm font-semibold text-sky-200/80 tracking-wider uppercase">
+          <span className="text-sm font-semibold text-sky-600/80 tracking-wider uppercase">
             {label}
           </span>
         </motion.div>
@@ -225,8 +225,8 @@ export default function MenuPage({ params }: { params: { type: string } }) {
               whileTap={{ scale: 0.93 }}
               className={`flex-shrink-0 px-4 py-2 rounded-full text-xs font-semibold tracking-wide transition-all duration-300 ${
                 activeCategory === `cat-${cat.id}`
-                  ? 'bg-gradient-to-r from-sky-500 to-blue-500 text-white shadow-lg shadow-sky-500/30 scale-105'
-                  : 'bg-white/[0.04] text-white/30 hover:bg-white/[0.08] hover:text-white/50'
+                  ? 'bg-gradient-to-r from-sky-300 to-blue-400 text-white shadow-lg shadow-sky-300/30 scale-105'
+                  : 'bg-sky-50 text-sky-600 hover:bg-sky-100 hover:text-sky-700'
               }`}
             >
               {cat.icon && <span className="mr-1.5">{cat.icon}</span>}
@@ -267,7 +267,7 @@ export default function MenuPage({ params }: { params: { type: string } }) {
                 </motion.span>
               )}
               <motion.h2
-                className="text-xl font-display font-bold text-sky-100 tracking-tight"
+                className="text-xl font-display font-bold text-gray-900 tracking-tight"
                 initial={{ opacity: 0, x: -15 }}
                 whileInView={{ opacity: 1, x: 0 }}
                 viewport={{ once: true }}
@@ -276,7 +276,7 @@ export default function MenuPage({ params }: { params: { type: string } }) {
                 {cat.name}
               </motion.h2>
               <motion.div
-                className="flex-1 h-px bg-gradient-to-r from-sky-500/25 to-transparent"
+                className="flex-1 h-px bg-gradient-to-r from-sky-300/25 to-transparent"
                 initial={{ scaleX: 0, originX: 0 }}
                 whileInView={{ scaleX: 1 }}
                 viewport={{ once: true }}
@@ -314,21 +314,21 @@ export default function MenuPage({ params }: { params: { type: string } }) {
                           delay: i * 0.04,
                           ease: [0.22, 1, 0.36, 1],
                         }}
-                        className={`group py-3.5 px-4 rounded-xl transition-all duration-300 hover:bg-sky-400/[0.12] menu-item-hover ${
+                        className={`group py-3.5 px-4 rounded-xl transition-all duration-300 hover:bg-sky-200/[0.12] menu-item-hover ${
                           displayPrice === 0 ? 'text-center' : 'flex items-baseline gap-2'
                         }`}
                       >
                         {displayPrice === 0 ? (
-                          <span className="text-[0.9rem] text-sky-100/70 leading-snug group-hover:text-sky-100 transition-colors">
+                          <span className="text-[0.9rem] text-sky-700/70 leading-snug group-hover:text-sky-900 transition-colors">
                             {item.name}
                           </span>
                         ) : (
                           <>
-                            <span className="text-[0.9rem] text-sky-100/75 leading-snug flex-shrink-0 max-w-[70%] group-hover:text-sky-100 transition-colors duration-300">
+                            <span className="text-[0.9rem] text-sky-700/75 leading-snug flex-shrink-0 max-w-[70%] group-hover:text-sky-900 transition-colors duration-300">
                               {item.name}
                             </span>
-                            <span className="flex-1 border-b border-dotted border-white/[0.04] min-w-[1.5rem] self-end mb-1.5 group-hover:border-sky-300/20 transition-colors duration-500" />
-                            <span className="text-sky-300/90 text-sm font-semibold tracking-wide whitespace-nowrap transition-all duration-300 group-hover:text-sky-200 group-hover:scale-105">
+                            <span className="flex-1 border-b border-dotted border-gray-300/[0.04] min-w-[1.5rem] self-end mb-1.5 group-hover:border-sky-400/20 transition-colors duration-500" />
+                            <span className="text-sky-600/90 text-sm font-semibold tracking-wide whitespace-nowrap transition-all duration-300 group-hover:text-sky-800 group-hover:scale-105">
                               {fmt(displayPrice)}
                             </span>
                           </>

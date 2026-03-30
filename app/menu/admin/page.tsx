@@ -98,7 +98,7 @@ function PasscodeGate({ onUnlock }: { onUnlock: () => void }) {
             value={code}
             onChange={(e) => setCode(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && check()}
-            className={`w-full px-4 py-3.5 rounded-xl bg-white/5 border text-white placeholder:text-white/20 text-center text-xl tracking-[0.4em] focus:outline-none focus:ring-2 focus:ring-sky-400/40 transition-all ${
+            className={`w-full px-4 py-3.5 rounded-xl bg-white/5 border text-gray-900 placeholder:text-gray-400 text-center text-xl tracking-[0.4em] focus:outline-none focus:ring-2 focus:ring-sky-200/40 transition-all ${
               error
                 ? 'border-red-500 animate-[shake_0.3s_ease-in-out]'
                 : 'border-white/10'
@@ -107,7 +107,7 @@ function PasscodeGate({ onUnlock }: { onUnlock: () => void }) {
           />
           <button
             onClick={check}
-            className="w-full py-3.5 rounded-xl bg-sky-500 text-black font-bold tracking-wide hover:bg-sky-400 transition-colors"
+            className="w-full py-3.5 rounded-xl bg-sky-300 text-black font-bold tracking-wide hover:bg-sky-200 transition-colors"
           >
             Entrar
           </button>
@@ -279,8 +279,8 @@ export default function AdminPage() {
 
   if (!menu) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#071a35]">
-        <div className="w-8 h-8 border-2 border-sky-500 border-t-transparent rounded-full animate-spin" />
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <div className="w-8 h-8 border-2 border-sky-300 border-t-transparent rounded-full animate-spin" />
       </div>
     )
   }
@@ -290,20 +290,20 @@ export default function AdminPage() {
     .sort((a, b) => a.order - b.order)
 
   return (
-    <div className="min-h-screen bg-[#0d0d0d] text-white pb-32">
+    <div className="min-h-screen bg-white text-gray-900 pb-32">
       {/* ─── top bar ─── */}
-      <div className="sticky top-0 z-50 bg-[#0d0d0d]/95 backdrop-blur-xl border-b border-white/[0.04] px-4 py-3.5">
+      <div className="sticky top-0 z-50 bg-white/95 backdrop-blur-xl border-b border-gray-200/[0.04] px-4 py-3.5">
         <div className="max-w-2xl mx-auto flex items-center justify-between">
           <div>
-            <h1 className="text-lg font-bold text-sky-100">Admin — Carta</h1>
-            <p className="text-xs text-white/30 mt-0.5">
+            <h1 className="text-lg font-bold text-sky-800">Admin — Carta</h1>
+            <p className="text-xs text-gray-500 mt-0.5">
               Edita los platos y precios
             </p>
           </div>
           <div className="flex gap-2">
             <button
               onClick={resetToDefaults}
-              className="px-3 py-1.5 rounded-lg text-xs bg-white/5 text-white/40 hover:bg-white/10 hover:text-white/60 transition-colors"
+              className="px-3 py-1.5 rounded-lg text-xs bg-gray-50 text-gray-600 hover:bg-gray-100 hover:text-gray-800 transition-colors"
             >
               Reset
             </button>
@@ -315,7 +315,7 @@ export default function AdminPage() {
                   ? 'bg-red-500 text-white'
                   : saved
                   ? 'bg-green-500 text-black'
-                  : 'bg-sky-500 text-black hover:bg-sky-400'
+                  : 'bg-sky-300 text-black hover:bg-sky-200'
               }`}
             >
               {saving ? 'Guardando…' : saveError ? '✕ Error' : saved ? '✓ Guardado' : 'Guardar'}
@@ -326,14 +326,14 @@ export default function AdminPage() {
 
       {/* ─── bar name ─── */}
       <div className="max-w-2xl mx-auto px-4 pt-6 pb-3">
-        <label className="text-[10px] text-white/30 uppercase tracking-wider font-semibold">
+        <label className="text-[10px] text-gray-500 uppercase tracking-wider font-semibold">
           Nombre del bar
         </label>
         <input
           type="text"
           value={menu.barName}
           onChange={(e) => setMenu({ ...menu, barName: e.target.value })}
-          className="mt-1.5 w-full px-3 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-sky-400/40 text-sm"
+          className="mt-1.5 w-full px-3 py-2.5 rounded-xl bg-gray-50 border border-gray-300 text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-200/40 text-sm"
         />
       </div>
 
@@ -383,7 +383,7 @@ export default function AdminPage() {
                 onChange={(e) =>
                   updateCategory(cat.id, { order: Number(e.target.value) })
                 }
-                className="w-12 text-center bg-white/5 rounded-lg text-xs text-white/50 py-1.5 focus:outline-none"
+                className="w-12 text-center bg-gray-50 rounded-lg text-xs text-gray-600 py-1.5 focus:outline-none"
                 title="Orden"
               />
               <button
@@ -408,7 +408,7 @@ export default function AdminPage() {
                     <div
                       key={item.id}
                       className={`px-4 py-3 transition-colors ${
-                        isEditing ? 'bg-sky-500/[0.05]' : 'hover:bg-white/[0.015]'
+                        isEditing ? 'bg-sky-300/[0.05]' : 'hover:bg-white/[0.015]'
                       }`}
                     >
                       {isEditing ? (
@@ -419,7 +419,7 @@ export default function AdminPage() {
                             onChange={(e) =>
                               updateItem(cat.id, item.id, { name: e.target.value })
                             }
-                            className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-white focus:outline-none focus:ring-1 focus:ring-sky-400/40"
+                            className="w-full px-3 py-2 rounded-lg bg-gray-50 border border-gray-300 text-sm text-gray-900 focus:outline-none focus:ring-1 focus:ring-sky-200/40"
                             placeholder="Nombre del plato"
                             autoFocus
                             onFocus={(e) => {
@@ -428,7 +428,7 @@ export default function AdminPage() {
                           />
                           <div className="flex gap-2.5 items-end">
                             <div className="flex-1">
-                              <label className="text-[10px] text-white/25 uppercase font-semibold">
+                              <label className="text-[10px] text-gray-500 uppercase font-semibold">
                                 Tapa €
                               </label>
                               <PriceInput
@@ -442,7 +442,7 @@ export default function AdminPage() {
                               />
                             </div>
                             <div className="flex-1">
-                              <label className="text-[10px] text-white/25 uppercase font-semibold">
+                              <label className="text-[10px] text-gray-500 uppercase font-semibold">
                                 Media €
                               </label>
                               <PriceInput
@@ -467,13 +467,13 @@ export default function AdminPage() {
                                 }
                                 className="accent-sky-500"
                               />
-                              <span className="text-[10px] text-white/30 whitespace-nowrap">
+                              <span className="text-[10px] text-gray-500 whitespace-nowrap">
                                 = precio
                               </span>
                             </label>
                           </div>
                           <div className="flex gap-2 items-center">
-                            <label className="text-[10px] text-white/25 uppercase font-semibold">
+                            <label className="text-[10px] text-gray-500 uppercase font-semibold">
                               Orden
                             </label>
                             <input
@@ -484,7 +484,7 @@ export default function AdminPage() {
                                   order: Number(e.target.value),
                                 })
                               }
-                              className="w-16 px-2 py-1.5 rounded-lg bg-white/5 border border-white/10 text-sm text-white focus:outline-none"
+                              className="w-16 px-2 py-1.5 rounded-lg bg-gray-50 border border-gray-300 text-sm text-gray-900 focus:outline-none"
                             />
                             <div className="flex-1" />
                             <button
@@ -495,7 +495,7 @@ export default function AdminPage() {
                             </button>
                             <button
                               onClick={() => setEditingItem(null)}
-                              className="text-xs px-4 py-1.5 rounded-lg bg-sky-500 text-black font-bold"
+                              className="text-xs px-4 py-1.5 rounded-lg bg-sky-300 text-black font-bold"
                             >
                               OK
                             </button>
@@ -508,7 +508,7 @@ export default function AdminPage() {
                             setEditingItem({ catId: cat.id, itemId: item.id })
                           }
                         >
-                          <span className="text-sm text-white/70 flex-1 truncate">
+                          <span className="text-sm text-gray-700 flex-1 truncate">
                             {item.name}
                           </span>
                           <span className="text-xs text-sky-200/70 whitespace-nowrap font-medium">
@@ -544,7 +544,7 @@ export default function AdminPage() {
         {/* add category */}
         <button
           onClick={addCategory}
-          className="w-full py-4 rounded-2xl border border-dashed border-white/[0.06] text-sm text-white/20 hover:border-sky-500/25 hover:text-sky-200/50 transition-colors"
+          className="w-full py-4 rounded-2xl border border-dashed border-gray-300/[0.06] text-sm text-gray-600 hover:border-sky-300/25 hover:text-sky-700/50 transition-colors"
         >
           + Añadir categoría
         </button>
@@ -561,7 +561,7 @@ export default function AdminPage() {
                 ? 'bg-red-500 text-white'
                 : saved
                 ? 'bg-green-500 text-black'
-                : 'bg-sky-500 text-black hover:bg-sky-400'
+                : 'bg-sky-300 text-black hover:bg-sky-200'
             }`}
           >
             {saving
