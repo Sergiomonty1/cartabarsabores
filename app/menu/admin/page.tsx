@@ -83,9 +83,9 @@ function PasscodeGate({ onUnlock }: { onUnlock: () => void }) {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#0d0d0d] px-6">
+    <div className="min-h-screen flex items-center justify-center bg-[#071a35] px-6">
       <div className="w-full max-w-xs">
-        <h1 className="text-2xl font-bold text-amber-50 text-center mb-1">
+        <h1 className="text-2xl font-bold text-sky-100 text-center mb-1">
           Panel Admin
         </h1>
         <p className="text-center text-white/30 text-sm mb-8">
@@ -98,7 +98,7 @@ function PasscodeGate({ onUnlock }: { onUnlock: () => void }) {
             value={code}
             onChange={(e) => setCode(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && check()}
-            className={`w-full px-4 py-3.5 rounded-xl bg-white/5 border text-white placeholder:text-white/20 text-center text-xl tracking-[0.4em] focus:outline-none focus:ring-2 focus:ring-amber-500/40 transition-all ${
+            className={`w-full px-4 py-3.5 rounded-xl bg-white/5 border text-white placeholder:text-white/20 text-center text-xl tracking-[0.4em] focus:outline-none focus:ring-2 focus:ring-sky-400/40 transition-all ${
               error
                 ? 'border-red-500 animate-[shake_0.3s_ease-in-out]'
                 : 'border-white/10'
@@ -107,7 +107,7 @@ function PasscodeGate({ onUnlock }: { onUnlock: () => void }) {
           />
           <button
             onClick={check}
-            className="w-full py-3.5 rounded-xl bg-amber-500 text-black font-bold tracking-wide hover:bg-amber-400 transition-colors"
+            className="w-full py-3.5 rounded-xl bg-sky-500 text-black font-bold tracking-wide hover:bg-sky-400 transition-colors"
           >
             Entrar
           </button>
@@ -279,8 +279,8 @@ export default function AdminPage() {
 
   if (!menu) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#0d0d0d]">
-        <div className="w-8 h-8 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
+      <div className="min-h-screen flex items-center justify-center bg-[#071a35]">
+        <div className="w-8 h-8 border-2 border-sky-500 border-t-transparent rounded-full animate-spin" />
       </div>
     )
   }
@@ -295,7 +295,7 @@ export default function AdminPage() {
       <div className="sticky top-0 z-50 bg-[#0d0d0d]/95 backdrop-blur-xl border-b border-white/[0.04] px-4 py-3.5">
         <div className="max-w-2xl mx-auto flex items-center justify-between">
           <div>
-            <h1 className="text-lg font-bold text-amber-50">Admin — Carta</h1>
+            <h1 className="text-lg font-bold text-sky-100">Admin — Carta</h1>
             <p className="text-xs text-white/30 mt-0.5">
               Edita los platos y precios
             </p>
@@ -315,7 +315,7 @@ export default function AdminPage() {
                   ? 'bg-red-500 text-white'
                   : saved
                   ? 'bg-green-500 text-black'
-                  : 'bg-amber-500 text-black hover:bg-amber-400'
+                  : 'bg-sky-500 text-black hover:bg-sky-400'
               }`}
             >
               {saving ? 'Guardando…' : saveError ? '✕ Error' : saved ? '✓ Guardado' : 'Guardar'}
@@ -333,7 +333,7 @@ export default function AdminPage() {
           type="text"
           value={menu.barName}
           onChange={(e) => setMenu({ ...menu, barName: e.target.value })}
-          className="mt-1.5 w-full px-3 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-amber-500/40 text-sm"
+          className="mt-1.5 w-full px-3 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-sky-400/40 text-sm"
         />
       </div>
 
@@ -342,14 +342,14 @@ export default function AdminPage() {
         <a
           href="/menu/tapas"
           target="_blank"
-          className="text-xs text-amber-400/70 hover:text-amber-400 hover:underline transition-colors"
+          className="text-xs text-sky-200/70 hover:text-sky-100 hover:underline transition-colors"
         >
           ↗ Ver carta Tapas
         </a>
         <a
           href="/menu/medias"
           target="_blank"
-          className="text-xs text-amber-400/70 hover:text-amber-400 hover:underline transition-colors"
+          className="text-xs text-sky-200/70 hover:text-sky-100 hover:underline transition-colors"
         >
           ↗ Ver carta Medias
         </a>
@@ -375,7 +375,7 @@ export default function AdminPage() {
                 type="text"
                 value={cat.name}
                 onChange={(e) => updateCategory(cat.id, { name: e.target.value })}
-                className="flex-1 bg-transparent text-amber-50 font-semibold focus:outline-none border-b border-transparent focus:border-amber-500/40 transition-colors"
+                className="flex-1 bg-transparent text-sky-100 font-semibold focus:outline-none border-b border-transparent focus:border-sky-500/40 transition-colors"
               />
               <input
                 type="number"
@@ -408,7 +408,7 @@ export default function AdminPage() {
                     <div
                       key={item.id}
                       className={`px-4 py-3 transition-colors ${
-                        isEditing ? 'bg-amber-500/[0.04]' : 'hover:bg-white/[0.015]'
+                        isEditing ? 'bg-sky-500/[0.05]' : 'hover:bg-white/[0.015]'
                       }`}
                     >
                       {isEditing ? (
@@ -419,7 +419,7 @@ export default function AdminPage() {
                             onChange={(e) =>
                               updateItem(cat.id, item.id, { name: e.target.value })
                             }
-                            className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-white focus:outline-none focus:ring-1 focus:ring-amber-500/40"
+                            className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-white focus:outline-none focus:ring-1 focus:ring-sky-400/40"
                             placeholder="Nombre del plato"
                             autoFocus
                             onFocus={(e) => {
@@ -465,7 +465,7 @@ export default function AdminPage() {
                                       : {}),
                                   })
                                 }
-                                className="accent-amber-500"
+                                className="accent-sky-500"
                               />
                               <span className="text-[10px] text-white/30 whitespace-nowrap">
                                 = precio
@@ -495,7 +495,7 @@ export default function AdminPage() {
                             </button>
                             <button
                               onClick={() => setEditingItem(null)}
-                              className="text-xs px-4 py-1.5 rounded-lg bg-amber-500 text-black font-bold"
+                              className="text-xs px-4 py-1.5 rounded-lg bg-sky-500 text-black font-bold"
                             >
                               OK
                             </button>
@@ -511,13 +511,13 @@ export default function AdminPage() {
                           <span className="text-sm text-white/70 flex-1 truncate">
                             {item.name}
                           </span>
-                          <span className="text-xs text-amber-400/70 whitespace-nowrap font-medium">
+                          <span className="text-xs text-sky-200/70 whitespace-nowrap font-medium">
                             {item.priceTapa > 0
                               ? `${item.priceTapa.toFixed(2)}€`
                               : '—'}
                           </span>
                           {!item.samePrice && (
-                            <span className="text-xs text-amber-400/40 whitespace-nowrap">
+                            <span className="text-xs text-sky-200/40 whitespace-nowrap">
                               /{' '}
                               {item.priceMedia > 0
                                 ? `${item.priceMedia.toFixed(2)}€`
@@ -534,7 +534,7 @@ export default function AdminPage() {
             {/* add item */}
             <button
               onClick={() => addItem(cat.id)}
-              className="w-full px-4 py-2.5 text-xs text-amber-400/40 hover:text-amber-400 hover:bg-white/[0.02] transition-colors text-left"
+              className="w-full px-4 py-2.5 text-xs text-sky-200/40 hover:text-sky-100 hover:bg-white/[0.02] transition-colors text-left"
             >
               + Añadir plato
             </button>
@@ -544,14 +544,14 @@ export default function AdminPage() {
         {/* add category */}
         <button
           onClick={addCategory}
-          className="w-full py-4 rounded-2xl border border-dashed border-white/[0.06] text-sm text-white/20 hover:border-amber-500/25 hover:text-amber-400/50 transition-colors"
+          className="w-full py-4 rounded-2xl border border-dashed border-white/[0.06] text-sm text-white/20 hover:border-sky-500/25 hover:text-sky-200/50 transition-colors"
         >
           + Añadir categoría
         </button>
       </div>
 
       {/* ─── floating save ─── */}
-      <div className="fixed bottom-0 left-0 right-0 z-50 bg-gradient-to-t from-[#0d0d0d] via-[#0d0d0d]/95 to-transparent p-4 pointer-events-none">
+      <div className="fixed bottom-0 left-0 right-0 z-50 bg-gradient-to-t from-[#071a35] via-[#071a35]/95 to-transparent p-4 pointer-events-none">
         <div className="pointer-events-auto max-w-2xl mx-auto">
           <button
             onClick={save}
@@ -561,7 +561,7 @@ export default function AdminPage() {
                 ? 'bg-red-500 text-white'
                 : saved
                 ? 'bg-green-500 text-black'
-                : 'bg-amber-500 text-black hover:bg-amber-400'
+                : 'bg-sky-500 text-black hover:bg-sky-400'
             }`}
           >
             {saving

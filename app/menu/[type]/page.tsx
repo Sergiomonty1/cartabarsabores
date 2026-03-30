@@ -31,8 +31,8 @@ function GoldenDivider() {
       viewport={{ once: true }}
       transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
     >
-      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-amber-500/40 to-transparent" />
-      <div className="absolute inset-0 w-20 bg-gradient-to-r from-transparent via-amber-300/70 to-transparent animate-shimmer" />
+      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-sky-400/40 to-transparent" />
+      <div className="absolute inset-0 w-20 bg-gradient-to-r from-transparent via-sky-300/70 to-transparent animate-shimmer" />
     </motion.div>
   )
 }
@@ -53,7 +53,7 @@ function AnimatedTitle({ text }: { text: string }) {
           }}
           className="inline-block"
           style={{
-            background: 'linear-gradient(135deg, #fbbf24, #f59e0b, #d97706)',
+            background: 'linear-gradient(135deg, #60a5fa, #3b82f6, #0ea5e9)',
             WebkitBackgroundClip: 'text',
             WebkitTextFillColor: 'transparent',
             backgroundClip: 'text',
@@ -118,7 +118,7 @@ export default function MenuPage({ params }: { params: { type: string } }) {
     .sort((a, b) => a.order - b.order)
 
   return (
-    <div className="min-h-screen bg-[#080808] text-white overflow-x-hidden relative">
+    <div className="min-h-screen bg-[#031f4a] text-white overflow-x-hidden relative">
       <GradientOrbs />
 
       {/* ─── Hero with parallax ─── */}
@@ -131,7 +131,7 @@ export default function MenuPage({ params }: { params: { type: string } }) {
         <div className="absolute top-[-60px] left-1/2 -translate-x-1/2 w-80 h-80 pointer-events-none">
           <div className="w-full h-full rounded-full animate-spin-slow"
             style={{
-              background: 'conic-gradient(from 0deg, transparent, rgba(245,158,11,0.06), transparent, rgba(217,119,6,0.04), transparent)',
+              background: 'conic-gradient(from 0deg, transparent, rgba(56,189,248,0.08), transparent, rgba(59,130,246,0.05), transparent)',
             }}
           />
         </div>
@@ -148,31 +148,31 @@ export default function MenuPage({ params }: { params: { type: string } }) {
             animate={{ opacity: 1, scale: 1, rotate: 0 }}
             transition={{ duration: 1, delay: 0.1, type: 'spring', stiffness: 100, damping: 15 }}
           >
-            <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full drop-shadow-[0_0_20px_rgba(245,158,11,0.15)]">
+            <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full drop-shadow-[0_0_20px_rgba(56,189,248,0.25)]">
               <circle cx="32" cy="32" r="30" stroke="url(#logoGrad)" strokeWidth="1" opacity="0.5"/>
-              <circle cx="32" cy="32" r="22" stroke="#f59e0b" strokeWidth="0.5" opacity="0.2" strokeDasharray="4 3"/>
-              <g stroke="#fbbf24" strokeWidth="1.2" strokeLinecap="round" opacity="0.9">
+              <circle cx="32" cy="32" r="22" stroke="#60a5fa" strokeWidth="0.5" opacity="0.2" strokeDasharray="4 3"/>
+              <g stroke="#38bdf8" strokeWidth="1.2" strokeLinecap="round" opacity="0.9">
                 <line x1="24" y1="18" x2="24" y2="28"/>
                 <line x1="24" y1="28" x2="24" y2="46"/>
                 <line x1="21" y1="18" x2="21" y2="26"/>
                 <line x1="27" y1="18" x2="27" y2="26"/>
                 <path d="M21 26 Q21 30 24 30 Q27 30 27 26"/>
               </g>
-              <g stroke="#fbbf24" strokeWidth="1.2" strokeLinecap="round" opacity="0.9">
+              <g stroke="#38bdf8" strokeWidth="1.2" strokeLinecap="round" opacity="0.9">
                 <line x1="40" y1="30" x2="40" y2="46"/>
-                <path d="M40 18 Q46 24 43 30 L40 30 Z" fill="#fbbf24" fillOpacity="0.15"/>
+                <path d="M40 18 Q46 24 43 30 L40 30 Z" fill="#38bdf8" fillOpacity="0.15"/>
               </g>
               <defs>
                 <linearGradient id="logoGrad" x1="0" y1="0" x2="64" y2="64">
-                  <stop offset="0%" stopColor="#fbbf24"/>
-                  <stop offset="100%" stopColor="#d97706"/>
+                  <stop offset="0%" stopColor="#38bdf8"/>
+                  <stop offset="100%" stopColor="#0ea5e9"/>
                 </linearGradient>
               </defs>
             </svg>
           </motion.div>
 
           <motion.p
-            className="text-amber-400/40 text-[10px] font-semibold tracking-[0.4em] uppercase mb-3"
+            className="text-sky-300/40 text-[10px] font-semibold tracking-[0.4em] uppercase mb-3"
             initial={{ opacity: 0, letterSpacing: '0.8em' }}
             animate={{ opacity: 1, letterSpacing: '0.4em' }}
             transition={{ duration: 1, delay: 0.2 }}
@@ -187,13 +187,13 @@ export default function MenuPage({ params }: { params: { type: string } }) {
           initial={{ opacity: 0, scale: 0.7, y: 10 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           transition={{ duration: 0.7, delay: 0.8, type: 'spring' }}
-          className="mt-6 inline-flex items-center gap-2.5 px-6 py-2.5 rounded-full border border-amber-500/15 bg-amber-500/[0.04] backdrop-blur-xl shadow-[0_0_40px_rgba(245,158,11,0.05)]"
+          className="mt-6 inline-flex items-center gap-2.5 px-6 py-2.5 rounded-full border border-sky-500/15 bg-sky-500/[0.04] backdrop-blur-xl shadow-[0_0_40px_rgba(56,189,248,0.08)]"
         >
           <span className="relative flex h-2 w-2">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-50" />
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.6)]" />
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-sky-400 opacity-50" />
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-sky-400 shadow-[0_0_8px_rgba(56,189,248,0.6)]" />
           </span>
-          <span className="text-sm font-semibold text-amber-300/80 tracking-wider uppercase">
+          <span className="text-sm font-semibold text-sky-200/80 tracking-wider uppercase">
             {label}
           </span>
         </motion.div>
@@ -204,7 +204,7 @@ export default function MenuPage({ params }: { params: { type: string } }) {
       </motion.header>
 
       {/* ─── Sticky category nav ─── */}
-      <nav className="sticky top-0 z-40 bg-[#080808]/70 backdrop-blur-2xl border-b border-white/[0.03]">
+      <nav className="sticky top-0 z-40 bg-[#031f4a]/70 backdrop-blur-2xl border-b border-white/[0.08]">
         <div
           ref={navRef}
           className="flex gap-1.5 px-4 py-3 overflow-x-auto scrollbar-hide"
@@ -225,7 +225,7 @@ export default function MenuPage({ params }: { params: { type: string } }) {
               whileTap={{ scale: 0.93 }}
               className={`flex-shrink-0 px-4 py-2 rounded-full text-xs font-semibold tracking-wide transition-all duration-300 ${
                 activeCategory === `cat-${cat.id}`
-                  ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-black shadow-lg shadow-amber-500/25 scale-105'
+                  ? 'bg-gradient-to-r from-sky-500 to-blue-500 text-white shadow-lg shadow-sky-500/30 scale-105'
                   : 'bg-white/[0.04] text-white/30 hover:bg-white/[0.08] hover:text-white/50'
               }`}
             >
@@ -267,7 +267,7 @@ export default function MenuPage({ params }: { params: { type: string } }) {
                 </motion.span>
               )}
               <motion.h2
-                className="text-xl font-display font-bold text-amber-50 tracking-tight"
+                className="text-xl font-display font-bold text-sky-100 tracking-tight"
                 initial={{ opacity: 0, x: -15 }}
                 whileInView={{ opacity: 1, x: 0 }}
                 viewport={{ once: true }}
@@ -276,7 +276,7 @@ export default function MenuPage({ params }: { params: { type: string } }) {
                 {cat.name}
               </motion.h2>
               <motion.div
-                className="flex-1 h-px bg-gradient-to-r from-amber-500/25 to-transparent"
+                className="flex-1 h-px bg-gradient-to-r from-sky-500/25 to-transparent"
                 initial={{ scaleX: 0, originX: 0 }}
                 whileInView={{ scaleX: 1 }}
                 viewport={{ once: true }}
@@ -314,21 +314,21 @@ export default function MenuPage({ params }: { params: { type: string } }) {
                           delay: i * 0.04,
                           ease: [0.22, 1, 0.36, 1],
                         }}
-                        className={`group py-3.5 px-4 rounded-xl transition-all duration-300 hover:bg-amber-500/[0.04] menu-item-hover ${
+                        className={`group py-3.5 px-4 rounded-xl transition-all duration-300 hover:bg-sky-400/[0.12] menu-item-hover ${
                           displayPrice === 0 ? 'text-center' : 'flex items-baseline gap-2'
                         }`}
                       >
                         {displayPrice === 0 ? (
-                          <span className="text-[0.9rem] text-amber-100/70 leading-snug group-hover:text-amber-100 transition-colors">
+                          <span className="text-[0.9rem] text-sky-100/70 leading-snug group-hover:text-sky-100 transition-colors">
                             {item.name}
                           </span>
                         ) : (
                           <>
-                            <span className="text-[0.9rem] text-amber-100/75 leading-snug flex-shrink-0 max-w-[70%] group-hover:text-amber-100 transition-colors duration-300">
+                            <span className="text-[0.9rem] text-sky-100/75 leading-snug flex-shrink-0 max-w-[70%] group-hover:text-sky-100 transition-colors duration-300">
                               {item.name}
                             </span>
-                            <span className="flex-1 border-b border-dotted border-white/[0.04] min-w-[1.5rem] self-end mb-1.5 group-hover:border-amber-500/20 transition-colors duration-500" />
-                            <span className="text-amber-400/80 text-sm font-semibold tracking-wide whitespace-nowrap transition-all duration-300 group-hover:text-amber-300 group-hover:scale-105">
+                            <span className="flex-1 border-b border-dotted border-white/[0.04] min-w-[1.5rem] self-end mb-1.5 group-hover:border-sky-300/20 transition-colors duration-500" />
+                            <span className="text-sky-300/90 text-sm font-semibold tracking-wide whitespace-nowrap transition-all duration-300 group-hover:text-sky-200 group-hover:scale-105">
                               {fmt(displayPrice)}
                             </span>
                           </>
@@ -354,11 +354,11 @@ export default function MenuPage({ params }: { params: { type: string } }) {
         >
           <a
             href={isTapas ? '/menu/medias' : '/menu/tapas'}
-            className="group relative flex items-center justify-center gap-2.5 w-full py-4 rounded-2xl bg-gradient-to-r from-amber-600/10 to-orange-600/10 border border-amber-500/15 text-amber-300 text-sm font-semibold tracking-wide transition-all hover:from-amber-600/20 hover:to-orange-600/20 hover:border-amber-500/30 active:scale-[0.98] backdrop-blur-xl overflow-hidden"
+            className="group relative flex items-center justify-center gap-2.5 w-full py-4 rounded-2xl bg-gradient-to-r from-sky-600/12 to-blue-700/10 border border-sky-500/20 text-sky-100 text-sm font-semibold tracking-wide transition-all hover:from-sky-600/20 hover:to-blue-700/20 hover:border-sky-400/30 active:scale-[0.98] backdrop-blur-xl overflow-hidden"
           >
             {/* Glow sweep on hover */}
             <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
-              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-amber-500/10 to-transparent animate-shimmer" />
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-sky-400/10 to-transparent animate-shimmer" />
             </div>
             <svg
               className="w-4 h-4 relative z-10 transition-transform group-hover:rotate-180 duration-500"
