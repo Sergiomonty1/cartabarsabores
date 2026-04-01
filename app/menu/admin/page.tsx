@@ -128,6 +128,7 @@ function PasscodeGate({ onUnlock }: { onUnlock: () => void }) {
 export default function AdminPage() {
   const [authed, setAuthed] = useState(false)
   const [menu, setMenu] = useState<MenuData | null>(null)
+  const [importantDay, setImportantDay] = useState(false)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [saveError, setSaveError] = useState('')
@@ -145,12 +146,19 @@ export default function AdminPage() {
     if (!authed) return
     const filterBebidas = (m: MenuData): MenuData => ({
       ...m,
+      importantDay: m.importantDay ?? false,
       categories: m.categories.filter((c) => c.id !== 'bebidas'),
     })
     // Show defaults instantly so admin panel is usable right away
-    setMenu(filterBebidas(menuService.getDefaultMenu()))
+    const defaultMenu = filterBebidas(menuService.getDefaultMenu())
+    setMenu(defaultMenu)
+    setImportantDay(defaultMenu.importantDay ?? false)
     // Then fetch fresh data from Firestore in background
-    menuService.fetchMenu().then((fresh) => setMenu(filterBebidas(fresh)))
+    menuService.fetchMenu().then((fresh) => {
+      const filtered = filterBebidas(fresh)
+      setMenu(filtered)
+      setImportantDay(filtered.importantDay ?? false)
+    })
   }, [authed])
 
   const save = useCallback(async () => {
@@ -159,9 +167,10 @@ export default function AdminPage() {
     setSaved(false)
     setSaveError('')
     try {
-      // Clean before saving: remove bebidas and empty-name items
+      // Clean before saving: remove bebidas, empty-name items, y mantener importantDay
       const cleanMenu = {
         ...menu,
+        importantDay: menu.importantDay ?? false,
         categories: menu.categories
           .filter((c) => c.id !== 'bebidas')
           .map((c) => ({
@@ -300,7 +309,21 @@ export default function AdminPage() {
               Edita los platos y precios
             </p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => {
+                const next = !importantDay
+                setImportantDay(next)
+                setMenu((prev) => prev ? { ...prev, importantDay: next } : prev)
+              }}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
+                importantDay
+                  ? 'bg-amber-400 text-[#031f4a] hover:bg-amber-300'
+                  : 'bg-white/10 text-white/80 hover:bg-white/20'
+              }`}
+            >
+              Día importante: {importantDay ? 'ON' : 'OFF'}
+            </button>
             <button
               onClick={resetToDefaults}
               className="px-3 py-1.5 rounded-lg text-xs bg-gray-50 text-gray-600 hover:bg-gray-100 hover:text-gray-800 transition-colors"
@@ -324,17 +347,30 @@ export default function AdminPage() {
         </div>
       </div>
 
-      {/* ─── bar name ─── */}
-      <div className="max-w-2xl mx-auto px-4 pt-6 pb-3">
-        <label className="text-[10px] text-gray-500 uppercase tracking-wider font-semibold">
-          Nombre del bar
+      {/* ─── bar name + important day toggle ─── */}
+      <div className="max-w-2xl mx-auto px-4 pt-6 pb-3 space-y-3">
+        <div>
+          <label className="text-[10px] text-gray-500 uppercase tracking-wider font-semibold">
+            Nombre del bar
+          </label>
+          <input
+            type="text"
+            value={menu.barName}
+            onChange={(e) => setMenu({ ...menu, barName: e.target.value })}
+            className="mt-1.5 w-full px-3 py-2.5 rounded-xl bg-gray-50 border border-gray-300 text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-200/40 text-sm"
+          />
+        </div>
+        <label className="flex items-center gap-3 text-sm text-white/90">
+          <input
+            type="checkbox"
+            checked={menu.importantDay ?? false}
+            onChange={(e) =>
+              setMenu({ ...menu, importantDay: e.target.checked })
+            }
+            className="accent-amber-400"
+          />
+          <span className="font-semibold">DÍA IMPORTANTE (Solo medias)</span>
         </label>
-        <input
-          type="text"
-          value={menu.barName}
-          onChange={(e) => setMenu({ ...menu, barName: e.target.value })}
-          className="mt-1.5 w-full px-3 py-2.5 rounded-xl bg-gray-50 border border-gray-300 text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-200/40 text-sm"
-        />
       </div>
 
       {/* ─── preview links ─── */}

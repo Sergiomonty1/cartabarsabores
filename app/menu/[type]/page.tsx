@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useEffect, useState, useRef } from 'react'
+import { useRouter } from 'next/navigation'
 import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion'
 import type { MenuData } from '@/types/menu'
 import { menuService } from '@/lib/menuService'
@@ -61,14 +62,19 @@ function AnimatedTitle({ text }: { text: string }) {
 }
 
 export default function MenuPage({ params }: { params: { type: string } }) {
-  const isTapas = params.type === 'tapas'
-  const label = isTapas ? 'Tapas' : 'Media Ración'
-
+  const isTapasRoute = params.type === 'tapas'
   const [menu, setMenu] = useState<MenuData>(() => menuService.getDefaultMenu())
+  const [importantDay, setImportantDay] = useState(false)
+  const router = useRouter()
   const [activeCategory, setActiveCategory] = useState('')
   const sectionRefs = useRef<Record<string, HTMLElement | null>>({})
   const navRef = useRef<HTMLDivElement>(null)
   const heroRef = useRef<HTMLElement>(null)
+
+  const isImportantDay = menu.importantDay ?? importantDay
+  const isTapas = !isImportantDay && isTapasRoute
+  const label = isTapas ? 'Tapas' : 'Media Ración'
+  const showingTapasBlocked = isImportantDay && isTapasRoute
 
   // Parallax on hero
   const { scrollY } = useScroll()
@@ -76,8 +82,17 @@ export default function MenuPage({ params }: { params: { type: string } }) {
   const heroOpacity = useTransform(scrollY, [0, 300], [1, 0])
 
   useEffect(() => {
-    menuService.fetchMenu().then((fresh) => setMenu(fresh))
+    menuService.fetchMenu().then((fresh) => {
+      setMenu(fresh)
+      setImportantDay(fresh.importantDay ?? false)
+    })
   }, [])
+
+  useEffect(() => {
+    if (importantDay && params.type === 'tapas') {
+      router.replace('/menu/medias')
+    }
+  }, [importantDay, params.type, router])
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -184,12 +199,17 @@ export default function MenuPage({ params }: { params: { type: string } }) {
           className="mt-6 inline-flex items-center rounded-full bg-white/10 p-1 border border-white/20 backdrop-blur-xl"
         >
           <a
-            href="/menu/tapas"
+            href={isImportantDay ? '/menu/medias' : '/menu/tapas'}
             className={`flex-1 text-center px-4 py-2 rounded-full font-semibold transition ${
-              isTapas ? 'bg-white text-[#031f4a] shadow-md' : 'text-white/70 hover:text-white'
+              isImportantDay
+                ? 'bg-white/10 text-white/40 cursor-not-allowed'
+                : isTapas
+                ? 'bg-white text-[#031f4a] shadow-md'
+                : 'text-white/70 hover:text-white'
             }`}
+            aria-disabled={isImportantDay}
           >
-            Tapas
+            {isImportantDay ? 'Tapas (bloqueado)' : 'Tapas'}
           </a>
           <a
             href="/menu/medias"
@@ -201,9 +221,17 @@ export default function MenuPage({ params }: { params: { type: string } }) {
           </a>
         </motion.div>
 
+        {isImportantDay && (
+          <div className="mx-auto mt-4 max-w-lg rounded-xl border border-yellow-300/40 bg-yellow-500/10 p-4 text-center">
+            <p className="text-sm font-bold text-yellow-200">DÍA IMPORTANTE activado</p>
+            <p className="text-[13px] text-yellow-100/95">
+              Carta de Tapas bloqueada. Solo disponible carta de Media Ración.
+            </p>
+          </div>
+        )}
+
         <div className="mt-8 mx-auto w-32">
           <GoldenDivider />
-        </div>
       </motion.header>
 
       {/* ─── Sticky category nav ─── */}
@@ -241,9 +269,23 @@ export default function MenuPage({ params }: { params: { type: string } }) {
 
       {/* ─── Menu sections ─── */}
       <div className="px-5 pb-32 max-w-lg mx-auto relative z-10">
-        {sorted.map((cat, catIndex) => (
-          <section
-            key={cat.id}
+        {showingTapasBlocked ? (
+          <div className="rounded-2xl border border-yellow-400/30 bg-yellow-500/10 p-6 text-center">
+            <p className="text-lg font-semibold text-yellow-200">DÍA IMPORTANTE activado</p>
+            <p className="mt-2 text-sm text-yellow-100">
+              Carta de Tapas bloqueada. Solo está disponible la carta de Media Ración.
+            </p>
+            <a
+              href="/menu/medias"
+              className="mt-4 inline-block px-5 py-2 rounded-lg bg-yellow-300 text-black font-bold hover:bg-yellow-200"
+            >
+              Ir a Media
+            </a>
+          </div>
+        ) : (
+          sorted.map((cat, catIndex) => (
+            <section
+              key={cat.id}
             id={`cat-${cat.id}`}
             ref={(el) => {
               sectionRefs.current[`cat-${cat.id}`] = el
