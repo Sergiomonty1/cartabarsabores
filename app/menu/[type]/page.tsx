@@ -198,27 +198,32 @@ export default function MenuPage({ params }: { params: { type: string } }) {
           transition={{ duration: 0.7, delay: 0.8, type: 'spring' }}
           className="mt-6 inline-flex items-center rounded-full bg-white/10 p-1 border border-white/20 backdrop-blur-xl"
         >
-          <a
-            href={isImportantDay ? '/menu/medias' : '/menu/tapas'}
-            className={`flex-1 text-center px-4 py-2 rounded-full font-semibold transition ${
-              isImportantDay
-                ? 'bg-white/10 text-white/40 cursor-not-allowed'
-                : isTapas
-                ? 'bg-white text-[#031f4a] shadow-md'
-                : 'text-white/70 hover:text-white'
-            }`}
-            aria-disabled={isImportantDay}
-          >
-            {isImportantDay ? 'Tapas (bloqueado)' : 'Tapas'}
-          </a>
-          <a
-            href="/menu/medias"
-            className={`flex-1 text-center px-4 py-2 rounded-full font-semibold transition ${
-              !isTapas ? 'bg-white text-[#031f4a] shadow-md' : 'text-white/70 hover:text-white'
-            }`}
-          >
-            Media
-          </a>
+          {isImportantDay ? (
+            <div className="flex-1 text-center px-4 py-2 rounded-full font-semibold text-white bg-white/20">
+              Media
+            </div>
+          ) : (
+            <>
+              <a
+                href="/menu/tapas"
+                className={`flex-1 text-center px-4 py-2 rounded-full font-semibold transition ${
+                  isTapas
+                    ? 'bg-white text-[#031f4a] shadow-md'
+                    : 'text-white/70 hover:text-white'
+                }`}
+              >
+                Tapas
+              </a>
+              <a
+                href="/menu/medias"
+                className={`flex-1 text-center px-4 py-2 rounded-full font-semibold transition ${
+                  !isTapas ? 'bg-white text-[#031f4a] shadow-md' : 'text-white/70 hover:text-white'
+                }`}
+              >
+                Media
+              </a>
+            </>
+          )}
         </motion.div>
 
         {isImportantDay && (
@@ -232,6 +237,7 @@ export default function MenuPage({ params }: { params: { type: string } }) {
 
         <div className="mt-8 mx-auto w-32">
           <GoldenDivider />
+        </div>
       </motion.header>
 
       {/* ─── Sticky category nav ─── */}

@@ -19,5 +19,6 @@ export interface MenuCategory {
 export interface MenuData {
   categories: MenuCategory[]
   barName: string
+  importantDay?: boolean
   updatedAt?: string
 }

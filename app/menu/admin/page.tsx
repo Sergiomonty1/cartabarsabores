@@ -300,6 +300,37 @@ export default function AdminPage() {
 
   return (
     <div className="min-h-screen bg-[#0d0d0d] text-white pb-32">
+      {/* ─── IMPORTANTE DAY SECTION ─── */}
+      <div className="bg-gradient-to-r from-amber-500/20 to-amber-600/10 border-b border-amber-400/30 px-4 py-4">
+        <div className="max-w-2xl mx-auto">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs text-amber-200/80 uppercase tracking-wider font-semibold">Estado Global</p>
+              <h2 className="text-xl font-bold text-amber-100 mt-1">DÍA IMPORTANTE</h2>
+            </div>
+            <button
+              onClick={() => {
+                const next = !importantDay
+                setImportantDay(next)
+                setMenu((prev) => prev ? { ...prev, importantDay: next } : prev)
+              }}
+              className={`px-6 py-3 rounded-lg text-sm font-bold transition-all transform ${
+                importantDay
+                  ? 'bg-amber-400 text-[#031f4a] hover:bg-amber-300 hover:scale-105'
+                  : 'bg-white/10 text-white/80 hover:bg-white/20 hover:scale-105'
+              }`}
+            >
+              {importantDay ? '🔴 ACTIVADO' : '⚪ Desactivado'}
+            </button>
+          </div>
+          {importantDay && (
+            <p className="text-xs text-amber-200 mt-3 italic">
+              📌 Cuando está activado: La carta de Tapas está bloqueada y solo se muestra la carta de Media Ración.
+            </p>
+          )}
+        </div>
+      </div>
+
       {/* ─── top bar ─── */}
       <div className="sticky top-0 z-50 bg-[#0d0d0d]/95 backdrop-blur-xl border-b border-white/[0.04] px-4 py-3.5">
         <div className="max-w-2xl mx-auto flex items-center justify-between">
@@ -310,20 +341,6 @@ export default function AdminPage() {
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <button
-              onClick={() => {
-                const next = !importantDay
-                setImportantDay(next)
-                setMenu((prev) => prev ? { ...prev, importantDay: next } : prev)
-              }}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
-                importantDay
-                  ? 'bg-amber-400 text-[#031f4a] hover:bg-amber-300'
-                  : 'bg-white/10 text-white/80 hover:bg-white/20'
-              }`}
-            >
-              Día importante: {importantDay ? 'ON' : 'OFF'}
-            </button>
             <button
               onClick={resetToDefaults}
               className="px-3 py-1.5 rounded-lg text-xs bg-gray-50 text-gray-600 hover:bg-gray-100 hover:text-gray-800 transition-colors"
@@ -347,7 +364,7 @@ export default function AdminPage() {
         </div>
       </div>
 
-      {/* ─── bar name + important day toggle ─── */}
+      {/* ─── categories list ─── */}
       <div className="max-w-2xl mx-auto px-4 pt-6 pb-3 space-y-3">
         <div>
           <label className="text-[10px] text-gray-500 uppercase tracking-wider font-semibold">

@@ -6,6 +6,7 @@ const MENU_COLLECTION = 'menu'
 
 const defaultMenuData: MenuData = {
   barName: 'Sabores',
+  importantDay: false,
   categories: [
     {
       id: 'entrantes',
