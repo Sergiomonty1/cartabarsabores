@@ -377,17 +377,6 @@ export default function AdminPage() {
             className="mt-1.5 w-full px-3 py-2.5 rounded-xl bg-gray-50 border border-gray-300 text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-200/40 text-sm"
           />
         </div>
-        <label className="flex items-center gap-3 text-sm text-white/90">
-          <input
-            type="checkbox"
-            checked={menu.importantDay ?? false}
-            onChange={(e) =>
-              setMenu({ ...menu, importantDay: e.target.checked })
-            }
-            className="accent-amber-400"
-          />
-          <span className="font-semibold">DÍA IMPORTANTE (Solo medias)</span>
-        </label>
       </div>
 
       {/* ─── preview links ─── */}
