@@ -37,36 +37,29 @@ body {
 .scrollbar-hide::-webkit-scrollbar { display: none; }
 .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
 
-/* ─── Gradient Orbs (morphing background) ─── */
+/* ─── Gradient Orbs (morphing background — reduced blur for performance) ─── */
 .orb {
   position: absolute;
   border-radius: 50%;
-  filter: blur(80px);
+  filter: blur(50px);
   will-change: transform;
+  contain: strict;
 }
 .orb-1 {
-  width: 400px;
-  height: 400px;
+  width: 350px;
+  height: 350px;
   top: -100px;
   left: -100px;
-  background: radial-gradient(circle, rgba(56, 189, 248, 0.08), transparent 70%);
+  background: radial-gradient(circle, rgba(56, 189, 248, 0.07), transparent 70%);
   animation: orbFloat1 20s ease-in-out infinite;
 }
 .orb-2 {
-  width: 350px;
-  height: 350px;
+  width: 300px;
+  height: 300px;
   top: 40%;
   right: -120px;
   background: radial-gradient(circle, rgba(59, 130, 246, 0.05), transparent 70%);
   animation: orbFloat2 25s ease-in-out infinite;
-}
-.orb-3 {
-  width: 300px;
-  height: 300px;
-  bottom: 10%;
-  left: 30%;
-  background: radial-gradient(circle, rgba(147, 197, 253, 0.035), transparent 70%);
-  animation: orbFloat3 22s ease-in-out infinite;
 }
 
 @keyframes orbFloat1 {
@@ -78,18 +71,6 @@ body {
   0%, 100% { transform: translate(0, 0) scale(1); }
   33% { transform: translate(-50px, -60px) scale(1.1); }
   66% { transform: translate(30px, 50px) scale(0.85); }
-}
-@keyframes orbFloat3 {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  33% { transform: translate(40px, -50px) scale(1.2); }
-  66% { transform: translate(-60px, 30px) scale(0.95); }
-}
-
-/* ─── Film grain overlay ─── */
-.noise-bg {
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
-  background-repeat: repeat;
-  background-size: 128px 128px;
 }
 
 /* ─── Slow spin for glow ring ─── */
@@ -110,35 +91,53 @@ body {
   animation: shimmer 3s ease-in-out infinite;
 }
 
-/* ─── Menu item hover glow trail ─── */
-.menu-item-hover {
-  position: relative;
-  overflow: hidden;
+/* ─── Lightweight CSS animations (replacing framer-motion) ─── */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
-.menu-item-hover::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(
-    300px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
-    rgba(245, 158, 11, 0.025),
-    transparent 60%
-  );
-  opacity: 0;
-  transition: opacity 0.4s;
-  pointer-events: none;
-}
-.menu-item-hover:hover::before {
-  opacity: 1;
+.animate-fade-in {
+  animation: fadeIn 0.8s ease-out both;
 }
 
-/* ─── Pulsing glow behind hero title ─── */
-@keyframes pulseGlow {
-  0%, 100% { opacity: 1; transform: translateX(-50%) scale(1); }
-  50% { opacity: 0.6; transform: translateX(-50%) scale(1.15); }
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(10px) scale(0.95); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
 }
-.animate-pulse-glow {
-  animation: pulseGlow 4s ease-in-out infinite;
+.animate-fade-in-up {
+  animation: fadeInUp 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes fadeInItem {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in-item {
+  animation: fadeInItem 0.35s ease-out both;
+}
+
+@keyframes logoEnter {
+  from { opacity: 0; transform: scale(0.5) rotate(-180deg); }
+  to { opacity: 1; transform: scale(1) rotate(0deg); }
+}
+.animate-logo-enter {
+  animation: logoEnter 0.8s cubic-bezier(0.22, 1, 0.36, 1) 0.1s both;
+}
+
+@keyframes titleChar {
+  from { opacity: 0; transform: translateY(40px) rotateX(-90deg); }
+  to { opacity: 1; transform: translateY(0) rotateX(0deg); }
+}
+.animate-title-char {
+  animation: titleChar 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes scaleIn {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+.animate-scale-in {
+  animation: scaleIn 0.8s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 /* ─── Font display class ─── */
