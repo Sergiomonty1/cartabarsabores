@@ -250,10 +250,9 @@ export default function MenuPage({ params }: { params: { type: string } }) {
         </div>
 
         {isImportantDay && (
-          <div className="mx-auto mt-4 max-w-lg rounded-xl border border-yellow-300/40 bg-yellow-500/10 p-4 text-center">
-            <p className="text-sm font-bold text-yellow-200">DÍA IMPORTANTE activado</p>
-            <p className="text-[13px] text-yellow-100/95">
-              Carta de Tapas bloqueada. Solo disponible carta de Media Ración.
+          <div className="mx-auto mt-4 max-w-lg rounded-xl border border-white/10 bg-white/5 p-4 text-center">
+            <p className="text-sm text-white/80">
+              Solo disponible carta de Media Ración.
             </p>
           </div>
         )}
@@ -290,14 +289,13 @@ export default function MenuPage({ params }: { params: { type: string } }) {
       {/* ─── Menu sections ─── */}
       <div className="px-5 pb-32 max-w-lg mx-auto relative z-10">
         {showingTapasBlocked ? (
-          <div className="rounded-2xl border border-yellow-400/30 bg-yellow-500/10 p-6 text-center mt-10">
-            <p className="text-lg font-semibold text-yellow-200">DÍA IMPORTANTE activado</p>
-            <p className="mt-2 text-sm text-yellow-100">
-              Carta de Tapas bloqueada. Solo está disponible la carta de Media Ración.
+          <div className="rounded-2xl border border-white/10 bg-white/5 p-6 text-center mt-10">
+            <p className="text-sm text-white/80">
+              Solo disponible carta de Media Ración.
             </p>
             <a
               href="/menu/medias"
-              className="mt-4 inline-block px-5 py-2 rounded-lg bg-yellow-300 text-black font-bold hover:bg-yellow-200"
+              className="mt-4 inline-block px-5 py-2 rounded-lg bg-sky-300 text-black font-bold hover:bg-sky-200"
             >
               Ir a Media
             </a>
