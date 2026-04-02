@@ -64,7 +64,7 @@ function AnimatedTitle({ text }: { text: string }) {
 export default function MenuPage({ params }: { params: { type: string } }) {
   const isTapasRoute = params.type === 'tapas'
   const [menu, setMenu] = useState<MenuData>(() => menuService.getDefaultMenu())
-  const [importantDay, setImportantDay] = useState(false)
+  const [importantDay, setImportantDay] = useState<boolean>(false)
   const router = useRouter()
   const [activeCategory, setActiveCategory] = useState('')
   const sectionRefs = useRef<Record<string, HTMLElement | null>>({})
