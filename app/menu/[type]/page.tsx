@@ -137,12 +137,12 @@ const CategorySection = React.memo(function CategorySection({
               >
                 {showAllergens ? (
                   <>
-                    <span className="text-[0.9rem] text-white/75 leading-snug flex-shrink-0 group-hover:text-white transition-colors duration-200">
+                    <span className="text-[0.9rem] text-white/75 leading-snug flex-shrink-0 max-w-[55%] group-hover:text-white transition-colors duration-200">
                       {item.name}
                     </span>
                     <AllergenIcons allergens={item.allergens} />
-                    <span className="flex-1 border-b border-dotted border-white/[0.04] min-w-[1rem] self-end mb-1.5 group-hover:border-white/20 transition-colors duration-300" />
-                    <span className="text-white/90 text-sm font-semibold tracking-wide whitespace-nowrap group-hover:text-white">
+                    <span className="flex-1 border-b border-dotted border-white/[0.04] min-w-[0.5rem] self-end mb-1.5 group-hover:border-white/20 transition-colors duration-300" />
+                    <span className="text-white/90 text-sm font-semibold tracking-wide whitespace-nowrap ml-1 group-hover:text-white">
                       {fmt(displayPrice)}
                     </span>
                   </>
