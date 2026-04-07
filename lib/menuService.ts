@@ -106,7 +106,22 @@ export const menuService = {
       const docRef = doc(db, MENU_COLLECTION, 'data')
       const snap = await getDoc(docRef)
       if (snap.exists()) {
-        return snap.data() as MenuData
+        const data = snap.data() as MenuData
+        // Merge allergens from defaults into Firestore data
+        const defaults = defaultMenuData
+        data.categories = data.categories.map((cat) => {
+          const defCat = defaults.categories.find((dc) => dc.id === cat.id)
+          if (!defCat) return cat
+          cat.items = cat.items.map((item) => {
+            if (!item.allergens) {
+              const defItem = defCat.items.find((di) => di.id === item.id)
+              if (defItem?.allergens) item.allergens = defItem.allergens
+            }
+            return item
+          })
+          return cat
+        })
+        return data
       }
       // Seed defaults
       const seeded = { ...defaultMenuData, updatedAt: new Date().toISOString() }

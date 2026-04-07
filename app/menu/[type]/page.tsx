@@ -17,9 +17,9 @@ const ALLERGEN_IMAGES: Record<string, { src: string; label: string }> = {
   mostaza:    { src: '/alergenos/mostaza.png',             label: 'Mostaza' },
   soja:       { src: '/alergenos/alergenos-soja.png',      label: 'Soja' },
   sulfitos:   { src: '/alergenos/alergenos-sulfitos.png',  label: 'Sulfitos' },
-  apio:       { src: '/alergenos/Apio.png',                label: 'Apio' },
+  apio:       { src: '/alergenos/apio.png',                label: 'Apio' },
   cacahuetes: { src: '/alergenos/cacahuetes.png',          label: 'Cacahuetes' },
-  crustaceo:  { src: '/alergenos/Crustaceo.png',           label: 'Crustáceo' },
+  crustaceo:  { src: '/alergenos/crustaceo.png',           label: 'Crustáceo' },
   pescado:    { src: '/alergenos/pescado.png',             label: 'Pescado' },
   sesamo:     { src: '/alergenos/sesamo.png',              label: 'Sésamo' },
 }
