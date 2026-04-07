@@ -6,6 +6,7 @@ export interface MenuItem {
   priceMedia: number
   samePrice: boolean
   order: number
+  allergens?: string[]
 }
 
 export interface MenuCategory {

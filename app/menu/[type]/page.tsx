@@ -1,12 +1,51 @@
 'use client'
 
 import React, { useEffect, useState, useRef, useMemo, useCallback } from 'react'
+import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import type { MenuData, MenuCategory } from '@/types/menu'
 import { menuService } from '@/lib/menuService'
 
 const fmt = (n: number) =>
   n === 0 ? 'Consultar' : n.toFixed(2).replace('.', ',') + ' €'
+
+/* ─── Allergen image map ─── */
+const ALLERGEN_IMAGES: Record<string, { src: string; label: string }> = {
+  gluten:     { src: '/alergenos/gluten.png',              label: 'Gluten' },
+  huevo:      { src: '/alergenos/alergenos-huevos.png',    label: 'Huevo' },
+  lacteo:     { src: '/alergenos/lacteos.png',             label: 'Lácteo' },
+  mostaza:    { src: '/alergenos/mostaza.png',             label: 'Mostaza' },
+  soja:       { src: '/alergenos/alergenos-soja.png',      label: 'Soja' },
+  sulfitos:   { src: '/alergenos/alergenos-sulfitos.png',  label: 'Sulfitos' },
+  apio:       { src: '/alergenos/Apio.png',                label: 'Apio' },
+  cacahuetes: { src: '/alergenos/cacahuetes.png',          label: 'Cacahuetes' },
+  crustaceo:  { src: '/alergenos/Crustaceo.png',           label: 'Crustáceo' },
+  pescado:    { src: '/alergenos/pescado.png',             label: 'Pescado' },
+  sesamo:     { src: '/alergenos/sesamo.png',              label: 'Sésamo' },
+}
+
+function AllergenIcons({ allergens }: { allergens?: string[] }) {
+  if (!allergens || allergens.length === 0) return null
+  return (
+    <span className="inline-flex items-center gap-1 ml-2 flex-shrink-0">
+      {allergens.map((a) => {
+        const info = ALLERGEN_IMAGES[a]
+        if (!info) return null
+        return (
+          <Image
+            key={a}
+            src={info.src}
+            alt={info.label}
+            width={22}
+            height={22}
+            className="rounded-full"
+            title={info.label}
+          />
+        )
+      })}
+    </span>
+  )
+}
 
 /* ─── Lightweight gradient orbs (CSS only, reduced blur) ─── */
 function GradientOrbs() {
@@ -50,10 +89,12 @@ const CategorySection = React.memo(function CategorySection({
   cat,
   isTapas,
   isLast,
+  showAllergens,
 }: {
   cat: MenuCategory
   isTapas: boolean
   isLast: boolean
+  showAllergens: boolean
 }) {
   const ref = useRef<HTMLElement>(null)
   const [visible, setVisible] = useState(false)
@@ -90,11 +131,18 @@ const CategorySection = React.memo(function CategorySection({
               <div
                 key={item.id}
                 className={`group py-3.5 px-4 rounded-xl transition-colors duration-200 hover:bg-sky-400/[0.12] ${
-                  displayPrice === 0 ? 'text-center' : 'flex items-baseline gap-2'
+                  showAllergens ? 'flex items-center gap-2' : displayPrice === 0 ? 'text-center' : 'flex items-baseline gap-2'
                 } ${visible ? 'animate-fade-in-item' : 'opacity-0'}`}
                 style={visible ? { animationDelay: `${i * 30}ms` } : undefined}
               >
-                {displayPrice === 0 ? (
+                {showAllergens ? (
+                  <>
+                    <span className="text-[0.9rem] text-white/75 leading-snug group-hover:text-white transition-colors duration-200">
+                      {item.name}
+                    </span>
+                    <AllergenIcons allergens={item.allergens} />
+                  </>
+                ) : displayPrice === 0 ? (
                   <span className="text-[0.9rem] text-white/70 leading-snug group-hover:text-white transition-colors">
                     {item.name}
                   </span>
@@ -122,6 +170,7 @@ const CategorySection = React.memo(function CategorySection({
 
 export default function MenuPage({ params }: { params: { type: string } }) {
   const isTapasRoute = params.type === 'tapas'
+  const isAlergenosRoute = params.type === 'alergenos'
   const [menu, setMenu] = useState<MenuData>(() => menuService.getDefaultMenu())
   const [importantDay, setImportantDay] = useState(false)
   const router = useRouter()
@@ -131,6 +180,7 @@ export default function MenuPage({ params }: { params: { type: string } }) {
 
   const isImportantDay = menu.importantDay ?? importantDay
   const isTapas = !isImportantDay && isTapasRoute
+  const showAllergens = isAlergenosRoute
   const showingTapasBlocked = isImportantDay && isTapasRoute
 
   useEffect(() => {
@@ -224,15 +274,25 @@ export default function MenuPage({ params }: { params: { type: string } }) {
 
         <div className="mt-6 inline-flex items-center rounded-full bg-white/10 p-1 border border-white/20 backdrop-blur-xl animate-fade-in-up" style={{ animationDelay: '0.8s' }}>
           {isImportantDay ? (
-            <div className="flex-1 text-center px-4 py-2 rounded-full font-semibold text-white bg-white/20">
-              Media
-            </div>
+            <>
+              <div className="flex-1 text-center px-4 py-2 rounded-full font-semibold text-white bg-white/20">
+                Media
+              </div>
+              <a
+                href="/menu/alergenos"
+                className={`flex-1 text-center px-4 py-2 rounded-full font-semibold transition ${
+                  showAllergens ? 'bg-white text-[#031f4a] shadow-md' : 'text-white/70 hover:text-white'
+                }`}
+              >
+                Alérgenos
+              </a>
+            </>
           ) : (
             <>
               <a
                 href="/menu/tapas"
                 className={`flex-1 text-center px-4 py-2 rounded-full font-semibold transition ${
-                  isTapas ? 'bg-white text-[#031f4a] shadow-md' : 'text-white/70 hover:text-white'
+                  isTapas && !showAllergens ? 'bg-white text-[#031f4a] shadow-md' : 'text-white/70 hover:text-white'
                 }`}
               >
                 Tapas
@@ -240,16 +300,24 @@ export default function MenuPage({ params }: { params: { type: string } }) {
               <a
                 href="/menu/medias"
                 className={`flex-1 text-center px-4 py-2 rounded-full font-semibold transition ${
-                  !isTapas ? 'bg-white text-[#031f4a] shadow-md' : 'text-white/70 hover:text-white'
+                  !isTapas && !showAllergens ? 'bg-white text-[#031f4a] shadow-md' : 'text-white/70 hover:text-white'
                 }`}
               >
                 Media
+              </a>
+              <a
+                href="/menu/alergenos"
+                className={`flex-1 text-center px-4 py-2 rounded-full font-semibold transition ${
+                  showAllergens ? 'bg-white text-[#031f4a] shadow-md' : 'text-white/70 hover:text-white'
+                }`}
+              >
+                Alérgenos
               </a>
             </>
           )}
         </div>
 
-        {isImportantDay && (
+        {isImportantDay && !showAllergens && (
           <div className="mx-auto mt-4 max-w-lg rounded-xl border border-white/10 bg-white/5 p-4 text-center">
             <p className="text-sm text-white/80">
               Solo disponible carta de Media Ración.
@@ -302,7 +370,7 @@ export default function MenuPage({ params }: { params: { type: string } }) {
           </div>
         ) : (
           sorted.map((cat, i) => (
-            <CategorySection key={cat.id} cat={cat} isTapas={isTapas} isLast={i === sorted.length - 1} />
+            <CategorySection key={cat.id} cat={cat} isTapas={isTapas} isLast={i === sorted.length - 1} showAllergens={showAllergens} />
           ))
         )}
       </div>

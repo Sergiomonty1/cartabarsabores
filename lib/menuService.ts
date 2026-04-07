@@ -14,7 +14,7 @@ const defaultMenuData: MenuData = {
       icon: '🥗',
       order: 0,
       items: [
-        { id: 'e1', name: 'Ensalada de pollo frito y mostaza', priceTapa: 4.90, priceMedia: 4.90, samePrice: true, order: 0 },
+        { id: 'e1', name: 'Ensalada de pollo frito y mostaza', priceTapa: 4.90, priceMedia: 4.90, samePrice: true, order: 0, allergens: ['gluten', 'mostaza', 'huevo', 'lacteo'] },
         { id: 'e2', name: 'Ensaladilla de langostinos', priceTapa: 4.70, priceMedia: 9.40, samePrice: false, order: 1 },
         { id: 'e3', name: 'Patatas aliñadas con salmorejo', priceTapa: 3.90, priceMedia: 3.90, samePrice: true, order: 2 },
         { id: 'e4', name: 'Patatas bravas caseras', priceTapa: 4.10, priceMedia: 8.20, samePrice: false, order: 3 },
