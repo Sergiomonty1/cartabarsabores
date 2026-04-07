@@ -21,7 +21,8 @@ const ALLERGEN_IMAGES: Record<string, { src: string; label: string }> = {
   cacahuetes: { src: '/alergenos/cacahuetes.png',          label: 'Cacahuetes' },
   crustaceo:  { src: '/alergenos/crustaceo.png',           label: 'Crustáceo' },
   pescado:    { src: '/alergenos/pescado.png',             label: 'Pescado' },
-  sesamo:     { src: '/alergenos/sesamo.png',              label: 'Sésamo' },
+  sesamo:        { src: '/alergenos/sesamo.png',              label: 'Sésamo' },
+  'fruto-cascara': { src: '/alergenos/fruto-cascara.png',      label: 'Frutos de cáscara' },
 }
 
 function AllergenIcons({ allergens }: { allergens?: string[] }) {

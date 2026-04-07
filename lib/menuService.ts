@@ -22,7 +22,7 @@ const defaultMenuData: MenuData = {
         { id: 'e6', name: 'Magnum de foie', priceTapa: 4.90, priceMedia: 4.90, samePrice: true, order: 5, allergens: ['lacteo', 'sulfitos', 'gluten'] },
         { id: 'e7', name: 'Taco de langostinos', priceTapa: 4.90, priceMedia: 4.90, samePrice: true, order: 6, allergens: ['gluten', 'huevo', 'crustaceo', 'sulfitos'] },
         { id: 'e8', name: 'Taco de chipirón frito', priceTapa: 7.50, priceMedia: 7.50, samePrice: true, order: 7, allergens: ['gluten', 'huevo', 'crustaceo', 'sulfitos'] },
-        { id: 'e9', name: 'Ravioli crujiente de alitas', priceTapa: 4.90, priceMedia: 9.80, samePrice: false, order: 8, allergens: ['gluten', 'lacteo', 'huevo'] },
+        { id: 'e9', name: 'Ravioli crujiente de alitas', priceTapa: 4.90, priceMedia: 9.80, samePrice: false, order: 8, allergens: ['fruto-cascara', 'gluten', 'lacteo', 'huevo'] },
       ],
     },
     {
