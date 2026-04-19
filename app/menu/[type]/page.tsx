@@ -417,12 +417,13 @@ export default function MenuPage({ params }: { params: { type: string } }) {
           <AnimatedTitle text={menu.barName} />
         </div>
 
-        <div className="mt-6 inline-flex items-center rounded-full bg-white/10 p-1 border border-white/20 backdrop-blur-xl animate-fade-in-up" style={{ animationDelay: '0.8s' }}>
+        <div className="mt-6 flex justify-center animate-fade-in-up" style={{ animationDelay: '0.8s' }}>
+          <div className="inline-flex flex-wrap items-center justify-center gap-1 rounded-2xl bg-white/10 p-1 border border-white/20 backdrop-blur-xl max-w-[95vw]">
           {isImportantDay ? (
             <>
               <a
                 href="/menu/medias"
-                className={`flex-1 text-center px-4 py-2 rounded-full font-semibold transition ${
+                className={`text-center px-3 py-2 rounded-full text-sm font-semibold transition whitespace-nowrap ${
                   !showAllergens && !isVinosRoute ? 'bg-white text-[#031f4a] shadow-md' : 'text-white/70 hover:text-white'
                 }`}
               >
@@ -430,7 +431,7 @@ export default function MenuPage({ params }: { params: { type: string } }) {
               </a>
               <a
                 href="/menu/alergenos"
-                className={`flex-1 text-center px-4 py-2 rounded-full font-semibold transition ${
+                className={`text-center px-3 py-2 rounded-full text-sm font-semibold transition whitespace-nowrap ${
                   showAllergens ? 'bg-white text-[#031f4a] shadow-md' : 'text-white/70 hover:text-white'
                 }`}
               >
@@ -439,7 +440,7 @@ export default function MenuPage({ params }: { params: { type: string } }) {
               {showWines && (
                 <a
                   href="/menu/vinos"
-                  className={`flex-1 text-center px-4 py-2 rounded-full font-semibold transition ${
+                  className={`text-center px-3 py-2 rounded-full text-sm font-semibold transition whitespace-nowrap ${
                     isVinosRoute ? 'bg-white text-[#031f4a] shadow-md' : 'text-white/70 hover:text-white'
                   }`}
                 >
@@ -451,7 +452,7 @@ export default function MenuPage({ params }: { params: { type: string } }) {
             <>
               <a
                 href="/menu/tapas"
-                className={`flex-1 text-center px-4 py-2 rounded-full font-semibold transition ${
+                className={`text-center px-3 py-2 rounded-full text-sm font-semibold transition whitespace-nowrap ${
                   isTapas && !showAllergens && !isVinosRoute ? 'bg-white text-[#031f4a] shadow-md' : 'text-white/70 hover:text-white'
                 }`}
               >
@@ -459,7 +460,7 @@ export default function MenuPage({ params }: { params: { type: string } }) {
               </a>
               <a
                 href="/menu/medias"
-                className={`flex-1 text-center px-4 py-2 rounded-full font-semibold transition ${
+                className={`text-center px-3 py-2 rounded-full text-sm font-semibold transition whitespace-nowrap ${
                   !isTapas && !showAllergens && !isVinosRoute ? 'bg-white text-[#031f4a] shadow-md' : 'text-white/70 hover:text-white'
                 }`}
               >
@@ -467,7 +468,7 @@ export default function MenuPage({ params }: { params: { type: string } }) {
               </a>
               <a
                 href="/menu/alergenos"
-                className={`flex-1 text-center px-4 py-2 rounded-full font-semibold transition ${
+                className={`text-center px-3 py-2 rounded-full text-sm font-semibold transition whitespace-nowrap ${
                   showAllergens ? 'bg-white text-[#031f4a] shadow-md' : 'text-white/70 hover:text-white'
                 }`}
               >
@@ -476,7 +477,7 @@ export default function MenuPage({ params }: { params: { type: string } }) {
               {showWines && (
                 <a
                   href="/menu/vinos"
-                  className={`flex-1 text-center px-4 py-2 rounded-full font-semibold transition ${
+                  className={`text-center px-3 py-2 rounded-full text-sm font-semibold transition whitespace-nowrap ${
                     isVinosRoute ? 'bg-white text-[#031f4a] shadow-md' : 'text-white/70 hover:text-white'
                   }`}
                 >
@@ -485,6 +486,7 @@ export default function MenuPage({ params }: { params: { type: string } }) {
               )}
             </>
           )}
+          </div>
         </div>
 
         {isImportantDay && !showAllergens && !isVinosRoute && (
@@ -502,7 +504,7 @@ export default function MenuPage({ params }: { params: { type: string } }) {
 
       {/* ─── Sticky category nav ─── */}
       <nav className="sticky top-0 z-40 bg-[#031f4a]/70 backdrop-blur-2xl border-b border-white/[0.08]">
-        <div ref={navRef} className="flex gap-1.5 px-4 py-3 overflow-x-auto scrollbar-hide">
+        <div ref={navRef} className="flex justify-center gap-1.5 px-4 py-3 overflow-x-auto scrollbar-hide max-w-full">
           {isVinosRoute
             ? sortedWines.map((cat, i) => (
                 <button
