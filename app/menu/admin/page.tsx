@@ -129,6 +129,7 @@ export default function AdminPage() {
   const [authed, setAuthed] = useState(false)
   const [menu, setMenu] = useState<MenuData | null>(null)
   const [importantDay, setImportantDay] = useState(false)
+  const [showWines, setShowWines] = useState(true)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [saveError, setSaveError] = useState('')
@@ -147,17 +148,20 @@ export default function AdminPage() {
     const filterBebidas = (m: MenuData): MenuData => ({
       ...m,
       importantDay: m.importantDay ?? false,
+      showWines: m.showWines ?? true,
       categories: m.categories.filter((c) => c.id !== 'bebidas'),
     })
     // Show defaults instantly so admin panel is usable right away
     const defaultMenu = filterBebidas(menuService.getDefaultMenu())
     setMenu(defaultMenu)
     setImportantDay(defaultMenu.importantDay ?? false)
+    setShowWines(defaultMenu.showWines ?? true)
     // Then fetch fresh data from Firestore in background
     menuService.fetchMenu().then((fresh) => {
       const filtered = filterBebidas(fresh)
       setMenu(filtered)
       setImportantDay(filtered.importantDay ?? false)
+      setShowWines(filtered.showWines ?? true)
     })
   }, [authed])
 
@@ -171,6 +175,7 @@ export default function AdminPage() {
       const cleanMenu = {
         ...menu,
         importantDay: menu.importantDay ?? false,
+        showWines: menu.showWines ?? true,
         categories: menu.categories
           .filter((c) => c.id !== 'bebidas')
           .map((c) => ({
@@ -331,6 +336,37 @@ export default function AdminPage() {
         </div>
       </div>
 
+      {/* ─── SHOW WINES TOGGLE ─── */}
+      <div className="bg-gradient-to-r from-purple-500/20 to-purple-600/10 border-b border-purple-400/30 px-4 py-4">
+        <div className="max-w-2xl mx-auto">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs text-purple-200/80 uppercase tracking-wider font-semibold">Carta de Vinos</p>
+              <h2 className="text-xl font-bold text-purple-100 mt-1">🍷 VINOS</h2>
+            </div>
+            <button
+              onClick={() => {
+                const next = !showWines
+                setShowWines(next)
+                setMenu((prev) => prev ? { ...prev, showWines: next } : prev)
+              }}
+              className={`px-6 py-3 rounded-lg text-sm font-bold transition-all transform ${
+                showWines
+                  ? 'bg-purple-400 text-[#031f4a] hover:bg-purple-300 hover:scale-105'
+                  : 'bg-white/10 text-white/80 hover:bg-white/20 hover:scale-105'
+              }`}
+            >
+              {showWines ? '🟢 VISIBLE' : '⚪ Oculta'}
+            </button>
+          </div>
+          {!showWines && (
+            <p className="text-xs text-purple-200 mt-3 italic">
+              📌 La pestaña de Vinos está oculta en la carta pública.
+            </p>
+          )}
+        </div>
+      </div>
+
       {/* ─── top bar ─── */}
       <div className="sticky top-0 z-50 bg-[#0d0d0d]/95 backdrop-blur-xl border-b border-white/[0.04] px-4 py-3.5">
         <div className="max-w-2xl mx-auto flex items-center justify-between">
@@ -394,6 +430,13 @@ export default function AdminPage() {
           className="text-xs text-sky-200/70 hover:text-sky-100 hover:underline transition-colors"
         >
           ↗ Ver carta Medias
+        </a>
+        <a
+          href="/menu/vinos"
+          target="_blank"
+          className="text-xs text-purple-200/70 hover:text-purple-100 hover:underline transition-colors"
+        >
+          ↗ Ver carta Vinos
         </a>
       </div>
 

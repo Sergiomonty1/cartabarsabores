@@ -3,11 +3,14 @@
 import React, { useEffect, useState, useRef, useMemo, useCallback } from 'react'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
-import type { MenuData, MenuCategory } from '@/types/menu'
+import type { MenuData, MenuCategory, WineCategory } from '@/types/menu'
 import { menuService } from '@/lib/menuService'
 
 const fmt = (n: number) =>
   n === 0 ? 'Consultar' : n.toFixed(2).replace('.', ',') + ' €'
+
+const fmtWine = (n: number) =>
+  n === 0 ? '—' : n.toFixed(2).replace('.', ',') + ' €'
 
 /* ─── Allergen image map ─── */
 const ALLERGEN_IMAGES: Record<string, { src: string; label: string }> = {
@@ -23,6 +26,7 @@ const ALLERGEN_IMAGES: Record<string, { src: string; label: string }> = {
   pescado:    { src: '/alergenos/pescado.png',             label: 'Pescado' },
   sesamo:        { src: '/alergenos/sesamo.png',              label: 'Sésamo' },
   'fruto-cascara': { src: '/alergenos/fruto-cascara.png',      label: 'Frutos de cáscara' },
+  molusco:       { src: '/alergenos/molusco.png',              label: 'Molusco' },
 }
 
 function AllergenIcons({ allergens }: { allergens?: string[] }) {
@@ -32,6 +36,17 @@ function AllergenIcons({ allergens }: { allergens?: string[] }) {
       {allergens.map((a) => {
         const info = ALLERGEN_IMAGES[a]
         if (!info) return null
+        if (!info.src) {
+          return (
+            <span
+              key={a}
+              className="inline-flex items-center justify-center w-[22px] h-[22px] rounded-full bg-white/10 text-[8px] font-bold text-white/70 border border-white/20"
+              title={info.label}
+            >
+              {info.label.slice(0, 2).toUpperCase()}
+            </span>
+          )
+        }
         return (
           <Image
             key={a}
@@ -173,9 +188,79 @@ const CategorySection = React.memo(function CategorySection({
   )
 })
 
+/* ─── Wine category section ─── */
+const WineCategorySection = React.memo(function WineCategorySection({
+  cat,
+  isLast,
+}: {
+  cat: WineCategory
+  isLast: boolean
+}) {
+  const ref = useRef<HTMLElement>(null)
+  const [visible, setVisible] = useState(false)
+
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const obs = new IntersectionObserver(
+      ([e]) => { if (e.isIntersecting) { setVisible(true); obs.disconnect() } },
+      { threshold: 0.05, rootMargin: '0px 0px -10% 0px' }
+    )
+    obs.observe(el)
+    return () => obs.disconnect()
+  }, [])
+
+  const items = useMemo(
+    () => [...cat.items].sort((a, b) => a.order - b.order),
+    [cat.items]
+  )
+
+  return (
+    <section ref={ref} id={`wine-${cat.id}`} className="pt-10">
+      <div className={`flex items-center gap-3 mb-6 transition-all duration-500 ${visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-3'}`}>
+        <span className="text-2xl">🍷</span>
+        <h2 className="text-xl font-display font-bold text-white tracking-tight">{cat.name}</h2>
+        <div className={`flex-1 h-px bg-gradient-to-r from-sky-300/25 to-transparent transition-transform duration-700 origin-left ${visible ? 'scale-x-100' : 'scale-x-0'}`} />
+      </div>
+
+      <div className={`rounded-2xl bg-white/[0.015] border border-white/[0.04] p-1 transition-all duration-500 ${visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
+        {/* Header row */}
+        <div className="flex items-center gap-2 py-2.5 px-4 text-[10px] uppercase tracking-wider text-white/30 font-semibold">
+          <span className="flex-1">Vino</span>
+          <span className="w-16 text-center">Copa</span>
+          <span className="w-20 text-center">Botella</span>
+        </div>
+        <div className="divide-y divide-white/[0.03]">
+          {items.map((wine, i) => (
+            <div
+              key={wine.id}
+              className={`group flex items-center gap-2 py-3.5 px-4 rounded-xl transition-colors duration-200 hover:bg-sky-400/[0.12] ${visible ? 'animate-fade-in-item' : 'opacity-0'}`}
+              style={visible ? { animationDelay: `${i * 30}ms` } : undefined}
+            >
+              <span className="text-[0.9rem] text-white/75 leading-snug flex-1 group-hover:text-white transition-colors duration-200">
+                {wine.name}
+                {wine.year && <span className="text-white/40 text-xs ml-1.5">({wine.year})</span>}
+              </span>
+              <span className="w-16 text-center text-white/90 text-sm font-semibold tracking-wide group-hover:text-white">
+                {fmtWine(wine.priceCopa)}
+              </span>
+              <span className="w-20 text-center text-white/90 text-sm font-semibold tracking-wide group-hover:text-white">
+                {fmtWine(wine.priceBottle)}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {!isLast && <GoldenDivider />}
+    </section>
+  )
+})
+
 export default function MenuPage({ params }: { params: { type: string } }) {
   const isTapasRoute = params.type === 'tapas'
   const isAlergenosRoute = params.type === 'alergenos'
+  const isVinosRoute = params.type === 'vinos'
   const [menu, setMenu] = useState<MenuData>(() => menuService.getDefaultMenu())
   const [importantDay, setImportantDay] = useState(false)
   const router = useRouter()
@@ -184,6 +269,7 @@ export default function MenuPage({ params }: { params: { type: string } }) {
   const navRef = useRef<HTMLDivElement>(null)
 
   const isImportantDay = menu.importantDay ?? importantDay
+  const showWines = menu.showWines ?? true
   const isTapas = !isImportantDay && isTapasRoute
   const showAllergens = isAlergenosRoute
   const showingTapasBlocked = isImportantDay && isTapasRoute
@@ -235,6 +321,11 @@ export default function MenuPage({ params }: { params: { type: string } }) {
     [menu.categories]
   )
 
+  const sortedWines = useMemo(
+    () => [...(menu.wineCategories || [])].sort((a, b) => a.order - b.order),
+    [menu.wineCategories]
+  )
+
   return (
     <div className="min-h-screen bg-[#031f4a] text-white overflow-x-hidden relative">
       <GradientOrbs />
@@ -280,9 +371,14 @@ export default function MenuPage({ params }: { params: { type: string } }) {
         <div className="mt-6 inline-flex items-center rounded-full bg-white/10 p-1 border border-white/20 backdrop-blur-xl animate-fade-in-up" style={{ animationDelay: '0.8s' }}>
           {isImportantDay ? (
             <>
-              <div className="flex-1 text-center px-4 py-2 rounded-full font-semibold text-white bg-white/20">
+              <a
+                href="/menu/medias"
+                className={`flex-1 text-center px-4 py-2 rounded-full font-semibold transition ${
+                  !showAllergens && !isVinosRoute ? 'bg-white text-[#031f4a] shadow-md' : 'text-white/70 hover:text-white'
+                }`}
+              >
                 Media
-              </div>
+              </a>
               <a
                 href="/menu/alergenos"
                 className={`flex-1 text-center px-4 py-2 rounded-full font-semibold transition ${
@@ -291,13 +387,23 @@ export default function MenuPage({ params }: { params: { type: string } }) {
               >
                 Alérgenos
               </a>
+              {showWines && (
+                <a
+                  href="/menu/vinos"
+                  className={`flex-1 text-center px-4 py-2 rounded-full font-semibold transition ${
+                    isVinosRoute ? 'bg-white text-[#031f4a] shadow-md' : 'text-white/70 hover:text-white'
+                  }`}
+                >
+                  Vinos
+                </a>
+              )}
             </>
           ) : (
             <>
               <a
                 href="/menu/tapas"
                 className={`flex-1 text-center px-4 py-2 rounded-full font-semibold transition ${
-                  isTapas && !showAllergens ? 'bg-white text-[#031f4a] shadow-md' : 'text-white/70 hover:text-white'
+                  isTapas && !showAllergens && !isVinosRoute ? 'bg-white text-[#031f4a] shadow-md' : 'text-white/70 hover:text-white'
                 }`}
               >
                 Tapas
@@ -305,7 +411,7 @@ export default function MenuPage({ params }: { params: { type: string } }) {
               <a
                 href="/menu/medias"
                 className={`flex-1 text-center px-4 py-2 rounded-full font-semibold transition ${
-                  !isTapas && !showAllergens ? 'bg-white text-[#031f4a] shadow-md' : 'text-white/70 hover:text-white'
+                  !isTapas && !showAllergens && !isVinosRoute ? 'bg-white text-[#031f4a] shadow-md' : 'text-white/70 hover:text-white'
                 }`}
               >
                 Media
@@ -318,6 +424,16 @@ export default function MenuPage({ params }: { params: { type: string } }) {
               >
                 Alérgenos
               </a>
+              {showWines && (
+                <a
+                  href="/menu/vinos"
+                  className={`flex-1 text-center px-4 py-2 rounded-full font-semibold transition ${
+                    isVinosRoute ? 'bg-white text-[#031f4a] shadow-md' : 'text-white/70 hover:text-white'
+                  }`}
+                >
+                  Vinos
+                </a>
+              )}
             </>
           )}
         </div>
@@ -338,30 +454,54 @@ export default function MenuPage({ params }: { params: { type: string } }) {
       {/* ─── Sticky category nav ─── */}
       <nav className="sticky top-0 z-40 bg-[#031f4a]/70 backdrop-blur-2xl border-b border-white/[0.08]">
         <div ref={navRef} className="flex gap-1.5 px-4 py-3 overflow-x-auto scrollbar-hide">
-          {sorted.map((cat, i) => (
-            <button
-              key={cat.id}
-              data-cat={`cat-${cat.id}`}
-              onClick={() =>
-                document.getElementById(`cat-${cat.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-              }
-              className={`flex-shrink-0 px-4 py-2 rounded-full text-xs font-semibold tracking-wide transition-all duration-300 animate-fade-in ${
-                activeCategory === `cat-${cat.id}`
-                  ? 'bg-gradient-to-r from-sky-300 to-blue-400 text-white shadow-lg shadow-sky-300/30 scale-105'
-                  : 'bg-white/[0.04] text-white/30 hover:bg-white/[0.08] hover:text-white/50'
-              }`}
-              style={{ animationDelay: `${0.8 + i * 0.08}s` }}
-            >
-              {cat.icon && <span className="mr-1.5">{cat.icon}</span>}
-              {cat.name}
-            </button>
-          ))}
+          {isVinosRoute
+            ? sortedWines.map((cat, i) => (
+                <button
+                  key={cat.id}
+                  data-cat={`wine-${cat.id}`}
+                  onClick={() =>
+                    document.getElementById(`wine-${cat.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                  }
+                  className={`flex-shrink-0 px-4 py-2 rounded-full text-xs font-semibold tracking-wide transition-all duration-300 animate-fade-in ${
+                    activeCategory === `wine-${cat.id}`
+                      ? 'bg-gradient-to-r from-sky-300 to-blue-400 text-white shadow-lg shadow-sky-300/30 scale-105'
+                      : 'bg-white/[0.04] text-white/30 hover:bg-white/[0.08] hover:text-white/50'
+                  }`}
+                  style={{ animationDelay: `${0.8 + i * 0.08}s` }}
+                >
+                  <span className="mr-1.5">🍷</span>
+                  {cat.name}
+                </button>
+              ))
+            : sorted.map((cat, i) => (
+                <button
+                  key={cat.id}
+                  data-cat={`cat-${cat.id}`}
+                  onClick={() =>
+                    document.getElementById(`cat-${cat.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                  }
+                  className={`flex-shrink-0 px-4 py-2 rounded-full text-xs font-semibold tracking-wide transition-all duration-300 animate-fade-in ${
+                    activeCategory === `cat-${cat.id}`
+                      ? 'bg-gradient-to-r from-sky-300 to-blue-400 text-white shadow-lg shadow-sky-300/30 scale-105'
+                      : 'bg-white/[0.04] text-white/30 hover:bg-white/[0.08] hover:text-white/50'
+                  }`}
+                  style={{ animationDelay: `${0.8 + i * 0.08}s` }}
+                >
+                  {cat.icon && <span className="mr-1.5">{cat.icon}</span>}
+                  {cat.name}
+                </button>
+              ))
+          }
         </div>
       </nav>
 
       {/* ─── Menu sections ─── */}
       <div className="px-5 pb-32 max-w-lg mx-auto relative z-10">
-        {showingTapasBlocked ? (
+        {isVinosRoute ? (
+          sortedWines.map((cat, i) => (
+            <WineCategorySection key={cat.id} cat={cat} isLast={i === sortedWines.length - 1} />
+          ))
+        ) : showingTapasBlocked ? (
           <div className="rounded-2xl border border-white/10 bg-white/5 p-6 text-center mt-10">
             <p className="text-sm text-white/80">
               Solo disponible carta de Media Ración.
