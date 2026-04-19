@@ -5,9 +5,10 @@ import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import type { MenuData, MenuCategory, WineCategory } from '@/types/menu'
 import { menuService } from '@/lib/menuService'
+import { type Lang, LANGUAGES, t, tCat, tDish } from '@/lib/translations'
 
-const fmt = (n: number) =>
-  n === 0 ? 'Consultar' : n.toFixed(2).replace('.', ',') + ' €'
+const fmtPrice = (n: number, lang: Lang) =>
+  n === 0 ? t(lang, 'ask') : n.toFixed(2).replace('.', ',') + ' €'
 
 const fmtWine = (n: number) =>
   n === 0 ? '—' : n.toFixed(2).replace('.', ',') + ' €'
@@ -63,6 +64,43 @@ function AllergenIcons({ allergens }: { allergens?: string[] }) {
   )
 }
 
+/* ─── Language selector ─── */
+function LanguageSelector({ lang, setLang }: { lang: Lang; setLang: (l: Lang) => void }) {
+  const [open, setOpen] = useState(false)
+  const current = LANGUAGES.find((l) => l.code === lang)!
+  return (
+    <div className="relative inline-block">
+      <button
+        onClick={() => setOpen(!open)}
+        className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 border border-white/20 text-sm text-white/80 hover:bg-white/20 transition-all backdrop-blur-xl"
+      >
+        <span className="text-lg leading-none">{current.flag}</span>
+        <span className="text-xs font-medium hidden sm:inline">{current.label}</span>
+        <svg className={`w-3 h-3 transition-transform ${open ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+      </button>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+          <div className="absolute right-0 mt-2 z-50 rounded-xl bg-[#0a2a5e] border border-white/20 shadow-2xl overflow-hidden min-w-[150px] animate-fade-in">
+            {LANGUAGES.map((l) => (
+              <button
+                key={l.code}
+                onClick={() => { setLang(l.code); setOpen(false) }}
+                className={`w-full flex items-center gap-2.5 px-4 py-2.5 text-sm transition-colors ${
+                  l.code === lang ? 'bg-sky-400/20 text-white' : 'text-white/70 hover:bg-white/10 hover:text-white'
+                }`}
+              >
+                <span className="text-lg">{l.flag}</span>
+                <span className="font-medium">{l.label}</span>
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
 /* ─── Lightweight gradient orbs (CSS only, reduced blur) ─── */
 function GradientOrbs() {
   return (
@@ -106,11 +144,13 @@ const CategorySection = React.memo(function CategorySection({
   isTapas,
   isLast,
   showAllergens,
+  lang,
 }: {
   cat: MenuCategory
   isTapas: boolean
   isLast: boolean
   showAllergens: boolean
+  lang: Lang
 }) {
   const ref = useRef<HTMLElement>(null)
   const [visible, setVisible] = useState(false)
@@ -135,7 +175,7 @@ const CategorySection = React.memo(function CategorySection({
     <section ref={ref} id={`cat-${cat.id}`} className="pt-10">
       <div className={`flex items-center gap-3 mb-6 transition-all duration-500 ${visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-3'}`}>
         {cat.icon && <span className="text-2xl">{cat.icon}</span>}
-        <h2 className="text-xl font-display font-bold text-white tracking-tight">{cat.name}</h2>
+        <h2 className="text-xl font-display font-bold text-white tracking-tight">{tCat(lang, cat.id, cat.name)}</h2>
         <div className={`flex-1 h-px bg-gradient-to-r from-sky-300/25 to-transparent transition-transform duration-700 origin-left ${visible ? 'scale-x-100' : 'scale-x-0'}`} />
       </div>
 
@@ -143,6 +183,7 @@ const CategorySection = React.memo(function CategorySection({
         <div className="divide-y divide-white/[0.03]">
           {items.map((item, i) => {
             const displayPrice = item.samePrice ? item.priceTapa : isTapas ? item.priceTapa : item.priceMedia
+            const dishName = tDish(lang, item.id, item.name)
             return (
               <div
                 key={item.id}
@@ -154,26 +195,26 @@ const CategorySection = React.memo(function CategorySection({
                 {showAllergens ? (
                   <>
                     <span className="text-[0.9rem] text-white/75 leading-snug flex-shrink-0 max-w-[55%] group-hover:text-white transition-colors duration-200">
-                      {item.name}
+                      {dishName}
                     </span>
                     <AllergenIcons allergens={item.allergens} />
                     <span className="flex-1 border-b border-dotted border-white/[0.04] min-w-[0.5rem] self-end mb-1.5 group-hover:border-white/20 transition-colors duration-300" />
                     <span className="text-white/90 text-sm font-semibold tracking-wide whitespace-nowrap ml-1 group-hover:text-white">
-                      {fmt(displayPrice)}
+                      {fmtPrice(displayPrice, lang)}
                     </span>
                   </>
                 ) : displayPrice === 0 ? (
                   <span className="text-[0.9rem] text-white/70 leading-snug group-hover:text-white transition-colors">
-                    {item.name}
+                    {dishName}
                   </span>
                 ) : (
                   <>
                     <span className="text-[0.9rem] text-white/75 leading-snug flex-shrink-0 max-w-[70%] group-hover:text-white transition-colors duration-200">
-                      {item.name}
+                      {dishName}
                     </span>
                     <span className="flex-1 border-b border-dotted border-white/[0.04] min-w-[1.5rem] self-end mb-1.5 group-hover:border-white/20 transition-colors duration-300" />
                     <span className="text-white/90 text-sm font-semibold tracking-wide whitespace-nowrap group-hover:text-white">
-                      {fmt(displayPrice)}
+                      {fmtPrice(displayPrice, lang)}
                     </span>
                   </>
                 )}
@@ -192,9 +233,11 @@ const CategorySection = React.memo(function CategorySection({
 const WineCategorySection = React.memo(function WineCategorySection({
   cat,
   isLast,
+  lang,
 }: {
   cat: WineCategory
   isLast: boolean
+  lang: Lang
 }) {
   const ref = useRef<HTMLElement>(null)
   const [visible, setVisible] = useState(false)
@@ -226,9 +269,9 @@ const WineCategorySection = React.memo(function WineCategorySection({
       <div className={`rounded-2xl bg-white/[0.015] border border-white/[0.04] p-1 transition-all duration-500 ${visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
         {/* Header row */}
         <div className="flex items-center gap-2 py-2.5 px-4 text-[10px] uppercase tracking-wider text-white/30 font-semibold">
-          <span className="flex-1">Vino</span>
-          <span className="w-16 text-center">Copa</span>
-          <span className="w-20 text-center">Botella</span>
+          <span className="flex-1">{t(lang, 'wine')}</span>
+          <span className="w-16 text-center">{t(lang, 'glass')}</span>
+          <span className="w-20 text-center">{t(lang, 'bottle')}</span>
         </div>
         <div className="divide-y divide-white/[0.03]">
           {items.map((wine, i) => (
@@ -263,6 +306,7 @@ export default function MenuPage({ params }: { params: { type: string } }) {
   const isVinosRoute = params.type === 'vinos'
   const [menu, setMenu] = useState<MenuData>(() => menuService.getDefaultMenu())
   const [importantDay, setImportantDay] = useState(false)
+  const [lang, setLang] = useState<Lang>('es')
   const router = useRouter()
   const [activeCategory, setActiveCategory] = useState('')
   const sectionRefs = useRef<Record<string, HTMLElement | null>>({})
@@ -332,6 +376,11 @@ export default function MenuPage({ params }: { params: { type: string } }) {
 
       {/* ─── Hero ─── */}
       <header className="relative pt-14 pb-10 px-6 text-center overflow-hidden z-10">
+        {/* Language selector - top right */}
+        <div className="absolute top-4 right-4 z-20">
+          <LanguageSelector lang={lang} setLang={setLang} />
+        </div>
+
         <div className="absolute top-[-60px] left-1/2 -translate-x-1/2 w-80 h-80 pointer-events-none">
           <div
             className="w-full h-full rounded-full animate-spin-slow"
@@ -362,7 +411,7 @@ export default function MenuPage({ params }: { params: { type: string } }) {
           </div>
 
           <p className="text-sky-500/60 text-[10px] font-semibold tracking-[0.4em] uppercase mb-3 animate-fade-in" style={{ animationDelay: '0.2s' }}>
-            Bienvenido a
+            {t(lang, 'welcomeTo')}
           </p>
 
           <AnimatedTitle text={menu.barName} />
@@ -377,7 +426,7 @@ export default function MenuPage({ params }: { params: { type: string } }) {
                   !showAllergens && !isVinosRoute ? 'bg-white text-[#031f4a] shadow-md' : 'text-white/70 hover:text-white'
                 }`}
               >
-                Media
+                {t(lang, 'media')}
               </a>
               <a
                 href="/menu/alergenos"
@@ -385,7 +434,7 @@ export default function MenuPage({ params }: { params: { type: string } }) {
                   showAllergens ? 'bg-white text-[#031f4a] shadow-md' : 'text-white/70 hover:text-white'
                 }`}
               >
-                Alérgenos
+                {t(lang, 'allergens')}
               </a>
               {showWines && (
                 <a
@@ -394,7 +443,7 @@ export default function MenuPage({ params }: { params: { type: string } }) {
                     isVinosRoute ? 'bg-white text-[#031f4a] shadow-md' : 'text-white/70 hover:text-white'
                   }`}
                 >
-                  Vinos
+                  {t(lang, 'wines')}
                 </a>
               )}
             </>
@@ -406,7 +455,7 @@ export default function MenuPage({ params }: { params: { type: string } }) {
                   isTapas && !showAllergens && !isVinosRoute ? 'bg-white text-[#031f4a] shadow-md' : 'text-white/70 hover:text-white'
                 }`}
               >
-                Tapas
+                {t(lang, 'tapas')}
               </a>
               <a
                 href="/menu/medias"
@@ -414,7 +463,7 @@ export default function MenuPage({ params }: { params: { type: string } }) {
                   !isTapas && !showAllergens && !isVinosRoute ? 'bg-white text-[#031f4a] shadow-md' : 'text-white/70 hover:text-white'
                 }`}
               >
-                Media
+                {t(lang, 'media')}
               </a>
               <a
                 href="/menu/alergenos"
@@ -422,7 +471,7 @@ export default function MenuPage({ params }: { params: { type: string } }) {
                   showAllergens ? 'bg-white text-[#031f4a] shadow-md' : 'text-white/70 hover:text-white'
                 }`}
               >
-                Alérgenos
+                {t(lang, 'allergens')}
               </a>
               {showWines && (
                 <a
@@ -431,17 +480,17 @@ export default function MenuPage({ params }: { params: { type: string } }) {
                     isVinosRoute ? 'bg-white text-[#031f4a] shadow-md' : 'text-white/70 hover:text-white'
                   }`}
                 >
-                  Vinos
+                  {t(lang, 'wines')}
                 </a>
               )}
             </>
           )}
         </div>
 
-        {isImportantDay && !showAllergens && (
+        {isImportantDay && !showAllergens && !isVinosRoute && (
           <div className="mx-auto mt-4 max-w-lg rounded-xl border border-white/10 bg-white/5 p-4 text-center">
             <p className="text-sm text-white/80">
-              Solo disponible carta de Media Ración.
+              {t(lang, 'onlyMedia')}
             </p>
           </div>
         )}
@@ -488,7 +537,7 @@ export default function MenuPage({ params }: { params: { type: string } }) {
                   style={{ animationDelay: `${0.8 + i * 0.08}s` }}
                 >
                   {cat.icon && <span className="mr-1.5">{cat.icon}</span>}
-                  {cat.name}
+                  {tCat(lang, cat.id, cat.name)}
                 </button>
               ))
           }
@@ -499,23 +548,23 @@ export default function MenuPage({ params }: { params: { type: string } }) {
       <div className="px-5 pb-32 max-w-lg mx-auto relative z-10">
         {isVinosRoute ? (
           sortedWines.map((cat, i) => (
-            <WineCategorySection key={cat.id} cat={cat} isLast={i === sortedWines.length - 1} />
+            <WineCategorySection key={cat.id} cat={cat} isLast={i === sortedWines.length - 1} lang={lang} />
           ))
         ) : showingTapasBlocked ? (
           <div className="rounded-2xl border border-white/10 bg-white/5 p-6 text-center mt-10">
             <p className="text-sm text-white/80">
-              Solo disponible carta de Media Ración.
+              {t(lang, 'onlyMedia')}
             </p>
             <a
               href="/menu/medias"
               className="mt-4 inline-block px-5 py-2 rounded-lg bg-sky-300 text-black font-bold hover:bg-sky-200"
             >
-              Ir a Media
+              {t(lang, 'goMedia')}
             </a>
           </div>
         ) : (
           sorted.map((cat, i) => (
-            <CategorySection key={cat.id} cat={cat} isTapas={isTapas} isLast={i === sorted.length - 1} showAllergens={showAllergens} />
+            <CategorySection key={cat.id} cat={cat} isTapas={isTapas} isLast={i === sorted.length - 1} showAllergens={showAllergens} lang={lang} />
           ))
         )}
       </div>
