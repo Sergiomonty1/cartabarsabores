@@ -306,8 +306,18 @@ export default function MenuPage({ params }: { params: { type: string } }) {
   const isVinosRoute = params.type === 'vinos'
   const [menu, setMenu] = useState<MenuData>(() => menuService.getDefaultMenu())
   const [importantDay, setImportantDay] = useState(false)
-  const [lang, setLang] = useState<Lang>('es')
+  const [lang, setLang] = useState<Lang>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('carta-lang')
+      if (saved && ['es','en','de','pt','fr'].includes(saved)) return saved as Lang
+    }
+    return 'es'
+  })
   const router = useRouter()
+
+  useEffect(() => {
+    localStorage.setItem('carta-lang', lang)
+  }, [lang])
   const [activeCategory, setActiveCategory] = useState('')
   const sectionRefs = useRef<Record<string, HTMLElement | null>>({})
   const navRef = useRef<HTMLDivElement>(null)
