@@ -1,10 +1,61 @@
 import { doc, getDoc, setDoc } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
-import type { MenuCategory, MenuItem, MenuData, WineCategory } from '@/types/menu'
+import type { MenuData, Translations } from '@/types/menu'
 
 const MENU_COLLECTION = 'menu'
+const MENU_DOC = 'data'
+const INITIAL_DOC = 'initial'
 
-const defaultMenuData: MenuData = {
+/* ─── Traducciones semilla de las categorías (por id) ─── */
+const CATEGORY_I18N: Record<string, Translations> = {
+  entrantes:     { en: 'Starters',    de: 'Vorspeisen',     pt: 'Entradas',       fr: 'Entrées' },
+  tostas:        { en: 'Toasts',      de: 'Toasts',         pt: 'Tostas',         fr: 'Tartines' },
+  caliente:      { en: 'Hot dishes',  de: 'Warme Gerichte', pt: 'Pratos quentes', fr: 'Plats chauds' },
+  arroces:       { en: 'Rice dishes', de: 'Reisgerichte',   pt: 'Arrozes',        fr: 'Riz' },
+  postres:       { en: 'Desserts',    de: 'Nachspeisen',    pt: 'Sobremesas',     fr: 'Desserts' },
+  'fuera-carta': { en: 'Specials',    de: 'Empfehlungen',   pt: 'Fora da Carta',  fr: 'Hors Carte' },
+}
+
+/* ─── Traducciones semilla de los platos (por id, errores corregidos) ─── */
+const DISH_I18N: Record<string, Translations> = {
+  e1: { en: 'Fried chicken & mustard salad', de: 'Salat mit gebratenem Hähnchen & Senf', pt: 'Salada de frango frito e mostarda', fr: 'Salade de poulet frit et moutarde' },
+  e2: { en: 'Prawn Russian salad', de: 'Russischer Salat mit Garnelen', pt: 'Salada russa de lagostins', fr: 'Salade russe de langoustines' },
+  e3: { en: 'Dressed potatoes with salmorejo', de: 'Kartoffeln mit Salmorejo', pt: 'Batatas temperadas com salmorejo', fr: 'Pommes de terre au salmorejo' },
+  e4: { en: 'Homemade patatas bravas', de: 'Hausgemachte Patatas Bravas', pt: 'Batatas bravas caseiras', fr: 'Patatas bravas maison' },
+  e5: { en: 'Sabores croquettes', de: 'Kroketten Sabores', pt: 'Croquetes sabores', fr: 'Croquettes sabores' },
+  e6: { en: 'Foie gras magnum', de: 'Foie-Gras-Magnum', pt: 'Magnum de foie', fr: 'Magnum de foie gras' },
+  e7: { en: 'Prawn taco', de: 'Garnelen-Taco', pt: 'Taco de lagostins', fr: 'Taco de langoustines' },
+  e8: { en: 'Fried baby squid taco', de: 'Taco mit gebratenem Baby-Tintenfisch', pt: 'Taco de lula frita', fr: 'Taco de chipirons frits' },
+  e9: { en: 'Crispy chicken wing ravioli', de: 'Knusprige Chicken-Wing-Ravioli', pt: 'Ravioli crocante de asinhas', fr: "Ravioli croustillant d'ailes de poulet" },
+  t1: { en: 'Salmorejo, quail egg & ham toast', de: 'Toast mit Salmorejo, Wachtelei & Schinken', pt: 'Salmorejo, ovo de codorniz e presunto', fr: 'Salmorejo, œuf de caille et jambon' },
+  t2: { en: 'Mackerel, peppers & aioli toast', de: 'Toast mit Makrele, Paprika & Aioli', pt: 'Cavala, pimentos e aioli', fr: 'Maquereau, poivrons et aïoli' },
+  t3: { en: 'Anchovies, cream cheese & truffle toast', de: 'Toast mit Sardellen, Frischkäse & Trüffel', pt: 'Anchovas, queijo creme e trufa', fr: 'Anchois, fromage frais et truffe' },
+  c1: { en: 'Sirloin in sauce (carbonara, whisky, brava)', de: 'Filet in Sauce (Carbonara, Whisky, Brava)', pt: 'Lombo em molho (carbonara, whisky, brava)', fr: 'Filet en sauce (carbonara, whisky, brava)' },
+  c2: { en: 'Salmon with pipirrana', de: 'Lachs mit Pipirrana', pt: 'Salmão com pipirrana', fr: 'Saumon à la pipirrana' },
+  c3: { en: 'Toasted noodles with pear aioli', de: 'Geröstete Nudeln mit Birnen-Aioli', pt: 'Fideos torrados com aioli de pera', fr: "Nouilles grillées à l'aïoli de poire" },
+  c4: { en: 'Pulled pork brioche', de: 'Pulled-Pork-Brioche', pt: 'Brioche de pulled pork', fr: 'Brioche de porc effiloché' },
+  c5: { en: 'Potatoes with egg & truffle', de: 'Kartoffeln mit Ei & Trüffel', pt: 'Batatas com ovo e trufa', fr: 'Pommes de terre, œuf et truffe' },
+  c6: { en: 'Burger', de: 'Hamburger', pt: 'Hambúrguer', fr: 'Hamburger' },
+  c7: { en: 'Roasted chicken burger', de: 'Brathähnchen-Burger', pt: 'Hambúrguer de frango assado', fr: 'Burger de poulet rôti' },
+  c8: { en: 'Marinated tuna', de: 'Marinierter Thunfisch', pt: 'Atum marinado', fr: 'Thon mariné' },
+  a1: { en: 'Ask about our rice dishes (weekends)', de: 'Fragen Sie nach unseren Reisgerichten (Wochenende)', pt: 'Pergunte pelos nossos arrozes (fim de semana)', fr: 'Renseignez-vous sur nos riz (week-end)' },
+  p1: { en: 'Cheesecake with mascarpone ice cream & coulis', de: 'Käsekuchen mit Mascarpone-Eis & Coulis', pt: 'Tarte de queijo com gelado de mascarpone e coulis', fr: 'Cheesecake, glace mascarpone et coulis' },
+  p2: { en: 'Chocolate coulant with pistachio ice cream', de: 'Schokoladen-Coulant mit Pistazien-Eis', pt: 'Coulant de chocolate com gelado de pistacho', fr: 'Coulant au chocolat, glace pistache' },
+  p3: { en: 'Brioche French toast', de: 'Brioche-Arme-Ritter', pt: 'Torrija de brioche', fr: 'Pain perdu brioche' },
+  f1: { en: 'Iberian pork presa', de: 'Iberische Presa', pt: 'Presa ibérica', fr: 'Presa ibérique' },
+  f2: { en: 'Striploin', de: 'Roastbeef', pt: 'Lombo baixo', fr: 'Faux-filet' },
+  f3: { en: 'Beef rib steak', de: 'Rib-Eye vom Rind', pt: 'Costeleta de vaca', fr: 'Côte de bœuf' },
+  f4: { en: 'T-Bone', de: 'T-Bone', pt: 'T-Bone', fr: 'T-Bone' },
+  f5: { en: 'Slow-cooked pork shank with potato parmentier', de: 'Niedrigtemperatur-Schweinshaxe mit Kartoffelpüree', pt: 'Pernil a baixa temperatura com parmentier de batata', fr: 'Jarret à basse température, parmentier de pommes de terre' },
+  f6: { en: 'Pork abanico taco', de: 'Taco vom Schweinefächer (Abanico)', pt: 'Taco de abanico', fr: "Taco d'abanico" },
+  f7: { en: 'Iberian presa burger', de: 'Iberischer Presa-Burger', pt: 'Hambúrguer de presa', fr: 'Burger de presa ibérique' },
+  f8: { en: 'Garlic prawns', de: 'Knoblauch-Garnelen', pt: 'Gambas ao alho', fr: "Crevettes à l'ail" },
+  f9: { en: 'Salt-baked prawns', de: 'Garnelen in Salz', pt: 'Gambas ao sal', fr: 'Crevettes au sel' },
+  f10: { en: 'Carril clams', de: 'Carril-Venusmuscheln', pt: 'Amêijoas de carril', fr: 'Palourdes de carril' },
+  f11: { en: 'Baby mussels in sauce', de: 'Baby-Miesmuscheln in Sauce', pt: 'Mexilhões baby em molho', fr: 'Petites moules en sauce' },
+}
+
+const rawDefaultMenu: MenuData = {
   barName: 'Sabores',
   importantDay: false,
   showWines: true,
@@ -163,60 +214,112 @@ const defaultMenuData: MenuData = {
   ],
 }
 
+/** Adjunta las traducciones semilla (por id) a categorías y platos que no las tengan. */
+function attachSeedTranslations(data: MenuData): MenuData {
+  return {
+    ...data,
+    categories: data.categories.map((cat) => ({
+      ...cat,
+      nameI18n: cat.nameI18n ?? CATEGORY_I18N[cat.id],
+      items: cat.items.map((it) => ({
+        ...it,
+        nameI18n: it.nameI18n ?? DISH_I18N[it.id],
+      })),
+    })),
+  }
+}
+
+const defaultMenuData: MenuData = attachSeedTranslations(rawDefaultMenu)
+
+/**
+ * Rellena los campos que falten en datos venidos de Firestore usando los valores
+ * de fábrica (alérgenos y traducciones de los platos semilla) y normaliza opcionales.
+ */
+function hydrate(data: MenuData): MenuData {
+  const categories = (data.categories || []).map((cat) => {
+    const defCat = defaultMenuData.categories.find((c) => c.id === cat.id)
+    return {
+      ...cat,
+      nameI18n: cat.nameI18n ?? defCat?.nameI18n ?? CATEGORY_I18N[cat.id],
+      items: (cat.items || []).map((item) => {
+        const defItem = defCat?.items.find((i) => i.id === item.id)
+        return {
+          ...item,
+          allergens: item.allergens ?? defItem?.allergens,
+          nameI18n: item.nameI18n ?? defItem?.nameI18n ?? DISH_I18N[item.id],
+        }
+      }),
+    }
+  })
+  return {
+    ...data,
+    categories,
+    wineCategories: data.wineCategories ?? defaultMenuData.wineCategories,
+    showWines: data.showWines ?? defaultMenuData.showWines ?? true,
+    importantDay: data.importantDay ?? false,
+  }
+}
+
+const clone = (data: MenuData): MenuData => JSON.parse(JSON.stringify(data))
+
 export const menuService = {
-  /** Return defaults instantly. Call fetchMenu() in background for fresh data. */
+  /** Devuelve la carta de fábrica al instante. Llama a fetchMenu() en segundo plano. */
   getDefaultMenu(): MenuData {
-    return JSON.parse(JSON.stringify(defaultMenuData))
+    return clone(defaultMenuData)
   },
 
-  /** Fetch from Firestore (may be slow on first load). Seeds defaults if empty. */
+  getDefaults(): MenuData {
+    return clone(defaultMenuData)
+  },
+
+  /** Carga la carta publicada desde Firestore. Siembra la de fábrica si está vacía. */
   async fetchMenu(): Promise<MenuData> {
     try {
-      const docRef = doc(db, MENU_COLLECTION, 'data')
+      const docRef = doc(db, MENU_COLLECTION, MENU_DOC)
       const snap = await getDoc(docRef)
       if (snap.exists()) {
-        const data = snap.data() as MenuData
-        // Merge allergens from defaults into Firestore data
-        const defaults = defaultMenuData
-        data.categories = data.categories.map((cat) => {
-          const defCat = defaults.categories.find((dc) => dc.id === cat.id)
-          if (!defCat) return cat
-          cat.items = cat.items.map((item) => {
-            if (!item.allergens) {
-              const defItem = defCat.items.find((di) => di.id === item.id)
-              if (defItem?.allergens) item.allergens = defItem.allergens
-            }
-            return item
-          })
-          return cat
-        })
-        // Ensure wine categories exist
-        if (!data.wineCategories) {
-          data.wineCategories = defaults.wineCategories
-        }
-        if (data.showWines === undefined) {
-          data.showWines = defaults.showWines ?? true
-        }
-        return data
+        return hydrate(snap.data() as MenuData)
       }
-      // Seed defaults
       const seeded = { ...defaultMenuData, updatedAt: new Date().toISOString() }
-      await setDoc(docRef, seeded)
-      return defaultMenuData
+      await setDoc(docRef, clone(seeded))
+      return clone(defaultMenuData)
     } catch {
-      return defaultMenuData
+      return clone(defaultMenuData)
     }
   },
 
+  /** Publica la carta (la que ven los clientes). */
   async saveMenu(data: MenuData): Promise<void> {
-    const docRef = doc(db, MENU_COLLECTION, 'data')
-    // Clean data: remove undefined values that Firestore rejects
-    const clean = JSON.parse(JSON.stringify(data))
+    const docRef = doc(db, MENU_COLLECTION, MENU_DOC)
+    const clean = clone(data)
     clean.updatedAt = new Date().toISOString()
     await setDoc(docRef, clean)
   },
 
-  getDefaults(): MenuData {
-    return JSON.parse(JSON.stringify(defaultMenuData))
+  /** Carga la "carta inicial / de fábrica" guardada por el admin (o null si no hay). */
+  async fetchInitialMenu(): Promise<MenuData | null> {
+    try {
+      const snap = await getDoc(doc(db, MENU_COLLECTION, INITIAL_DOC))
+      if (snap.exists()) return hydrate(snap.data() as MenuData)
+      return null
+    } catch {
+      return null
+    }
+  },
+
+  /** Guarda la carta actual como "carta inicial / de fábrica" (para el botón Resetear). */
+  async saveInitialMenu(data: MenuData): Promise<void> {
+    const clean = clone(data)
+    clean.updatedAt = new Date().toISOString()
+    await setDoc(doc(db, MENU_COLLECTION, INITIAL_DOC), clean)
+  },
+
+  /**
+   * Devuelve la carta a la que debe restaurar el botón Resetear:
+   * la inicial guardada por el admin, o la de fábrica del código si no hay ninguna.
+   */
+  async fetchResetTarget(): Promise<MenuData> {
+    const initial = await this.fetchInitialMenu()
+    return initial ?? clone(defaultMenuData)
   },
 }

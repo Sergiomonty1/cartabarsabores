@@ -1,4 +1,6 @@
-export type Lang = 'es' | 'en' | 'de' | 'pt' | 'fr'
+import type { Lang, Translations } from '@/types/menu'
+
+export type { Lang }
 
 export const LANGUAGES: { code: Lang; flag: string; label: string }[] = [
   { code: 'es', flag: '🇪🇸', label: 'Español' },
@@ -7,6 +9,13 @@ export const LANGUAGES: { code: Lang; flag: string; label: string }[] = [
   { code: 'pt', flag: '🇵🇹', label: 'Português' },
   { code: 'fr', flag: '🇫🇷', label: 'Français' },
 ]
+
+/** Idiomas traducibles (todos menos el base español). Para los formularios del admin. */
+export const I18N_LANGS = LANGUAGES.filter((l) => l.code !== 'es') as {
+  code: Exclude<Lang, 'es'>
+  flag: string
+  label: string
+}[]
 
 /* ─── UI strings ─── */
 const ui: Record<Lang, Record<string, string>> = {
@@ -77,213 +86,39 @@ const ui: Record<Lang, Record<string, string>> = {
   },
 }
 
-/* ─── Category name translations ─── */
-const categories: Record<Lang, Record<string, string>> = {
-  es: {
-    entrantes: 'Entrantes',
-    tostas: 'Tostas',
-    caliente: 'Caliente',
-    arroces: 'Arroces',
-    postres: 'Postres',
-    'fuera-carta': 'Fuera de Carta',
-  },
-  en: {
-    entrantes: 'Starters',
-    tostas: 'Toasts',
-    caliente: 'Hot dishes',
-    arroces: 'Rice dishes',
-    postres: 'Desserts',
-    'fuera-carta': 'Specials',
-  },
-  de: {
-    entrantes: 'Vorspeisen',
-    tostas: 'Toasts',
-    caliente: 'Warme Gerichte',
-    arroces: 'Reisgerichte',
-    postres: 'Nachspeisen',
-    'fuera-carta': 'Empfehlungen',
-  },
-  pt: {
-    entrantes: 'Entradas',
-    tostas: 'Tostas',
-    caliente: 'Pratos quentes',
-    arroces: 'Arrozes',
-    postres: 'Sobremesas',
-    'fuera-carta': 'Fora da Carta',
-  },
-  fr: {
-    entrantes: 'Entrées',
-    tostas: 'Tartines',
-    caliente: 'Plats chauds',
-    arroces: 'Riz',
-    postres: 'Desserts',
-    'fuera-carta': 'Hors Carte',
-  },
+/* ─── Etiquetas de alérgenos traducidas ─── */
+const allergenLabels: Record<string, Record<Lang, string>> = {
+  gluten:          { es: 'Gluten',            en: 'Gluten',       de: 'Gluten',         pt: 'Glúten',          fr: 'Gluten' },
+  huevo:           { es: 'Huevo',             en: 'Egg',          de: 'Ei',             pt: 'Ovo',             fr: 'Œuf' },
+  lacteo:          { es: 'Lácteo',            en: 'Dairy',        de: 'Milch',          pt: 'Lácteos',         fr: 'Lait' },
+  mostaza:         { es: 'Mostaza',           en: 'Mustard',      de: 'Senf',           pt: 'Mostarda',        fr: 'Moutarde' },
+  soja:            { es: 'Soja',              en: 'Soy',          de: 'Soja',           pt: 'Soja',            fr: 'Soja' },
+  sulfitos:        { es: 'Sulfitos',          en: 'Sulphites',    de: 'Sulfite',        pt: 'Sulfitos',        fr: 'Sulfites' },
+  apio:            { es: 'Apio',              en: 'Celery',       de: 'Sellerie',       pt: 'Aipo',            fr: 'Céleri' },
+  cacahuetes:      { es: 'Cacahuetes',        en: 'Peanuts',      de: 'Erdnüsse',       pt: 'Amendoins',       fr: 'Arachides' },
+  crustaceo:       { es: 'Crustáceo',         en: 'Crustaceans',  de: 'Krebstiere',     pt: 'Crustáceos',      fr: 'Crustacés' },
+  pescado:         { es: 'Pescado',           en: 'Fish',         de: 'Fisch',          pt: 'Peixe',           fr: 'Poisson' },
+  sesamo:          { es: 'Sésamo',            en: 'Sesame',       de: 'Sesam',          pt: 'Sésamo',          fr: 'Sésame' },
+  'fruto-cascara': { es: 'Frutos de cáscara', en: 'Tree nuts',    de: 'Schalenfrüchte', pt: 'Frutos de casca', fr: 'Fruits à coque' },
+  molusco:         { es: 'Molusco',           en: 'Molluscs',     de: 'Weichtiere',     pt: 'Moluscos',        fr: 'Mollusques' },
 }
 
-/* ─── Dish name translations (keyed by item id) ─── */
-const dishes: Record<Lang, Record<string, string>> = {
-  es: {},
-  en: {
-    e1: 'Fried chicken & mustard salad',
-    e2: 'Prawn salad',
-    e3: 'Dressed potatoes with salmorejo',
-    e4: 'Homemade patatas bravas',
-    e5: 'Sabores croquettes',
-    e6: 'Foie gras magnum',
-    e7: 'Prawn taco',
-    e8: 'Fried baby squid taco',
-    e9: 'Crispy chicken wing ravioli',
-    t1: 'Salmorejo, quail egg & ham toast',
-    t2: 'Mackerel, peppers & aioli toast',
-    t3: 'Anchovies, cream cheese & truffle toast',
-    c1: 'Sirloin in sauce (carbonara, whisky, brava)',
-    c2: 'Salmon with pipirrana',
-    c3: 'Toasted noodles with pear aioli',
-    c4: 'Pulled pork brioche',
-    c5: 'Potatoes with egg & truffle',
-    c6: 'Burger',
-    c7: 'Roasted chicken burger',
-    c8: 'Marinated tuna',
-    a1: 'Ask about our rice dishes (weekends)',
-    p1: 'Cheesecake with mascarpone ice cream & coulis',
-    p2: 'Chocolate coulant with pistachio ice cream',
-    p3: 'Brioche French toast',
-    f1: 'Iberian pork loin',
-    f2: 'Short loin',
-    f3: 'Beef rib steak',
-    f4: 'T-Bone',
-    f5: 'Slow-cooked pork shank with potato parmentier',
-    f6: 'Pork fan taco',
-    f7: 'Iberian pork burger',
-    f8: 'Garlic prawns',
-    f9: 'Salt-baked prawns',
-    f10: 'Clams',
-    f11: 'Baby mussels in sauce',
-  },
-  de: {
-    e1: 'Salat mit gebratenem Hähnchen & Senf',
-    e2: 'Garnelen-Salat',
-    e3: 'Kartoffeln mit Salmorejo',
-    e4: 'Hausgemachte Patatas Bravas',
-    e5: 'Kroketten Sabores',
-    e6: 'Foie-Gras-Magnum',
-    e7: 'Garnelen-Taco',
-    e8: 'Gebratene Baby-Tintenfisch-Taco',
-    e9: 'Knusprige Chicken-Wing-Ravioli',
-    t1: 'Salmorejo, Wachtelei & Schinken Toast',
-    t2: 'Makrele, Paprika & Aioli Toast',
-    t3: 'Sardellen, Frischkäse & Trüffel Toast',
-    c1: 'Filet in Sauce (Carbonara, Whisky, Brava)',
-    c2: 'Lachs mit Pipirrana',
-    c3: 'Geröstete Nudeln mit Birnen-Aioli',
-    c4: 'Pulled Pork Brioche',
-    c5: 'Kartoffeln mit Ei & Trüffel',
-    c6: 'Hamburger',
-    c7: 'Gebratener Hähnchen-Burger',
-    c8: 'Marinierter Thunfisch',
-    a1: 'Fragen Sie nach unseren Reisgerichten (Wochenende)',
-    p1: 'Käsekuchen mit Mascarpone-Eis & Coulis',
-    p2: 'Schokoladen-Coulant mit Pistazien-Eis',
-    p3: 'Brioche-Arme-Ritter',
-    f1: 'Iberisches Schweinelende',
-    f2: 'Niedrigrücken',
-    f3: 'Rinder-Rib-Steak',
-    f4: 'T-Bone',
-    f5: 'Niedrigtemperatur-Schweinshaxe mit Kartoffelpüree',
-    f6: 'Fächer-Taco',
-    f7: 'Iberischer Schweine-Burger',
-    f8: 'Knoblauch-Garnelen',
-    f9: 'Salz-Garnelen',
-    f10: 'Muscheln',
-    f11: 'Baby-Miesmuscheln in Sauce',
-  },
-  pt: {
-    e1: 'Salada de frango frito e mostarda',
-    e2: 'Salada russa de lagostins',
-    e3: 'Batatas temperadas com salmorejo',
-    e4: 'Batatas bravas caseiras',
-    e5: 'Croquetes sabores',
-    e6: 'Magnum de foie',
-    e7: 'Taco de lagostins',
-    e8: 'Taco de lula frita',
-    e9: 'Ravioli crocante de asinhas',
-    t1: 'Salmorejo, ovo de codorniz e presunto',
-    t2: 'Cavala, pimentos e aioli',
-    t3: 'Anchovas, queijo creme e trufa',
-    c1: 'Lombo em molho (carbonara, whisky, brava)',
-    c2: 'Salmão com pipirrana',
-    c3: 'Fideos torrados com aioli de pera',
-    c4: 'Brioche de pulled pork',
-    c5: 'Batatas com ovo e trufa',
-    c6: 'Hambúrguer',
-    c7: 'Hambúrguer de frango assado',
-    c8: 'Atum marinado',
-    a1: 'Pergunte pelos nossos arrozes (fim de semana)',
-    p1: 'Tarte de queijo com gelado de mascarpone e coulis',
-    p2: 'Coulant de chocolate com gelado de pistacho',
-    p3: 'Torrija de brioche',
-    f1: 'Presa ibérica',
-    f2: 'Lombo baixo',
-    f3: 'Costeleta de vaca',
-    f4: 'T-Bone',
-    f5: 'Pernil a baixa temperatura com parmentier de batata',
-    f6: 'Taco de leque',
-    f7: 'Hambúrguer de presa',
-    f8: 'Gambas ao alho',
-    f9: 'Gambas ao sal',
-    f10: 'Amêijoas',
-    f11: 'Mexilhões baby em molho',
-  },
-  fr: {
-    e1: 'Salade de poulet frit et moutarde',
-    e2: 'Salade de langoustines',
-    e3: 'Pommes de terre au salmorejo',
-    e4: 'Patatas bravas maison',
-    e5: 'Croquettes sabores',
-    e6: 'Magnum de foie gras',
-    e7: 'Taco de langoustines',
-    e8: 'Taco de chipirons frits',
-    e9: 'Ravioli croustillant d\'ailes de poulet',
-    t1: 'Salmorejo, œuf de caille et jambon',
-    t2: 'Maquereau, poivrons et aïoli',
-    t3: 'Anchois, fromage frais et truffe',
-    c1: 'Filet en sauce (carbonara, whisky, brava)',
-    c2: 'Saumon à la pipirrana',
-    c3: 'Nouilles grillées à l\'aïoli de poire',
-    c4: 'Brioche de porc effiloché',
-    c5: 'Pommes de terre, œuf et truffe',
-    c6: 'Hamburger',
-    c7: 'Burger de poulet rôti',
-    c8: 'Thon mariné',
-    a1: 'Renseignez-vous sur nos riz (week-end)',
-    p1: 'Cheesecake, glace mascarpone et coulis',
-    p2: 'Coulant au chocolat, glace pistache',
-    p3: 'Pain perdu brioche',
-    f1: 'Filet ibérique',
-    f2: 'Faux-filet',
-    f3: 'Côte de bœuf',
-    f4: 'T-Bone',
-    f5: 'Jarret à basse température, parmentier de pommes de terre',
-    f6: 'Taco d\'éventail',
-    f7: 'Burger de porc ibérique',
-    f8: 'Crevettes à l\'ail',
-    f9: 'Crevettes au sel',
-    f10: 'Palourdes',
-    f11: 'Petites moules en sauce',
-  },
-}
-
+/** Devuelve un texto de interfaz en el idioma dado (con fallback a español). */
 export function t(lang: Lang, key: string): string {
   return ui[lang]?.[key] ?? ui.es[key] ?? key
 }
 
-export function tCat(lang: Lang, catId: string, fallback: string): string {
-  if (lang === 'es') return fallback
-  return categories[lang]?.[catId] ?? fallback
+/**
+ * Traduce un nombre a partir de su texto base (español) y sus traducciones.
+ * Si no hay traducción para el idioma, cae al texto base.
+ */
+export function tName(lang: Lang, base: string, i18n?: Translations): string {
+  if (lang === 'es') return base
+  const translated = i18n?.[lang]
+  return translated && translated.trim() ? translated : base
 }
 
-export function tDish(lang: Lang, itemId: string, fallback: string): string {
-  if (lang === 'es') return fallback
-  return dishes[lang]?.[itemId] ?? fallback
+/** Etiqueta traducida de un alérgeno. */
+export function tAllergen(lang: Lang, key: string): string {
+  return allergenLabels[key]?.[lang] ?? allergenLabels[key]?.es ?? key
 }

@@ -1,11 +1,12 @@
 'use client'
 
-import React, { useEffect, useState, useRef, useMemo, useCallback } from 'react'
+import React, { useEffect, useState, useRef, useMemo } from 'react'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import type { MenuData, MenuCategory, WineCategory } from '@/types/menu'
 import { menuService } from '@/lib/menuService'
-import { type Lang, LANGUAGES, t, tCat, tDish } from '@/lib/translations'
+import { type Lang, LANGUAGES, t, tName, tAllergen } from '@/lib/translations'
+import { ALLERGEN_SRC } from '@/lib/allergens'
 
 const fmtPrice = (n: number, lang: Lang) =>
   n === 0 ? t(lang, 'ask') : n.toFixed(2).replace('.', ',') + ' €'
@@ -13,50 +14,23 @@ const fmtPrice = (n: number, lang: Lang) =>
 const fmtWine = (n: number) =>
   n === 0 ? '—' : n.toFixed(2).replace('.', ',') + ' €'
 
-/* ─── Allergen image map ─── */
-const ALLERGEN_IMAGES: Record<string, { src: string; label: string }> = {
-  gluten:     { src: '/alergenos/gluten.png',              label: 'Gluten' },
-  huevo:      { src: '/alergenos/alergenos-huevos.png',    label: 'Huevo' },
-  lacteo:     { src: '/alergenos/lacteos.png',             label: 'Lácteo' },
-  mostaza:    { src: '/alergenos/mostaza.png',             label: 'Mostaza' },
-  soja:       { src: '/alergenos/alergenos-soja.png',      label: 'Soja' },
-  sulfitos:   { src: '/alergenos/alergenos-sulfitos.png',  label: 'Sulfitos' },
-  apio:       { src: '/alergenos/apio.png',                label: 'Apio' },
-  cacahuetes: { src: '/alergenos/cacahuetes.png',          label: 'Cacahuetes' },
-  crustaceo:  { src: '/alergenos/crustaceo.png',           label: 'Crustáceo' },
-  pescado:    { src: '/alergenos/pescado.png',             label: 'Pescado' },
-  sesamo:        { src: '/alergenos/sesamo.png',              label: 'Sésamo' },
-  'fruto-cascara': { src: '/alergenos/fruto-cascara.png',      label: 'Frutos de cáscara' },
-  molusco:       { src: '/alergenos/molusco.png',              label: 'Molusco' },
-}
-
-function AllergenIcons({ allergens }: { allergens?: string[] }) {
+function AllergenIcons({ allergens, lang }: { allergens?: string[]; lang: Lang }) {
   if (!allergens || allergens.length === 0) return null
   return (
     <span className="inline-flex items-center gap-1 ml-2 flex-shrink-0">
       {allergens.map((a) => {
-        const info = ALLERGEN_IMAGES[a]
-        if (!info) return null
-        if (!info.src) {
-          return (
-            <span
-              key={a}
-              className="inline-flex items-center justify-center w-[22px] h-[22px] rounded-full bg-white/10 text-[8px] font-bold text-white/70 border border-white/20"
-              title={info.label}
-            >
-              {info.label.slice(0, 2).toUpperCase()}
-            </span>
-          )
-        }
+        const src = ALLERGEN_SRC[a]
+        if (!src) return null
+        const label = tAllergen(lang, a)
         return (
           <Image
             key={a}
-            src={info.src}
-            alt={info.label}
+            src={src}
+            alt={label}
             width={22}
             height={22}
             className="rounded-full"
-            title={info.label}
+            title={label}
           />
         )
       })}
@@ -175,7 +149,7 @@ const CategorySection = React.memo(function CategorySection({
     <section ref={ref} id={`cat-${cat.id}`} className="pt-10">
       <div className={`flex items-center gap-3 mb-6 transition-all duration-500 ${visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-3'}`}>
         {cat.icon && <span className="text-2xl">{cat.icon}</span>}
-        <h2 className="text-xl font-display font-bold text-white tracking-tight">{tCat(lang, cat.id, cat.name)}</h2>
+        <h2 className="text-xl font-display font-bold text-white tracking-tight">{tName(lang, cat.name, cat.nameI18n)}</h2>
         <div className={`flex-1 h-px bg-gradient-to-r from-sky-300/25 to-transparent transition-transform duration-700 origin-left ${visible ? 'scale-x-100' : 'scale-x-0'}`} />
       </div>
 
@@ -183,7 +157,7 @@ const CategorySection = React.memo(function CategorySection({
         <div className="divide-y divide-white/[0.03]">
           {items.map((item, i) => {
             const displayPrice = item.samePrice ? item.priceTapa : isTapas ? item.priceTapa : item.priceMedia
-            const dishName = tDish(lang, item.id, item.name)
+            const dishName = tName(lang, item.name, item.nameI18n)
             return (
               <div
                 key={item.id}
@@ -197,7 +171,7 @@ const CategorySection = React.memo(function CategorySection({
                     <span className="text-[0.9rem] text-white/75 leading-snug flex-shrink-0 max-w-[55%] group-hover:text-white transition-colors duration-200">
                       {dishName}
                     </span>
-                    <AllergenIcons allergens={item.allergens} />
+                    <AllergenIcons allergens={item.allergens} lang={lang} />
                     <span className="flex-1 border-b border-dotted border-white/[0.04] min-w-[0.5rem] self-end mb-1.5 group-hover:border-white/20 transition-colors duration-300" />
                     <span className="text-white/90 text-sm font-semibold tracking-wide whitespace-nowrap ml-1 group-hover:text-white">
                       {fmtPrice(displayPrice, lang)}
@@ -262,7 +236,7 @@ const WineCategorySection = React.memo(function WineCategorySection({
     <section ref={ref} id={`wine-${cat.id}`} className="pt-10">
       <div className={`flex items-center gap-3 mb-6 transition-all duration-500 ${visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-3'}`}>
         <span className="text-2xl">🍷</span>
-        <h2 className="text-xl font-display font-bold text-white tracking-tight">{cat.name}</h2>
+        <h2 className="text-xl font-display font-bold text-white tracking-tight">{tName(lang, cat.name, cat.nameI18n)}</h2>
         <div className={`flex-1 h-px bg-gradient-to-r from-sky-300/25 to-transparent transition-transform duration-700 origin-left ${visible ? 'scale-x-100' : 'scale-x-0'}`} />
       </div>
 
@@ -281,7 +255,7 @@ const WineCategorySection = React.memo(function WineCategorySection({
               style={visible ? { animationDelay: `${i * 30}ms` } : undefined}
             >
               <span className="text-[0.9rem] text-white/75 leading-snug flex-1 group-hover:text-white transition-colors duration-200">
-                {wine.name}
+                {tName(lang, wine.name, wine.nameI18n)}
                 {wine.year && <span className="text-white/40 text-xs ml-1.5">({wine.year})</span>}
               </span>
               <span className="w-16 text-center text-white/90 text-sm font-semibold tracking-wide group-hover:text-white">
@@ -371,12 +345,15 @@ export default function MenuPage({ params }: { params: { type: string } }) {
   }, [activeCategory])
 
   const sorted = useMemo(
-    () => [...menu.categories].filter((c) => c.id !== 'bebidas').sort((a, b) => a.order - b.order),
+    () =>
+      [...menu.categories]
+        .filter((c) => c.id !== 'bebidas' && !c.hidden)
+        .sort((a, b) => a.order - b.order),
     [menu.categories]
   )
 
   const sortedWines = useMemo(
-    () => [...(menu.wineCategories || [])].sort((a, b) => a.order - b.order),
+    () => [...(menu.wineCategories || [])].filter((c) => !c.hidden).sort((a, b) => a.order - b.order),
     [menu.wineCategories]
   )
 
@@ -531,7 +508,7 @@ export default function MenuPage({ params }: { params: { type: string } }) {
                   style={{ animationDelay: `${0.8 + i * 0.08}s` }}
                 >
                   <span className="mr-1.5">🍷</span>
-                  {cat.name}
+                  {tName(lang, cat.name, cat.nameI18n)}
                 </button>
               ))
             : sorted.map((cat, i) => (
@@ -549,7 +526,7 @@ export default function MenuPage({ params }: { params: { type: string } }) {
                   style={{ animationDelay: `${0.8 + i * 0.08}s` }}
                 >
                   {cat.icon && <span className="mr-1.5">{cat.icon}</span>}
-                  {tCat(lang, cat.id, cat.name)}
+                  {tName(lang, cat.name, cat.nameI18n)}
                 </button>
               ))
           }
