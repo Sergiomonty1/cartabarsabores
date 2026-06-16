@@ -303,10 +303,12 @@ export default function MenuPage({ params }: { params: { type: string } }) {
   const showingTapasBlocked = isImportantDay && isTapasRoute
 
   useEffect(() => {
-    menuService.fetchMenu().then((fresh) => {
+    // Suscripción en tiempo real: la carta se actualiza sola cuando el admin guarda.
+    const unsubscribe = menuService.subscribeMenu((fresh) => {
       setMenu(fresh)
       setImportantDay(fresh.importantDay ?? false)
     })
+    return () => unsubscribe()
   }, [])
 
   useEffect(() => {

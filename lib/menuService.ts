@@ -1,4 +1,4 @@
-import { doc, getDoc, setDoc } from 'firebase/firestore'
+import { doc, getDoc, setDoc, onSnapshot } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import type { MenuData, Translations } from '@/types/menu'
 
@@ -286,6 +286,22 @@ export const menuService = {
     } catch {
       return clone(defaultMenuData)
     }
+  },
+
+  /**
+   * Suscripción en tiempo real a la carta publicada: el callback se dispara con cada
+   * cambio (así los clientes ven las actualizaciones al instante, sin recargar).
+   * Devuelve la función para cancelar la suscripción.
+   */
+  subscribeMenu(onData: (menu: MenuData) => void, onError?: (err: unknown) => void): () => void {
+    const docRef = doc(db, MENU_COLLECTION, MENU_DOC)
+    return onSnapshot(
+      docRef,
+      (snap) => {
+        if (snap.exists()) onData(hydrate(snap.data() as MenuData))
+      },
+      (err) => onError?.(err)
+    )
   },
 
   /** Publica la carta (la que ven los clientes). */
