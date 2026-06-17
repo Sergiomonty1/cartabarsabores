@@ -168,22 +168,21 @@ const CategorySection = React.memo(function CategorySection({
               >
                 {showAllergens ? (
                   <>
-                    <span className="text-[0.9rem] text-white/75 leading-snug flex-shrink-0 max-w-[55%] group-hover:text-white transition-colors duration-200">
+                    <span className="flex-1 min-w-0 text-[0.95rem] text-white/80 leading-snug group-hover:text-white transition-colors duration-200">
                       {dishName}
                     </span>
                     <AllergenIcons allergens={item.allergens} lang={lang} />
-                    <span className="flex-1 border-b border-dotted border-white/[0.04] min-w-[0.5rem] self-end mb-1.5 group-hover:border-white/20 transition-colors duration-300" />
-                    <span className="text-white/90 text-sm font-semibold tracking-wide whitespace-nowrap ml-1 group-hover:text-white">
+                    <span className="text-white/90 text-sm font-semibold tracking-wide whitespace-nowrap flex-shrink-0 group-hover:text-white">
                       {fmtPrice(displayPrice, lang)}
                     </span>
                   </>
                 ) : displayPrice === 0 ? (
-                  <span className="text-[0.9rem] text-white/70 leading-snug group-hover:text-white transition-colors">
+                  <span className="text-[0.95rem] text-white/75 leading-snug group-hover:text-white transition-colors">
                     {dishName}
                   </span>
                 ) : (
                   <>
-                    <span className="text-[0.9rem] text-white/75 leading-snug flex-shrink-0 max-w-[70%] group-hover:text-white transition-colors duration-200">
+                    <span className="text-[0.95rem] text-white/80 leading-snug flex-shrink-0 max-w-[68%] group-hover:text-white transition-colors duration-200">
                       {dishName}
                     </span>
                     <span className="flex-1 border-b border-dotted border-white/[0.04] min-w-[1.5rem] self-end mb-1.5 group-hover:border-white/20 transition-colors duration-300" />
@@ -254,7 +253,7 @@ const WineCategorySection = React.memo(function WineCategorySection({
               className={`group flex items-center gap-2 py-3.5 px-4 rounded-xl transition-colors duration-200 hover:bg-sky-400/[0.12] ${visible ? 'animate-fade-in-item' : 'opacity-0'}`}
               style={visible ? { animationDelay: `${i * 30}ms` } : undefined}
             >
-              <span className="text-[0.9rem] text-white/75 leading-snug flex-1 group-hover:text-white transition-colors duration-200">
+              <span className="text-[0.95rem] text-white/80 leading-snug flex-1 group-hover:text-white transition-colors duration-200">
                 {tName(lang, wine.name, wine.nameI18n)}
                 {wine.year && <span className="text-white/40 text-xs ml-1.5">({wine.year})</span>}
               </span>
@@ -293,7 +292,6 @@ export default function MenuPage({ params }: { params: { type: string } }) {
     localStorage.setItem('carta-lang', lang)
   }, [lang])
   const [activeCategory, setActiveCategory] = useState('')
-  const sectionRefs = useRef<Record<string, HTMLElement | null>>({})
   const navRef = useRef<HTMLDivElement>(null)
 
   const isImportantDay = menu.importantDay ?? importantDay
@@ -317,8 +315,12 @@ export default function MenuPage({ params }: { params: { type: string } }) {
     }
   }, [importantDay, params.type, router])
 
-  // Category intersection observer for nav highlight
+  // Resalta en la barra de navegación la categoría visible mientras se hace scroll
   useEffect(() => {
+    const sections = Array.from(
+      document.querySelectorAll<HTMLElement>('section[id^="cat-"], section[id^="wine-"]')
+    )
+    if (sections.length === 0) return
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((e) => {
@@ -327,11 +329,9 @@ export default function MenuPage({ params }: { params: { type: string } }) {
       },
       { threshold: 0.15, rootMargin: '-100px 0px -60% 0px' }
     )
-    Object.values(sectionRefs.current).forEach((el) => {
-      if (el) observer.observe(el)
-    })
+    sections.forEach((el) => observer.observe(el))
     return () => observer.disconnect()
-  }, [menu])
+  }, [menu, isVinosRoute])
 
   // Auto-scroll active nav button into view
   useEffect(() => {
@@ -364,7 +364,7 @@ export default function MenuPage({ params }: { params: { type: string } }) {
       <GradientOrbs />
 
       {/* ─── Hero ─── */}
-      <header className="relative pt-14 pb-10 px-6 text-center overflow-hidden z-10">
+      <header className="relative pt-12 pb-8 px-6 text-center overflow-hidden z-10">
         {/* Language selector - top right */}
         <div className="absolute top-4 right-4 z-20">
           <LanguageSelector lang={lang} setLang={setLang} />
@@ -412,7 +412,7 @@ export default function MenuPage({ params }: { params: { type: string } }) {
             <>
               <a
                 href="/menu/medias"
-                className={`text-center px-3 py-2 rounded-full text-sm font-semibold transition whitespace-nowrap ${
+                className={`text-center px-3.5 py-2.5 rounded-full text-sm font-semibold transition active:scale-95 select-none whitespace-nowrap ${
                   !showAllergens && !isVinosRoute ? 'bg-white text-[#031f4a] shadow-md' : 'text-white/70 hover:text-white'
                 }`}
               >
@@ -420,7 +420,7 @@ export default function MenuPage({ params }: { params: { type: string } }) {
               </a>
               <a
                 href="/menu/alergenos"
-                className={`text-center px-3 py-2 rounded-full text-sm font-semibold transition whitespace-nowrap ${
+                className={`text-center px-3.5 py-2.5 rounded-full text-sm font-semibold transition active:scale-95 select-none whitespace-nowrap ${
                   showAllergens ? 'bg-white text-[#031f4a] shadow-md' : 'text-white/70 hover:text-white'
                 }`}
               >
@@ -429,7 +429,7 @@ export default function MenuPage({ params }: { params: { type: string } }) {
               {showWines && (
                 <a
                   href="/menu/vinos"
-                  className={`text-center px-3 py-2 rounded-full text-sm font-semibold transition whitespace-nowrap ${
+                  className={`text-center px-3.5 py-2.5 rounded-full text-sm font-semibold transition active:scale-95 select-none whitespace-nowrap ${
                     isVinosRoute ? 'bg-white text-[#031f4a] shadow-md' : 'text-white/70 hover:text-white'
                   }`}
                 >
@@ -441,7 +441,7 @@ export default function MenuPage({ params }: { params: { type: string } }) {
             <>
               <a
                 href="/menu/tapas"
-                className={`text-center px-3 py-2 rounded-full text-sm font-semibold transition whitespace-nowrap ${
+                className={`text-center px-3.5 py-2.5 rounded-full text-sm font-semibold transition active:scale-95 select-none whitespace-nowrap ${
                   isTapas && !showAllergens && !isVinosRoute ? 'bg-white text-[#031f4a] shadow-md' : 'text-white/70 hover:text-white'
                 }`}
               >
@@ -449,7 +449,7 @@ export default function MenuPage({ params }: { params: { type: string } }) {
               </a>
               <a
                 href="/menu/medias"
-                className={`text-center px-3 py-2 rounded-full text-sm font-semibold transition whitespace-nowrap ${
+                className={`text-center px-3.5 py-2.5 rounded-full text-sm font-semibold transition active:scale-95 select-none whitespace-nowrap ${
                   !isTapas && !showAllergens && !isVinosRoute ? 'bg-white text-[#031f4a] shadow-md' : 'text-white/70 hover:text-white'
                 }`}
               >
@@ -457,7 +457,7 @@ export default function MenuPage({ params }: { params: { type: string } }) {
               </a>
               <a
                 href="/menu/alergenos"
-                className={`text-center px-3 py-2 rounded-full text-sm font-semibold transition whitespace-nowrap ${
+                className={`text-center px-3.5 py-2.5 rounded-full text-sm font-semibold transition active:scale-95 select-none whitespace-nowrap ${
                   showAllergens ? 'bg-white text-[#031f4a] shadow-md' : 'text-white/70 hover:text-white'
                 }`}
               >
@@ -466,7 +466,7 @@ export default function MenuPage({ params }: { params: { type: string } }) {
               {showWines && (
                 <a
                   href="/menu/vinos"
-                  className={`text-center px-3 py-2 rounded-full text-sm font-semibold transition whitespace-nowrap ${
+                  className={`text-center px-3.5 py-2.5 rounded-full text-sm font-semibold transition active:scale-95 select-none whitespace-nowrap ${
                     isVinosRoute ? 'bg-white text-[#031f4a] shadow-md' : 'text-white/70 hover:text-white'
                   }`}
                 >
@@ -492,8 +492,8 @@ export default function MenuPage({ params }: { params: { type: string } }) {
       </header>
 
       {/* ─── Sticky category nav ─── */}
-      <nav className="sticky top-0 z-40 bg-[#031f4a]/70 backdrop-blur-2xl border-b border-white/[0.08]">
-        <div ref={navRef} className="flex justify-center gap-1.5 px-4 py-3 overflow-x-auto scrollbar-hide max-w-full">
+      <nav className="sticky top-0 z-40 bg-[#031f4a]/80 backdrop-blur-2xl border-b border-white/[0.08]">
+        <div ref={navRef} className="flex justify-start gap-2 px-4 py-2.5 overflow-x-auto scrollbar-hide max-w-full">
           {isVinosRoute
             ? sortedWines.map((cat, i) => (
                 <button
@@ -502,7 +502,7 @@ export default function MenuPage({ params }: { params: { type: string } }) {
                   onClick={() =>
                     document.getElementById(`wine-${cat.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
                   }
-                  className={`flex-shrink-0 px-4 py-2 rounded-full text-xs font-semibold tracking-wide transition-all duration-300 animate-fade-in ${
+                  className={`flex-shrink-0 px-4 py-2.5 rounded-full text-xs font-semibold tracking-wide transition-all duration-300 animate-fade-in active:scale-95 select-none ${
                     activeCategory === `wine-${cat.id}`
                       ? 'bg-gradient-to-r from-sky-300 to-blue-400 text-white shadow-lg shadow-sky-300/30 scale-105'
                       : 'bg-white/[0.04] text-white/30 hover:bg-white/[0.08] hover:text-white/50'
@@ -520,7 +520,7 @@ export default function MenuPage({ params }: { params: { type: string } }) {
                   onClick={() =>
                     document.getElementById(`cat-${cat.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
                   }
-                  className={`flex-shrink-0 px-4 py-2 rounded-full text-xs font-semibold tracking-wide transition-all duration-300 animate-fade-in ${
+                  className={`flex-shrink-0 px-4 py-2.5 rounded-full text-xs font-semibold tracking-wide transition-all duration-300 animate-fade-in active:scale-95 select-none ${
                     activeCategory === `cat-${cat.id}`
                       ? 'bg-gradient-to-r from-sky-300 to-blue-400 text-white shadow-lg shadow-sky-300/30 scale-105'
                       : 'bg-white/[0.04] text-white/30 hover:bg-white/[0.08] hover:text-white/50'
@@ -536,7 +536,7 @@ export default function MenuPage({ params }: { params: { type: string } }) {
       </nav>
 
       {/* ─── Menu sections ─── */}
-      <div className="px-5 pb-32 max-w-lg mx-auto relative z-10">
+      <div className="px-5 pb-20 max-w-lg mx-auto relative z-10">
         {isVinosRoute ? (
           sortedWines.map((cat, i) => (
             <WineCategorySection key={cat.id} cat={cat} isLast={i === sortedWines.length - 1} lang={lang} />
