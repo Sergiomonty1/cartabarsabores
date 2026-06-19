@@ -788,29 +788,41 @@ export default function AdminPage() {
                             </div>
                           </div>
                         ) : (
-                          <div
-                            className="flex items-center gap-3 cursor-pointer"
-                            onClick={() => setEditingItem({ catId: cat.id, itemId: item.id })}
-                          >
-                            <span className="text-sm text-gray-700 flex-1 truncate">{item.name}</span>
-                            {item.allergens && item.allergens.length > 0 && (
-                              <span className="flex items-center gap-0.5 flex-shrink-0">
-                                {item.allergens.slice(0, 4).map((a) =>
-                                  ALLERGEN_SRC[a] ? (
-                                    // eslint-disable-next-line @next/next/no-img-element
-                                    <img key={a} src={ALLERGEN_SRC[a]} alt="" width={14} height={14} className="rounded-full opacity-70" />
-                                  ) : null
-                                )}
+                          <div className="flex items-center gap-3">
+                            <div
+                              className={`flex items-center gap-3 flex-1 min-w-0 cursor-pointer ${item.hidden ? 'opacity-40' : ''}`}
+                              onClick={() => setEditingItem({ catId: cat.id, itemId: item.id })}
+                            >
+                              <span className="text-sm text-gray-700 flex-1 truncate">{item.name}</span>
+                              {item.allergens && item.allergens.length > 0 && (
+                                <span className="flex items-center gap-0.5 flex-shrink-0">
+                                  {item.allergens.slice(0, 4).map((a) =>
+                                    ALLERGEN_SRC[a] ? (
+                                      // eslint-disable-next-line @next/next/no-img-element
+                                      <img key={a} src={ALLERGEN_SRC[a]} alt="" width={14} height={14} className="rounded-full opacity-70" />
+                                    ) : null
+                                  )}
+                                </span>
+                              )}
+                              <span className="text-xs text-sky-200/70 whitespace-nowrap font-medium">
+                                {item.priceTapa > 0 ? `${item.priceTapa.toFixed(2)}€` : '—'}
                               </span>
-                            )}
-                            <span className="text-xs text-sky-200/70 whitespace-nowrap font-medium">
-                              {item.priceTapa > 0 ? `${item.priceTapa.toFixed(2)}€` : '—'}
-                            </span>
-                            {!item.samePrice && (
-                              <span className="text-xs text-sky-200/40 whitespace-nowrap">
-                                / {item.priceMedia > 0 ? `${item.priceMedia.toFixed(2)}€` : '—'}
-                              </span>
-                            )}
+                              {!item.samePrice && (
+                                <span className="text-xs text-sky-200/40 whitespace-nowrap">
+                                  / {item.priceMedia > 0 ? `${item.priceMedia.toFixed(2)}€` : '—'}
+                                </span>
+                              )}
+                            </div>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                updateItem(cat.id, item.id, { hidden: !item.hidden })
+                              }}
+                              className={`text-sm px-1 flex-shrink-0 transition-colors ${item.hidden ? 'text-amber-400' : 'text-gray-300 hover:text-gray-500'}`}
+                              title={item.hidden ? 'Plato oculto — clic para mostrar' : 'Ocultar plato'}
+                            >
+                              {item.hidden ? '🙈' : '👁️'}
+                            </button>
                           </div>
                         )}
                       </div>
@@ -979,20 +991,32 @@ export default function AdminPage() {
                             </div>
                           </div>
                         ) : (
-                          <div
-                            className="flex items-center gap-3 cursor-pointer"
-                            onClick={() => setEditingWine({ catId: cat.id, itemId: wine.id })}
-                          >
-                            <span className="text-sm text-gray-700 flex-1 truncate">
-                              {wine.name}
-                              {wine.year && <span className="text-gray-400 text-xs ml-1.5">({wine.year})</span>}
-                            </span>
-                            <span className="text-xs text-purple-200/70 whitespace-nowrap font-medium">
-                              {wine.priceCopa > 0 ? `${wine.priceCopa.toFixed(2)}€` : '—'}
-                            </span>
-                            <span className="text-xs text-purple-200/40 whitespace-nowrap">
-                              / {wine.priceBottle > 0 ? `${wine.priceBottle.toFixed(2)}€` : '—'}
-                            </span>
+                          <div className="flex items-center gap-3">
+                            <div
+                              className={`flex items-center gap-3 flex-1 min-w-0 cursor-pointer ${wine.hidden ? 'opacity-40' : ''}`}
+                              onClick={() => setEditingWine({ catId: cat.id, itemId: wine.id })}
+                            >
+                              <span className="text-sm text-gray-700 flex-1 truncate">
+                                {wine.name}
+                                {wine.year && <span className="text-gray-400 text-xs ml-1.5">({wine.year})</span>}
+                              </span>
+                              <span className="text-xs text-purple-200/70 whitespace-nowrap font-medium">
+                                {wine.priceCopa > 0 ? `${wine.priceCopa.toFixed(2)}€` : '—'}
+                              </span>
+                              <span className="text-xs text-purple-200/40 whitespace-nowrap">
+                                / {wine.priceBottle > 0 ? `${wine.priceBottle.toFixed(2)}€` : '—'}
+                              </span>
+                            </div>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                updateWine(cat.id, wine.id, { hidden: !wine.hidden })
+                              }}
+                              className={`text-sm px-1 flex-shrink-0 transition-colors ${wine.hidden ? 'text-amber-400' : 'text-gray-300 hover:text-gray-500'}`}
+                              title={wine.hidden ? 'Vino oculto — clic para mostrar' : 'Ocultar vino'}
+                            >
+                              {wine.hidden ? '🙈' : '👁️'}
+                            </button>
                           </div>
                         )}
                       </div>

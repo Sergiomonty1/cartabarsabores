@@ -141,7 +141,7 @@ const CategorySection = React.memo(function CategorySection({
   }, [])
 
   const items = useMemo(
-    () => cat.items.filter((it) => it.name?.trim()).sort((a, b) => a.order - b.order),
+    () => cat.items.filter((it) => it.name?.trim() && !it.hidden).sort((a, b) => a.order - b.order),
     [cat.items]
   )
 
@@ -227,7 +227,7 @@ const WineCategorySection = React.memo(function WineCategorySection({
   }, [])
 
   const items = useMemo(
-    () => [...cat.items].sort((a, b) => a.order - b.order),
+    () => [...cat.items].filter((w) => !w.hidden).sort((a, b) => a.order - b.order),
     [cat.items]
   )
 
@@ -493,7 +493,7 @@ export default function MenuPage({ params }: { params: { type: string } }) {
 
       {/* ─── Sticky category nav ─── */}
       <nav className="sticky top-0 z-40 bg-[#031f4a]/80 backdrop-blur-2xl border-b border-white/[0.08]">
-        <div ref={navRef} className="flex justify-start gap-2 px-4 py-2.5 overflow-x-auto scrollbar-hide max-w-full">
+        <div ref={navRef} className="flex justify-start gap-2 px-4 py-2.5 overflow-x-auto overscroll-x-contain touch-pan-x scrollbar-hide max-w-full">
           {isVinosRoute
             ? sortedWines.map((cat, i) => (
                 <button

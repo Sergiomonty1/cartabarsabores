@@ -21,6 +21,8 @@ export interface MenuItem {
   samePrice: boolean
   order: number
   allergens?: string[]
+  /** Si es true, el plato no se muestra en la carta pública. */
+  hidden?: boolean
 }
 
 export interface MenuCategory {
@@ -42,6 +44,8 @@ export interface WineItem {
   priceBottle: number
   year?: string
   order: number
+  /** Si es true, el vino no se muestra en la carta pública. */
+  hidden?: boolean
 }
 
 export interface WineCategory {
