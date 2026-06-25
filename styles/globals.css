@@ -12,6 +12,11 @@
 
 html {
   scroll-behavior: smooth;
+  /* <html> es el ÚNICO contenedor de scroll de la página. `overflow-x: hidden`
+     recorta el desbordamiento horizontal (las orbs decorativas) y deja el
+     scroll vertical en el viewport. NO ponemos overflow-x en body ni en el div
+     raíz: si lo hiciéramos, cada uno se volvería otro contenedor de scroll
+     apilado y el gesto no llegaría hasta aquí (era el bug del scroll en móvil). */
   overflow-x: hidden;
   /* Evita que iOS Safari reescale el texto al girar el móvil */
   -webkit-text-size-adjust: 100%;
@@ -24,7 +29,11 @@ body {
   font-family: 'Inter', system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  overflow-x: hidden;
+  /* SIN overflow-x aquí a propósito: el recorte horizontal lo hace <html>.
+     Si pusiéramos overflow-x:hidden, el navegador forzaría overflow-y:auto y
+     body pasaría a ser un contenedor de scroll que, al no poder scrollear,
+     atrapaba el gesto (junto con overscroll-behavior-y:none) y bloqueaba el
+     scroll de la página. */
   max-width: 100vw;
   /* Sin destello azul al tocar y sin rebote vertical raro en móvil */
   -webkit-tap-highlight-color: transparent;

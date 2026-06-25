@@ -360,7 +360,7 @@ export default function MenuPage({ params }: { params: { type: string } }) {
   )
 
   return (
-    <div className="min-h-screen bg-[#031f4a] text-white overflow-x-hidden relative">
+    <div className="min-h-screen bg-[#031f4a] text-white relative">
       <GradientOrbs />
 
       {/* ─── Hero ─── */}
