@@ -41,7 +41,7 @@ const DISH_I18N: Record<string, Translations> = {
   a1: { en: 'Ask about our rice dishes (weekends)', de: 'Fragen Sie nach unseren Reisgerichten (Wochenende)', pt: 'Pergunte pelos nossos arrozes (fim de semana)', fr: 'Renseignez-vous sur nos riz (week-end)' },
   p1: { en: 'Cheesecake with mascarpone ice cream & coulis', de: 'Käsekuchen mit Mascarpone-Eis & Coulis', pt: 'Tarte de queijo com gelado de mascarpone e coulis', fr: 'Cheesecake, glace mascarpone et coulis' },
   p2: { en: 'Chocolate coulant with pistachio ice cream', de: 'Schokoladen-Coulant mit Pistazien-Eis', pt: 'Coulant de chocolate com gelado de pistacho', fr: 'Coulant au chocolat, glace pistache' },
-  p3: { en: 'Brioche French toast', de: 'Brioche-Arme-Ritter', pt: 'Torrija de brioche', fr: 'Pain perdu brioche' },
+  p3: { en: 'Brioche French toast', de: 'Brioche-Arme-Ritter', pt: 'Rabanada de brioche', fr: 'Pain perdu brioche' },
   f1: { en: 'Iberian pork presa', de: 'Iberische Presa', pt: 'Presa ibérica', fr: 'Presa ibérique' },
   f2: { en: 'Striploin', de: 'Roastbeef', pt: 'Lombo baixo', fr: 'Faux-filet' },
   f3: { en: 'Beef rib steak', de: 'Rib-Eye vom Rind', pt: 'Costeleta de vaca', fr: 'Côte de bœuf' },
