@@ -463,13 +463,6 @@ export default function AdminPage() {
     setTimeout(() => setInitialMsg(''), 5000)
   }
 
-  const restoreFactory = () => {
-    if (!confirm('¿Restaurar la carta de fábrica del código? Se perderán los cambios no guardados.')) return
-    setMenu(menuService.getDefaults())
-    setInitialMsg('Carta de fábrica cargada — pulsa Guardar para publicarla')
-    setTimeout(() => setInitialMsg(''), 5000)
-  }
-
   if (!authed) return <PasscodeGate onUnlock={() => setAuthed(true)} />
 
   if (!menu) {
@@ -1046,18 +1039,17 @@ export default function AdminPage() {
 
       {/* ═══════════════ CARTA INICIAL ═══════════════ */}
       {tab === 'inicial' && (
-        <div className="max-w-2xl mx-auto px-4 space-y-5">
+        <div className="max-w-2xl mx-auto px-4">
           <div className="rounded-2xl border border-sky-400/20 bg-sky-400/[0.04] p-5">
-            <h2 className="text-lg font-bold text-sky-100">♻️ Carta inicial / de fábrica</h2>
+            <h2 className="text-lg font-bold text-sky-100">♻️ Carta inicial</h2>
             <p className="text-sm text-white/50 mt-2 leading-relaxed">
-              Guarda la carta que tienes ahora como <strong className="text-white/70">punto de restauración</strong>. El
-              botón <strong className="text-white/70">Resetear</strong> (arriba o aquí) devolverá siempre la carta a este
-              estado guardado.
+              <strong className="text-white/70">Guardar</strong> deja la carta de ahora como copia de seguridad. Si te
+              equivocas editando, pulsa <strong className="text-white/70">Resetear</strong> para volver a esa copia.
             </p>
             <p className="text-xs text-white/30 mt-2">
               {initialSavedAt
-                ? `Última carta inicial guardada: ${new Date(initialSavedAt).toLocaleString('es-ES')}`
-                : 'Todavía no has guardado ninguna carta inicial (el reset usará la carta de fábrica del código).'}
+                ? `Última copia guardada: ${new Date(initialSavedAt).toLocaleString('es-ES')}`
+                : 'Todavía no has guardado ninguna copia.'}
             </p>
 
             <div className="flex flex-col gap-2.5 mt-5">
@@ -1065,31 +1057,17 @@ export default function AdminPage() {
                 onClick={saveAsInitial}
                 className="w-full py-3 rounded-xl bg-sky-300 text-black font-bold text-sm hover:bg-sky-200 transition-colors"
               >
-                💾 Guardar carta actual como inicial
+                💾 Guardar
               </button>
               <button
                 onClick={resetToInitial}
                 className="w-full py-3 rounded-xl bg-white/5 border border-white/10 text-white/80 font-semibold text-sm hover:bg-white/10 transition-colors"
               >
-                ♻️ Resetear carta a la inicial
+                ♻️ Resetear
               </button>
             </div>
 
             {initialMsg && <p className="text-xs text-sky-200 mt-3 text-center">{initialMsg}</p>}
-          </div>
-
-          <div className="rounded-2xl border border-white/[0.06] bg-white/[0.015] p-5">
-            <h3 className="text-sm font-bold text-white/70">Restaurar carta de fábrica</h3>
-            <p className="text-xs text-white/30 mt-1.5 leading-relaxed">
-              Carga la carta original escrita en el código (la de origen). Úsalo solo si quieres empezar de cero. Recuerda
-              pulsar <strong>Guardar</strong> después para publicarla.
-            </p>
-            <button
-              onClick={restoreFactory}
-              className="mt-3 px-4 py-2 rounded-lg text-xs bg-white/5 border border-white/10 text-white/50 hover:text-white/80 hover:bg-white/10 transition-colors"
-            >
-              Restaurar carta de fábrica del código
-            </button>
           </div>
         </div>
       )}
