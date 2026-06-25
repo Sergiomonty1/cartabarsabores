@@ -18,7 +18,7 @@ npm run dev                  # http://localhost:3000
 ```
 
 La home redirige a `/menu/tapas`. El panel de administración está en `/menu/admin`
-(código de acceso por defecto: `1111`, definido en `app/menu/admin/page.tsx`).
+(código de acceso por defecto: `2010`, definido en `app/menu/admin/page.tsx`).
 
 ## Variables de entorno
 
@@ -63,5 +63,5 @@ En `/menu/admin` puedes:
 - Activar el modo **Día Importante** (solo media ración) y mostrar/ocultar la carta de vinos.
 - **Guardar la carta actual como inicial** y **Resetear** a ese estado guardado.
 
-> ⚠️ La seguridad real depende de las **reglas de Firestore**. El código de admin (`1111`) es
+> ⚠️ La seguridad real depende de las **reglas de Firestore**. El código de admin (`2010`) es
 > solo una barrera de cliente: protege el acceso a la base de datos con reglas adecuadas.

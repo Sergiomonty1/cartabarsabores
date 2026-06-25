@@ -13,7 +13,7 @@ import { menuService } from '@/lib/menuService'
 import { I18N_LANGS, tAllergen } from '@/lib/translations'
 import { ALLERGEN_KEYS, ALLERGEN_SRC } from '@/lib/allergens'
 
-const PASSCODE = '1111'
+const PASSCODE = '2010'
 
 type Tab = 'comida' | 'vinos' | 'inicial'
 
