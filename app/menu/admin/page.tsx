@@ -170,7 +170,7 @@ function PasscodeGate({ onUnlock }: { onUnlock: () => void }) {
 
   const check = () => {
     if (code === PASSCODE) {
-      sessionStorage.setItem('menu-admin', '1')
+      localStorage.setItem('menu-admin', '1')
       onUnlock()
     } else {
       setError(true)
@@ -232,7 +232,7 @@ export default function AdminPage() {
   const [initialMsg, setInitialMsg] = useState('')
 
   useEffect(() => {
-    if (typeof window !== 'undefined' && sessionStorage.getItem('menu-admin') === '1')
+    if (typeof window !== 'undefined' && localStorage.getItem('menu-admin') === '1')
       setAuthed(true)
   }, [])
 
