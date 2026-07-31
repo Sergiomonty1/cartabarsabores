@@ -149,24 +149,14 @@ function ReorderButtons({
   isFirst: boolean
   isLast: boolean
 }) {
+  const cls =
+    'w-9 h-8 flex items-center justify-center rounded-md bg-white/[0.06] border border-white/10 text-white/70 text-xs leading-none hover:bg-white/15 hover:text-white active:scale-90 disabled:opacity-20 disabled:pointer-events-none transition-all'
   return (
-    <div className="flex flex-col -my-1 flex-shrink-0" title="Cambiar el orden">
-      <button
-        type="button"
-        onClick={onUp}
-        disabled={isFirst}
-        aria-label="Subir"
-        className="px-1 text-[11px] leading-none text-white/45 hover:text-white disabled:text-white/10 transition-colors"
-      >
+    <div className="flex flex-col gap-0.5 flex-shrink-0" title="Cambiar el orden">
+      <button type="button" onClick={onUp} disabled={isFirst} aria-label="Subir" className={cls}>
         ▲
       </button>
-      <button
-        type="button"
-        onClick={onDown}
-        disabled={isLast}
-        aria-label="Bajar"
-        className="px-1 text-[11px] leading-none text-white/45 hover:text-white disabled:text-white/10 transition-colors"
-      >
+      <button type="button" onClick={onDown} disabled={isLast} aria-label="Bajar" className={cls}>
         ▼
       </button>
     </div>
