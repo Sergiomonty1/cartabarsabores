@@ -75,6 +75,47 @@ function LanguageSelector({ lang, setLang }: { lang: Lang; setLang: (l: Lang) =>
   )
 }
 
+/* ─── Indicador "la carta sigue" mientras se puede bajar ─── */
+function ScrollHint() {
+  const [show, setShow] = useState(false)
+
+  useEffect(() => {
+    const check = () => {
+      const doc = document.documentElement
+      const scrollable = doc.scrollHeight - window.innerHeight
+      const y = window.scrollY || doc.scrollTop
+      // Visible solo si hay recorrido real y aún no estamos cerca del final
+      setShow(scrollable > 240 && y < scrollable - 120)
+    }
+    check()
+    window.addEventListener('scroll', check, { passive: true })
+    window.addEventListener('resize', check)
+    // Re-comprobar cuando cambia la altura (la carta carga/actualiza en vivo)
+    const ro = new ResizeObserver(check)
+    ro.observe(document.body)
+    const t = setTimeout(check, 800)
+    return () => {
+      window.removeEventListener('scroll', check)
+      window.removeEventListener('resize', check)
+      ro.disconnect()
+      clearTimeout(t)
+    }
+  }, [])
+
+  return (
+    <div
+      className={`fixed bottom-5 left-1/2 -translate-x-1/2 z-40 pointer-events-none transition-opacity duration-500 ${show ? 'opacity-100' : 'opacity-0'}`}
+      aria-hidden="true"
+    >
+      <div className="flex items-center justify-center w-10 h-10 rounded-full bg-[#031f4a]/70 border border-white/15 backdrop-blur-md shadow-lg shadow-black/20 animate-bounce-soft">
+        <svg className="w-5 h-5 text-sky-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.4} d="M19 9l-7 7-7-7" />
+        </svg>
+      </div>
+    </div>
+  )
+}
+
 /* ─── Lightweight gradient orbs (CSS only, reduced blur) ─── */
 function GradientOrbs() {
   return (
@@ -559,6 +600,8 @@ export default function MenuPage({ params }: { params: { type: string } }) {
           ))
         )}
       </div>
+
+      <ScrollHint />
     </div>
   )
 }

@@ -180,3 +180,12 @@ button {
 .font-display {
   font-family: 'Playfair Display', 'Georgia', serif;
 }
+
+/* ─── Indicador "hay más carta abajo" (rebote suave) ─── */
+@keyframes bounceSoft {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(5px); }
+}
+.animate-bounce-soft {
+  animation: bounceSoft 1.6s ease-in-out infinite;
+}

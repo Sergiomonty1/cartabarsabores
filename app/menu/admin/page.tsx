@@ -137,6 +137,42 @@ function AllergenPicker({
   )
 }
 
+/* ──────── reordenar (subir/bajar) ──────── */
+function ReorderButtons({
+  onUp,
+  onDown,
+  isFirst,
+  isLast,
+}: {
+  onUp: () => void
+  onDown: () => void
+  isFirst: boolean
+  isLast: boolean
+}) {
+  return (
+    <div className="flex flex-col -my-1 flex-shrink-0" title="Cambiar el orden">
+      <button
+        type="button"
+        onClick={onUp}
+        disabled={isFirst}
+        aria-label="Subir"
+        className="px-1 text-[11px] leading-none text-white/45 hover:text-white disabled:text-white/10 transition-colors"
+      >
+        ▲
+      </button>
+      <button
+        type="button"
+        onClick={onDown}
+        disabled={isLast}
+        aria-label="Bajar"
+        className="px-1 text-[11px] leading-none text-white/45 hover:text-white disabled:text-white/10 transition-colors"
+      >
+        ▼
+      </button>
+    </div>
+  )
+}
+
 /* ──────── passcode gate ──────── */
 function PasscodeGate({ onUnlock }: { onUnlock: () => void }) {
   const [code, setCode] = useState('')
@@ -434,6 +470,83 @@ export default function AdminPage() {
     )
   }
 
+  /* ─── reordenar categorías y platos (subir/bajar) ─── */
+  const moveCategory = (catId: string, dir: -1 | 1) => {
+    setMenu((m) => {
+      if (!m) return m
+      const list = m.categories.filter((c) => c.id !== 'bebidas').sort((a, b) => a.order - b.order)
+      const idx = list.findIndex((c) => c.id === catId)
+      const swap = idx + dir
+      if (idx < 0 || swap < 0 || swap >= list.length) return m
+      ;[list[idx], list[swap]] = [list[swap], list[idx]]
+      const orderById = new Map(list.map((c, i) => [c.id, i] as const))
+      return {
+        ...m,
+        categories: m.categories.map((c) =>
+          orderById.has(c.id) ? { ...c, order: orderById.get(c.id)! } : c
+        ),
+      }
+    })
+  }
+
+  const moveItem = (catId: string, itemId: string, dir: -1 | 1) => {
+    setMenu((m) =>
+      !m
+        ? m
+        : {
+            ...m,
+            categories: m.categories.map((cat) => {
+              if (cat.id !== catId) return cat
+              const list = [...cat.items].sort((a, b) => a.order - b.order)
+              const idx = list.findIndex((it) => it.id === itemId)
+              const swap = idx + dir
+              if (idx < 0 || swap < 0 || swap >= list.length) return cat
+              ;[list[idx], list[swap]] = [list[swap], list[idx]]
+              const orderById = new Map(list.map((it, i) => [it.id, i] as const))
+              return { ...cat, items: cat.items.map((it) => ({ ...it, order: orderById.get(it.id) ?? it.order })) }
+            }),
+          }
+    )
+  }
+
+  const moveWineCat = (catId: string, dir: -1 | 1) => {
+    setMenu((m) => {
+      if (!m) return m
+      const list = [...(m.wineCategories ?? [])].sort((a, b) => a.order - b.order)
+      const idx = list.findIndex((c) => c.id === catId)
+      const swap = idx + dir
+      if (idx < 0 || swap < 0 || swap >= list.length) return m
+      ;[list[idx], list[swap]] = [list[swap], list[idx]]
+      const orderById = new Map(list.map((c, i) => [c.id, i] as const))
+      return {
+        ...m,
+        wineCategories: (m.wineCategories ?? []).map((c) =>
+          orderById.has(c.id) ? { ...c, order: orderById.get(c.id)! } : c
+        ),
+      }
+    })
+  }
+
+  const moveWine = (catId: string, itemId: string, dir: -1 | 1) => {
+    setMenu((m) =>
+      !m
+        ? m
+        : {
+            ...m,
+            wineCategories: (m.wineCategories ?? []).map((cat) => {
+              if (cat.id !== catId) return cat
+              const list = [...cat.items].sort((a, b) => a.order - b.order)
+              const idx = list.findIndex((it) => it.id === itemId)
+              const swap = idx + dir
+              if (idx < 0 || swap < 0 || swap >= list.length) return cat
+              ;[list[idx], list[swap]] = [list[swap], list[idx]]
+              const orderById = new Map(list.map((it, i) => [it.id, i] as const))
+              return { ...cat, items: cat.items.map((it) => ({ ...it, order: orderById.get(it.id) ?? it.order })) }
+            }),
+          }
+    )
+  }
+
   /* ─── initial menu / reset ─── */
   const saveAsInitial = async () => {
     if (!menu) return
@@ -573,7 +686,7 @@ export default function AdminPage() {
           </div>
         </div>
         {/* tabs */}
-        <div className="max-w-2xl mx-auto mt-3 flex gap-1.5">
+        <div className="max-w-2xl mx-auto mt-3 flex flex-wrap gap-1.5">
           {([
             ['comida', '🍽️ Comida'],
             ['vinos', '🍷 Vinos'],
@@ -606,7 +719,7 @@ export default function AdminPage() {
       </div>
 
       {/* ─── preview links ─── */}
-      <div className="max-w-2xl mx-auto px-4 pb-5 flex gap-4">
+      <div className="max-w-2xl mx-auto px-4 pb-5 flex flex-wrap gap-x-4 gap-y-2">
         <a href="/menu/tapas" target="_blank" className="text-xs text-sky-200/70 hover:text-sky-100 hover:underline transition-colors">↗ Ver Tapas</a>
         <a href="/menu/medias" target="_blank" className="text-xs text-sky-200/70 hover:text-sky-100 hover:underline transition-colors">↗ Ver Medias</a>
         <a href="/menu/alergenos" target="_blank" className="text-xs text-sky-200/70 hover:text-sky-100 hover:underline transition-colors">↗ Ver Alérgenos</a>
@@ -616,7 +729,7 @@ export default function AdminPage() {
       {/* ═══════════════ COMIDA ═══════════════ */}
       {tab === 'comida' && (
         <div className="max-w-2xl mx-auto px-4 space-y-6">
-          {sortedFood.map((cat) => (
+          {sortedFood.map((cat, ci) => (
             <div key={cat.id} className={`rounded-2xl border border-white/[0.04] bg-white/[0.015] overflow-hidden ${cat.hidden ? 'opacity-50' : ''}`}>
               {/* category header */}
               <div className="flex items-center gap-2 px-4 py-3 bg-white/[0.02] border-b border-white/[0.04]">
@@ -631,14 +744,13 @@ export default function AdminPage() {
                   type="text"
                   value={cat.name}
                   onChange={(e) => updateCategory(cat.id, { name: e.target.value })}
-                  className="flex-1 bg-transparent text-sky-100 font-semibold focus:outline-none border-b border-transparent focus:border-sky-500/40 transition-colors"
+                  className="flex-1 min-w-0 bg-transparent text-sky-100 font-semibold focus:outline-none border-b border-transparent focus:border-sky-500/40 transition-colors"
                 />
-                <input
-                  type="number"
-                  value={cat.order}
-                  onChange={(e) => updateCategory(cat.id, { order: Number(e.target.value) })}
-                  className="w-12 text-center bg-gray-50 rounded-lg text-xs text-gray-600 py-1.5 focus:outline-none"
-                  title="Orden"
+                <ReorderButtons
+                  onUp={() => moveCategory(cat.id, -1)}
+                  onDown={() => moveCategory(cat.id, 1)}
+                  isFirst={ci === 0}
+                  isLast={ci === sortedFood.length - 1}
                 />
                 <button
                   onClick={() => setI18nCat(i18nCat === cat.id ? null : cat.id)}
@@ -679,7 +791,7 @@ export default function AdminPage() {
               <div className="divide-y divide-white/[0.03]">
                 {[...cat.items]
                   .sort((a, b) => a.order - b.order)
-                  .map((item) => {
+                  .map((item, ii, arr) => {
                     const isEditing = editingItem?.catId === cat.id && editingItem.itemId === item.id
                     return (
                       <div
@@ -712,7 +824,7 @@ export default function AdminPage() {
 
                             {/* prices */}
                             <div className="flex gap-2.5 items-end">
-                              <div className="flex-1">
+                              <div className="flex-1 min-w-0">
                                 <label className="text-[10px] text-gray-500 uppercase font-semibold">Tapa €</label>
                                 <PriceInput
                                   value={item.priceTapa}
@@ -724,7 +836,7 @@ export default function AdminPage() {
                                   }
                                 />
                               </div>
-                              <div className="flex-1">
+                              <div className="flex-1 min-w-0">
                                 <label className="text-[10px] text-gray-500 uppercase font-semibold">Media €</label>
                                 <PriceInput
                                   value={item.priceMedia}
@@ -806,6 +918,12 @@ export default function AdminPage() {
                                 </span>
                               )}
                             </div>
+                            <ReorderButtons
+                              onUp={() => moveItem(cat.id, item.id, -1)}
+                              onDown={() => moveItem(cat.id, item.id, 1)}
+                              isFirst={ii === 0}
+                              isLast={ii === arr.length - 1}
+                            />
                             <button
                               onClick={(e) => {
                                 e.stopPropagation()
@@ -846,7 +964,7 @@ export default function AdminPage() {
       {/* ═══════════════ VINOS ═══════════════ */}
       {tab === 'vinos' && (
         <div className="max-w-2xl mx-auto px-4 space-y-6">
-          {sortedWineCats.map((cat) => (
+          {sortedWineCats.map((cat, ci) => (
             <div key={cat.id} className={`rounded-2xl border border-white/[0.04] bg-white/[0.015] overflow-hidden ${cat.hidden ? 'opacity-50' : ''}`}>
               {/* wine category header */}
               <div className="flex items-center gap-2 px-4 py-3 bg-white/[0.02] border-b border-white/[0.04]">
@@ -855,14 +973,13 @@ export default function AdminPage() {
                   type="text"
                   value={cat.name}
                   onChange={(e) => updateWineCategory(cat.id, { name: e.target.value })}
-                  className="flex-1 bg-transparent text-purple-100 font-semibold focus:outline-none border-b border-transparent focus:border-purple-500/40 transition-colors"
+                  className="flex-1 min-w-0 bg-transparent text-purple-100 font-semibold focus:outline-none border-b border-transparent focus:border-purple-500/40 transition-colors"
                 />
-                <input
-                  type="number"
-                  value={cat.order}
-                  onChange={(e) => updateWineCategory(cat.id, { order: Number(e.target.value) })}
-                  className="w-12 text-center bg-gray-50 rounded-lg text-xs text-gray-600 py-1.5 focus:outline-none"
-                  title="Orden"
+                <ReorderButtons
+                  onUp={() => moveWineCat(cat.id, -1)}
+                  onDown={() => moveWineCat(cat.id, 1)}
+                  isFirst={ci === 0}
+                  isLast={ci === sortedWineCats.length - 1}
                 />
                 <button
                   onClick={() => setI18nWineCat(i18nWineCat === cat.id ? null : cat.id)}
@@ -903,7 +1020,7 @@ export default function AdminPage() {
               <div className="divide-y divide-white/[0.03]">
                 {[...cat.items]
                   .sort((a, b) => a.order - b.order)
-                  .map((wine) => {
+                  .map((wine, ii, arr) => {
                     const isEditing = editingWine?.catId === cat.id && editingWine.itemId === wine.id
                     return (
                       <div
@@ -934,14 +1051,14 @@ export default function AdminPage() {
                             </div>
 
                             <div className="flex gap-2.5 items-end">
-                              <div className="flex-1">
+                              <div className="flex-1 min-w-0">
                                 <label className="text-[10px] text-gray-500 uppercase font-semibold">Copa €</label>
                                 <PriceInput
                                   value={wine.priceCopa}
                                   onChange={(v) => updateWine(cat.id, wine.id, { priceCopa: v })}
                                 />
                               </div>
-                              <div className="flex-1">
+                              <div className="flex-1 min-w-0">
                                 <label className="text-[10px] text-gray-500 uppercase font-semibold">Botella €</label>
                                 <PriceInput
                                   value={wine.priceBottle}
@@ -1000,6 +1117,12 @@ export default function AdminPage() {
                                 / {wine.priceBottle > 0 ? `${wine.priceBottle.toFixed(2)}€` : '—'}
                               </span>
                             </div>
+                            <ReorderButtons
+                              onUp={() => moveWine(cat.id, wine.id, -1)}
+                              onDown={() => moveWine(cat.id, wine.id, 1)}
+                              isFirst={ii === 0}
+                              isLast={ii === arr.length - 1}
+                            />
                             <button
                               onClick={(e) => {
                                 e.stopPropagation()
