@@ -150,7 +150,7 @@ function ReorderButtons({
   isLast: boolean
 }) {
   const cls =
-    'w-9 h-8 flex items-center justify-center rounded-md bg-white/[0.06] border border-white/10 text-white/70 text-xs leading-none hover:bg-white/15 hover:text-white active:scale-90 disabled:opacity-20 disabled:pointer-events-none transition-all'
+    'w-7 h-6 flex items-center justify-center rounded-md bg-white/[0.06] border border-white/10 text-white/70 text-[10px] leading-none hover:bg-white/15 hover:text-white active:scale-90 disabled:opacity-20 disabled:pointer-events-none transition-all'
   return (
     <div className="flex flex-col gap-0.5 flex-shrink-0" title="Cambiar el orden">
       <button type="button" onClick={onUp} disabled={isFirst} aria-label="Subir" className={cls}>
@@ -888,7 +888,7 @@ export default function AdminPage() {
                               className={`flex items-center gap-3 flex-1 min-w-0 cursor-pointer ${item.hidden ? 'opacity-40' : ''}`}
                               onClick={() => setEditingItem({ catId: cat.id, itemId: item.id })}
                             >
-                              <span className="text-sm text-gray-700 flex-1 truncate">{item.name}</span>
+                              <span className="text-sm text-gray-700 flex-1 leading-snug">{item.name}</span>
                               {item.allergens && item.allergens.length > 0 && (
                                 <span className="flex items-center gap-0.5 flex-shrink-0">
                                   {item.allergens.slice(0, 4).map((a) =>
@@ -1096,7 +1096,7 @@ export default function AdminPage() {
                               className={`flex items-center gap-3 flex-1 min-w-0 cursor-pointer ${wine.hidden ? 'opacity-40' : ''}`}
                               onClick={() => setEditingWine({ catId: cat.id, itemId: wine.id })}
                             >
-                              <span className="text-sm text-gray-700 flex-1 truncate">
+                              <span className="text-sm text-gray-700 flex-1 leading-snug">
                                 {wine.name}
                                 {wine.year && <span className="text-gray-400 text-xs ml-1.5">({wine.year})</span>}
                               </span>
