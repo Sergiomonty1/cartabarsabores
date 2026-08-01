@@ -1,10 +1,21 @@
-import { doc, getDoc, setDoc, onSnapshot } from 'firebase/firestore'
+import { doc, getDoc, setDoc, onSnapshot, increment } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import type { MenuData, Translations } from '@/types/menu'
 
 const MENU_COLLECTION = 'menu'
 const MENU_DOC = 'data'
 const INITIAL_DOC = 'initial'
+
+/* ─── Contador propio de visitas a la carta (se muestra solo en el admin) ─── */
+const STATS_COLLECTION = 'stats'
+const STATS_DOC = 'carta'
+
+/** Clave del día en formato YYYY-MM-DD (hora local). */
+function todayKey(): string {
+  const d = new Date()
+  const p = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`
+}
 
 /* ─── Traducciones semilla de las categorías (por id) ─── */
 const CATEGORY_I18N: Record<string, Translations> = {
@@ -310,6 +321,45 @@ export const menuService = {
     const clean = clone(data)
     clean.updatedAt = new Date().toISOString()
     await setDoc(docRef, clean)
+  },
+
+  /**
+   * Suma 1 visita a la carta (contador propio para ver en el admin).
+   * Silencioso: nunca debe romper la carta si Firestore falla.
+   */
+  async recordVisit(): Promise<void> {
+    try {
+      const ref = doc(db, STATS_COLLECTION, STATS_DOC)
+      await setDoc(
+        ref,
+        {
+          total: increment(1),
+          days: { [todayKey()]: increment(1) },
+          updatedAt: new Date().toISOString(),
+        },
+        { merge: true }
+      )
+    } catch {
+      /* el contador nunca debe afectar a la carta del cliente */
+    }
+  },
+
+  /**
+   * Suscripción en tiempo real al contador de visitas (para el panel admin).
+   * Devuelve { total, today }. Llama a la función devuelta para cancelar.
+   */
+  subscribeVisits(onData: (v: { total: number; today: number }) => void): () => void {
+    const ref = doc(db, STATS_COLLECTION, STATS_DOC)
+    return onSnapshot(ref, (snap) => {
+      const data = (snap.exists() ? snap.data() : {}) as {
+        total?: number
+        days?: Record<string, number>
+      }
+      onData({
+        total: typeof data.total === 'number' ? data.total : 0,
+        today: data.days?.[todayKey()] ?? 0,
+      })
+    })
   },
 
   /** Carga la "carta inicial / de fábrica" guardada por el admin (o null si no hay). */

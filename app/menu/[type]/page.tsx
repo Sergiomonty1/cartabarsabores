@@ -351,6 +351,19 @@ export default function MenuPage({ params }: { params: { type: string } }) {
   }, [])
 
   useEffect(() => {
+    // Cuenta 1 visita por sesión (≈ un escaneo del QR). No recuenta al navegar
+    // entre pestañas de la carta ni al recargar en la misma sesión.
+    try {
+      if (typeof window === 'undefined') return
+      if (sessionStorage.getItem('carta-visit-counted')) return
+      sessionStorage.setItem('carta-visit-counted', '1')
+    } catch {
+      /* si sessionStorage falla, contamos igualmente */
+    }
+    menuService.recordVisit()
+  }, [])
+
+  useEffect(() => {
     if (importantDay && params.type === 'tapas') {
       router.replace('/menu/medias')
     }

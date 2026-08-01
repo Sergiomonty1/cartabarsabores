@@ -230,11 +230,18 @@ export default function AdminPage() {
   const [i18nWineCat, setI18nWineCat] = useState<string | null>(null)
   const [initialSavedAt, setInitialSavedAt] = useState<string | null>(null)
   const [initialMsg, setInitialMsg] = useState('')
+  const [visits, setVisits] = useState<{ total: number; today: number }>({ total: 0, today: 0 })
 
   useEffect(() => {
     if (typeof window !== 'undefined' && localStorage.getItem('menu-admin') === '1')
       setAuthed(true)
   }, [])
+
+  useEffect(() => {
+    if (!authed) return
+    const unsub = menuService.subscribeVisits(setVisits)
+    return () => unsub()
+  }, [authed])
 
   useEffect(() => {
     if (!authed) return
@@ -642,6 +649,26 @@ export default function AdminPage() {
               📌 La pestaña de Vinos está oculta en la carta pública.
             </p>
           )}
+        </div>
+      </div>
+
+      {/* ─── VISITAS (contador propio, solo admin) ─── */}
+      <div className="bg-gradient-to-r from-emerald-500/20 to-emerald-600/10 border-b border-emerald-400/30 px-4 py-4">
+        <div className="max-w-2xl mx-auto">
+          <p className="text-xs text-emerald-200/80 uppercase tracking-wider font-semibold">Visitas de la carta</p>
+          <div className="flex items-end gap-8 mt-2">
+            <div>
+              <p className="text-3xl font-bold text-emerald-100 leading-none">{visits.today}</p>
+              <p className="text-xs text-emerald-200/70 mt-1">hoy</p>
+            </div>
+            <div>
+              <p className="text-3xl font-bold text-emerald-100 leading-none">{visits.total}</p>
+              <p className="text-xs text-emerald-200/70 mt-1">en total</p>
+            </div>
+          </div>
+          <p className="text-xs text-emerald-200/60 mt-3 italic">
+            📱 Cada vez que alguien abre la carta (normalmente al escanear el QR) se cuenta una visita por sesión.
+          </p>
         </div>
       </div>
 
