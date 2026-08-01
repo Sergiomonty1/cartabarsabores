@@ -6,9 +6,11 @@ const MENU_COLLECTION = 'menu'
 const MENU_DOC = 'data'
 const INITIAL_DOC = 'initial'
 
-/* ─── Contador propio de visitas a la carta (se muestra solo en el admin) ─── */
-const STATS_COLLECTION = 'stats'
-const STATS_DOC = 'carta'
+/* ─── Contador propio de visitas a la carta (se muestra solo en el admin) ───
+ * Vive dentro de la colección `menu` a propósito: las reglas de Firestore solo
+ * abren esa colección (una colección `stats` aparte daría PERMISSION_DENIED). */
+const STATS_COLLECTION = MENU_COLLECTION
+const STATS_DOC = 'visits'
 
 /** Clave del día en formato YYYY-MM-DD (hora local). */
 function todayKey(): string {
