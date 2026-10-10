@@ -11,7 +11,7 @@ import type { MenuData, MenuItem, Translations } from '@/types/menu'
  * Cada cambio comprueba el nombre en español antes de tocar nada, para no pisar
  * cambios hechos a mano desde el admin.
  */
-export const CONTENT_VERSION = 3
+export const CONTENT_VERSION = 4
 
 /* ─── Traducciones revisadas (oct. 2026) ─── */
 
@@ -51,7 +51,10 @@ export const DISH_I18N: Record<string, Translations> = {
   t2: { en: "Mackerel, peppers & aioli", de: "Makrele, Paprika und Aioli", pt: "Cavala, pimentos e aioli", fr: "Maquereau, poivrons et aïoli" },
   t3: { en: "Anchovies, cream cheese & truffle", de: "Sardellen, Frischkäse und Trüffel", pt: "Anchovas, queijo creme e trufa", fr: "Anchois, fromage frais et truffe" },
   c1: { en: "Pork sirloin in sauce (carbonara, whisky, brava)", de: "Schweinefilet in Soße (Carbonara, Whisky, Brava)", pt: "Lombinho de porco com molho (carbonara, whisky, brava)", fr: "Filet mignon de porc en sauce (carbonara, whisky, brava)" },
-  c2: { en: "Salmon with pipirrana (Andalusian chopped salad)", de: "Lachs mit Pipirrana (andalusischer Gemüsesalat)", pt: "Salmão com pipirrana (salada andaluza)", fr: "Saumon et pipirrana (salade andalouse)" },
+  c2: { en: "Salmon with potatoes or salad", de: "Lachs mit Kartoffeln oder Salat", pt: "Salmão com batatas ou salada", fr: "Saumon, pommes de terre ou salade" },
+  a2: { en: "Rice with braised pork cheek & truffle", de: "Reis mit geschmorten Schweinebäckchen und Trüffel", pt: "Arroz de bochecha de porco e trufa", fr: "Riz à la joue de porc braisée et à la truffe" },
+  a3: { en: "Octopus rice", de: "Reis mit Oktopus", pt: "Arroz de polvo", fr: "Riz au poulpe" },
+  c15: { en: "Baby squid with migas (fried breadcrumbs)", de: "Baby-Tintenfische mit Migas (gebratenen Brotkrumen)", pt: "Lulinhas com migas (pão frito esmigalhado)", fr: "Chipirons aux migas (mie de pain frite)" },
   c3: { en: "Toasted noodles with pear aioli", de: "Geröstete Nudeln mit Birnen-Aioli", pt: "Massa fina tostada com aioli de pera", fr: "Vermicelles grillés à l’aïoli de poire" },
   c9: { en: "Cochinita pibil brioche (Mexican-style slow-roasted pork)", de: "Brioche mit Cochinita Pibil (mexikanisches Schmorschwein)", pt: "Brioche de cochinita pibil (porco assado à mexicana)", fr: "Brioche à la cochinita pibil (porc mariné à la mexicaine)" },
   c5: { en: "Potatoes with egg & truffle", de: "Kartoffeln mit Ei und Trüffel", pt: "Batatas com ovo e trufa", fr: "Pommes de terre, œuf et truffe" },
@@ -98,7 +101,10 @@ export const DISH_NAMES: Record<string, string> = {
   t2: "Caballa, pimientos y alioli",
   t3: "Anchoas, queso crema y trufa",
   c1: "Solomillo en salsa (carbonara, whisky, brava)",
-  c2: "Salmón con pipirrana",
+  c2: "Salmón con patatas o ensalada",
+  c15: "Chipirones a su amiga",
+  a2: "Arroz de carrillada y trufa",
+  a3: "Arroz de pulpo",
   c3: "Fideos tostados con alioli de pera",
   c9: "Brioche de cochinita pibil",
   c5: "Patatas con huevo y trufa",
@@ -168,9 +174,41 @@ function removeIf(items: MenuItem[], id: string, name: string) {
 
 /** Aplica los cambios pendientes. Devuelve una copia; no modifica el original. */
 export function applyContentUpdates(input: MenuData): MenuData {
-  if ((input.contentVersion ?? 0) >= CONTENT_VERSION) return input
+  const from = input.contentVersion ?? 0
+  if (from >= CONTENT_VERSION) return input
   const data: MenuData = JSON.parse(JSON.stringify(input))
+  if (from < 3) applyV3(data)
+  if (from < 4) applyV4(data)
+  data.contentVersion = CONTENT_VERSION
+  return data
+}
 
+/** v4 (10/10/2026): salmón con patatas o ensalada, chipirones a su amiga y dos arroces. */
+function applyV4(data: MenuData) {
+  for (const cat of data.categories ?? []) {
+    const items = [...(cat.items ?? [])].sort(byOrder)
+
+    if (cat.id === 'caliente') {
+      const c2 = items.find((i) => i.id === 'c2')
+      if (c2 && c2.name === 'Salmón con pipirrana') {
+        c2.name = DISH_NAMES.c2
+        c2.nameI18n = { ...DISH_I18N.c2 }
+      }
+      insertAfter(items, 'c2', dish('c15', { allergens: ['molusco', 'gluten'] }))
+    } else if (cat.id === 'arroces') {
+      // Con los arroces ya en la carta, el aviso genérico se guarda oculto (se puede volver a mostrar)
+      const a1 = items.find((i) => i.id === 'a1')
+      if (a1 && a1.name === 'Preguntar por nuestros arroces (fin de semana)') a1.hidden = true
+      insertAfter(items, null, dish('a2'))
+      insertAfter(items, null, dish('a3', { allergens: ['molusco'] }))
+    } else continue
+
+    cat.items = items.map((it, i) => ({ ...it, order: i }))
+  }
+}
+
+/** v3 (oct. 2026): croquetas, tacos, hamburguesas, platos nuevos y traducciones revisadas. */
+function applyV3(data: MenuData) {
   for (const cat of data.categories ?? []) {
     const items = [...(cat.items ?? [])].sort(byOrder)
     const find = (id: string) => items.find((i) => i.id === id)
@@ -243,6 +281,4 @@ export function applyContentUpdates(input: MenuData): MenuData {
     if (WINE_CATEGORY_I18N[wc.id] && wc.name === WINE_CATEGORY_NAMES[wc.id]) wc.nameI18n = { ...WINE_CATEGORY_I18N[wc.id] }
   }
 
-  data.contentVersion = CONTENT_VERSION
-  return data
 }
