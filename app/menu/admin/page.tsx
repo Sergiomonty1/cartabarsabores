@@ -1300,10 +1300,10 @@ export default function AdminPage() {
                                             <span className="block text-xs text-white/45 mt-0.5 leading-snug">{item.description}</span>
                                           )}
                                           {!!item.variants?.length && (
-                                            <span className="block text-xs italic text-gold-soft/75 mt-0.5">
+                                            <span className="block text-xs text-white/45 mt-0.5 leading-snug">
                                               {item.variants.filter((v) => !v.hidden).map((v) => v.name).join(' · ') || 'Sin sabores visibles'}
                                               {item.variants.some((v) => v.hidden) && (
-                                                <span className="not-italic text-white/35"> · {item.variants.filter((v) => v.hidden).length} oculto{item.variants.filter((v) => v.hidden).length > 1 ? 's' : ''}</span>
+                                                <span className="text-white/30"> · {item.variants.filter((v) => v.hidden).length} oculto{item.variants.filter((v) => v.hidden).length > 1 ? 's' : ''}</span>
                                               )}
                                             </span>
                                           )}

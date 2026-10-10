@@ -13,6 +13,8 @@ import { GoldenDivider, GradientOrbs, LogoMark } from '@/components/Brand'
 type Route = 'tapas' | 'medias' | 'alergenos' | 'vinos'
 
 const byOrder = <T extends { order: number }>(a: T, b: T) => a.order - b.order
+/** Mismo estilo para la descripción y los sabores que van bajo el nombre del plato. */
+const SUBLINE = 'mt-1 text-[12.5px] leading-snug text-white/55'
 const noteOf = (lang: Lang, cat: MenuCategory) => (cat.note?.trim() ? tName(lang, cat.note, cat.noteI18n) : '')
 
 /* Kept between tab changes so switching Tapas/Medias/Vinos is instant (no reload, no flash) */
@@ -276,12 +278,10 @@ function DishRow({ item, priceMode, showAllergens, lang, delay, visible, perPers
         )}
       </div>
       {item.description?.trim() && (
-        <p className="mt-1 text-[12.5px] leading-snug text-white/55">{tName(lang, item.description, item.descriptionI18n)}</p>
+        <p className={SUBLINE}>{tName(lang, item.description, item.descriptionI18n)}</p>
       )}
       {variants.length > 0 && (
-        <p className="mt-1 text-[13px] leading-snug italic font-display tracking-wide text-gold-soft/80">
-          {variants.map((v) => tName(lang, v.name, v.nameI18n)).join(' · ')}
-        </p>
+        <p className={SUBLINE}>{variants.map((v) => tName(lang, v.name, v.nameI18n)).join(' · ')}</p>
       )}
       {showOriginal && <p className="text-[11px] italic text-white/35 mt-0.5 font-display tracking-wide">{item.name}</p>}
       {showAllergens && <AllergenChips allergens={dishAllergens(item)} lang={lang} />}
