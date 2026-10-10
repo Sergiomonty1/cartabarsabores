@@ -11,7 +11,7 @@ import type { MenuData, MenuItem, MenuVariant, Translations } from '@/types/menu
  * Cada cambio comprueba el nombre en español antes de tocar nada, para no pisar
  * cambios hechos a mano desde el admin.
  */
-export const CONTENT_VERSION = 8
+export const CONTENT_VERSION = 10
 
 /* ─── Traducciones revisadas (oct. 2026) ─── */
 
@@ -183,8 +183,76 @@ export function applyContentUpdates(input: MenuData): MenuData {
   if (from < 6) applyV6(data)
   if (from < 7) applyV7(data)
   if (from < 8) applyV8(data)
+  if (from < 9) applyV9(data)
+  if (from < 10) applyV10(data)
   data.contentVersion = CONTENT_VERSION
   return data
+}
+
+/** v10 (10/10/2026): las hamburguesas pasan a su propia sección, con nombres cortos. */
+const BURGERS: { id: string; from: string; name: string; nameI18n: Translations }[] = [
+  {
+    id: 'c6',
+    from: 'Hamburguesa de solomillo con bacon y queso',
+    name: 'Clásica con bacon y queso',
+    nameI18n: { en: 'Classic with bacon & cheese', de: 'Klassisch mit Bacon und Käse', pt: 'Clássico com bacon e queijo', fr: 'Classique, bacon et fromage' },
+  },
+  {
+    id: 'c7',
+    from: 'Hamburguesa de pollo asado con salsa cheddar',
+    name: 'Pollo asado con salsa cheddar',
+    nameI18n: { en: 'Roast chicken with cheddar sauce', de: 'Brathähnchen mit Cheddar-Soße', pt: 'Frango assado com molho cheddar', fr: 'Poulet rôti, sauce cheddar' },
+  },
+  {
+    id: 'c10',
+    from: 'Hamburguesa de presa ibérica',
+    name: 'Presa ibérica',
+    nameI18n: { en: 'Iberian pork presa', de: 'Iberische Presa', pt: 'Presa ibérica', fr: 'Presa ibérique' },
+  },
+]
+
+function applyV10(data: MenuData) {
+  const cats = data.categories ?? []
+  if (cats.some((c) => c.id === 'hamburguesas')) return
+  const caliente = cats.find((c) => c.id === 'caliente')
+  if (!caliente) return
+  const moved: MenuItem[] = []
+  for (const b of BURGERS) {
+    const it = caliente.items.find((i) => i.id === b.id)
+    if (!it) continue
+    caliente.items = caliente.items.filter((i) => i !== it)
+    if (it.name === b.from) {
+      it.name = b.name
+      it.nameI18n = { ...b.nameI18n }
+    }
+    moved.push(it)
+  }
+  if (!moved.length) return
+  caliente.items = [...caliente.items].sort(byOrder).map((it, i) => ({ ...it, order: i }))
+  cats.push({
+    id: 'hamburguesas',
+    name: 'Hamburguesas',
+    icon: '🍔',
+    order: caliente.order + 0.5,
+    nameI18n: { en: 'Burgers', de: 'Burger', pt: 'Hambúrgueres', fr: 'Burgers' },
+    items: moved.map((it, i) => ({ ...it, order: i })),
+  })
+  data.categories = [...cats].sort(byOrder).map((c, i) => ({ ...c, order: i }))
+}
+
+/** v9 (10/10/2026): la burger de presa ya no lleva «con salsa casera». */
+function applyV9(data: MenuData) {
+  for (const cat of data.categories ?? []) {
+    const c10 = cat.items?.find((i) => i.id === 'c10' && i.name === 'Hamburguesa de presa ibérica con salsa casera')
+    if (!c10) continue
+    c10.name = 'Hamburguesa de presa ibérica'
+    c10.nameI18n = {
+      en: 'Iberian pork (presa) burger',
+      de: 'Burger von der iberischen Presa',
+      pt: 'Hambúrguer de presa ibérica',
+      fr: 'Burger de presa ibérique',
+    }
+  }
 }
 
 /** v8 (10/10/2026): la ensalada de pollo lleva salsa de miel y mostaza. */
