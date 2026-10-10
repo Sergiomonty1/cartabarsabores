@@ -11,7 +11,7 @@ import type { MenuData, MenuItem, MenuVariant, Translations } from '@/types/menu
  * Cada cambio comprueba el nombre en español antes de tocar nada, para no pisar
  * cambios hechos a mano desde el admin.
  */
-export const CONTENT_VERSION = 12
+export const CONTENT_VERSION = 13
 
 /* ─── Traducciones revisadas (oct. 2026) ─── */
 
@@ -187,8 +187,28 @@ export function applyContentUpdates(input: MenuData): MenuData {
   if (from < 10) applyV10(data)
   if (from < 11) applyV11(data)
   if (from < 12) applyV12(data)
+  if (from < 13) applyV13(data)
   data.contentVersion = CONTENT_VERSION
   return data
+}
+
+/** v13 (10/10/2026): pulpo a la plancha (16 €) en Caliente, junto a los chipirones. */
+function applyV13(data: MenuData) {
+  const cat = (data.categories ?? []).find((c) => c.id === 'caliente')
+  if (!cat) return
+  const items = [...(cat.items ?? [])].sort(byOrder)
+  const pulpo: MenuItem = {
+    id: 'c16',
+    name: 'Pulpo a la plancha',
+    nameI18n: { en: 'Grilled octopus', de: 'Gegrillter Oktopus', pt: 'Polvo grelhado', fr: 'Poulpe à la plancha' },
+    priceTapa: 16,
+    priceMedia: 16,
+    samePrice: true,
+    order: 0,
+    allergens: ['molusco'],
+  }
+  insertAfter(items, items.some((i) => i.id === 'c15') ? 'c15' : null, pulpo)
+  cat.items = items.map((it, i) => ({ ...it, order: i }))
 }
 
 /** v12 (10/10/2026): nombres cortos con el detalle en la descripción (línea pequeña debajo). */
