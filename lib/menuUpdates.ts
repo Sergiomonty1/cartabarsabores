@@ -11,7 +11,7 @@ import type { MenuData, MenuItem, MenuVariant, Translations } from '@/types/menu
  * Cada cambio comprueba el nombre en español antes de tocar nada, para no pisar
  * cambios hechos a mano desde el admin.
  */
-export const CONTENT_VERSION = 10
+export const CONTENT_VERSION = 12
 
 /* ─── Traducciones revisadas (oct. 2026) ─── */
 
@@ -185,8 +185,96 @@ export function applyContentUpdates(input: MenuData): MenuData {
   if (from < 8) applyV8(data)
   if (from < 9) applyV9(data)
   if (from < 10) applyV10(data)
+  if (from < 11) applyV11(data)
+  if (from < 12) applyV12(data)
   data.contentVersion = CONTENT_VERSION
   return data
+}
+
+/** v12 (10/10/2026): nombres cortos con el detalle en la descripción (línea pequeña debajo). */
+const SHORT_NAMES: {
+  id: string
+  from: string
+  name?: string
+  nameI18n?: Translations
+  description: string
+  descriptionI18n: Translations
+}[] = [
+  {
+    id: 'e2',
+    from: 'Ensaladilla de langostinos',
+    description: 'Con huevo frito',
+    descriptionI18n: { en: 'With fried egg', de: 'Mit Spiegelei', pt: 'Com ovo estrelado', fr: 'Avec œuf au plat' },
+  },
+  {
+    id: 'c1',
+    from: 'Solomillo en salsa (carbonara, whisky, brava)',
+    name: 'Solomillo en salsa',
+    nameI18n: { en: 'Pork sirloin in sauce', de: 'Schweinefilet in Soße', pt: 'Lombinho de porco com molho', fr: 'Filet mignon de porc en sauce' },
+    description: 'A elegir: carbonara, whisky o brava',
+    descriptionI18n: {
+      en: 'Your choice: carbonara, whisky or brava',
+      de: 'Nach Wahl: Carbonara, Whisky oder Brava',
+      pt: 'À escolha: carbonara, whisky ou brava',
+      fr: 'Au choix : carbonara, whisky ou brava',
+    },
+  },
+  {
+    id: 'c2',
+    from: 'Salmón con patatas o ensalada',
+    name: 'Salmón',
+    nameI18n: { en: 'Salmon', de: 'Lachs', pt: 'Salmão', fr: 'Saumon' },
+    description: 'Con ensalada o patatas',
+    descriptionI18n: { en: 'With salad or potatoes', de: 'Mit Salat oder Kartoffeln', pt: 'Com salada ou batatas', fr: 'Avec salade ou pommes de terre' },
+  },
+  {
+    id: 'c11',
+    from: 'Albóndigas de vaca con salsa de tomate',
+    name: 'Albóndigas de vaca',
+    nameI18n: { en: 'Beef meatballs', de: 'Rindfleischbällchen', pt: 'Almôndegas de vaca', fr: 'Boulettes de bœuf' },
+    description: 'Con salsa de tomate',
+    descriptionI18n: { en: 'In tomato sauce', de: 'In Tomatensoße', pt: 'Com molho de tomate', fr: 'Sauce tomate' },
+  },
+  {
+    id: 'c7',
+    from: 'Pollo asado con salsa cheddar',
+    name: 'Pollo asado',
+    nameI18n: { en: 'Roast chicken', de: 'Brathähnchen', pt: 'Frango assado', fr: 'Poulet rôti' },
+    description: 'Con salsa cheddar',
+    descriptionI18n: { en: 'With cheddar sauce', de: 'Mit Cheddar-Soße', pt: 'Com molho cheddar', fr: 'Sauce cheddar' },
+  },
+]
+
+function applyV12(data: MenuData) {
+  for (const cat of data.categories ?? []) {
+    for (const it of cat.items ?? []) {
+      const sn = SHORT_NAMES.find((x) => x.id === it.id)
+      if (!sn || it.name !== sn.from || it.description) continue
+      if (sn.name) {
+        it.name = sn.name
+        if (sn.nameI18n) it.nameI18n = { ...sn.nameI18n }
+      }
+      it.description = sn.description
+      it.descriptionI18n = { ...sn.descriptionI18n }
+    }
+  }
+}
+
+/** v11 (10/10/2026): descripción de la salsa de la burger de presa. */
+function applyV11(data: MenuData) {
+  for (const cat of data.categories ?? []) {
+    const c10 = cat.items?.find((i) => i.id === 'c10')
+    if (!c10 || c10.description) continue
+    c10.description = 'Salsa de mayonesa, huevo duro, bacon y queso'
+    c10.descriptionI18n = {
+      en: 'Sauce made with mayonnaise, hard-boiled egg, bacon & cheese',
+      de: 'Soße aus Mayonnaise, gekochtem Ei, Bacon und Käse',
+      pt: 'Molho de maionese, ovo cozido, bacon e queijo',
+      fr: 'Sauce à la mayonnaise, œuf dur, bacon et fromage',
+    }
+    // Huevo (mayonesa, huevo duro) y lácteos (queso) por la salsa; gluten por el pan, como las otras
+    if (!c10.allergens?.length) c10.allergens = ['gluten', 'huevo', 'lacteo']
+  }
 }
 
 /** v10 (10/10/2026): las hamburguesas pasan a su propia sección, con nombres cortos. */

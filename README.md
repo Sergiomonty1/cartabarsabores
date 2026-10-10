@@ -71,6 +71,7 @@ En `/menu/admin` puedes:
 - Gestionar la carta de **vinos** (secciones, vinos, precios copa/botella, año).
 - Añadir traducciones por idioma para platos, categorías y vinos.
 - **Ocultar** (👁) o **borrar** platos, vinos y secciones.
+- **Descripción** de un plato: línea pequeña bajo el nombre (p. ej. «Con huevo frito»), traducible.
 - **Sabores** de un plato (p. ej. Croquetas: carrillada, jamón, puchero, gambas): mismo precio,
   cada sabor con su ojo para mostrarlo/ocultarlo, sus traducciones y los alérgenos que añade.
 - Por sección: etiqueta bajo el título, explicación, mínimo de personas y precio «por persona»

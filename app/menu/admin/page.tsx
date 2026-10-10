@@ -252,11 +252,13 @@ function TranslationsToggle({
   onChange,
   forceOpen,
   warning,
+  label = 'Traducciones',
 }: {
   value?: Translations
   onChange: (v: Translations) => void
   forceOpen?: boolean
   warning?: string
+  label?: string
 }) {
   const [open, setOpen] = useState(false)
   const n = translatedCount(value)
@@ -265,7 +267,7 @@ function TranslationsToggle({
     <div className="rounded-xl border border-white/[0.07] bg-white/[0.02]">
       <button type="button" onClick={() => setOpen((o) => !o)} className="w-full flex items-center gap-2 px-3 py-2.5 text-left">
         <span className="text-sm">🌍</span>
-        <span className="text-sm text-white/75 flex-1">Traducciones</span>
+        <span className="text-sm text-white/75 flex-1">{label}</span>
         <span
           className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
             n === 4 ? 'bg-emerald-400/15 text-emerald-300' : n === 0 ? 'bg-amber-400/15 text-amber-200' : 'bg-white/10 text-white/60'
@@ -400,6 +402,9 @@ function DishEditor({
   const originalName = useRef(item.name)
   const nameChanged = originalName.current.trim() !== '' && item.name.trim() !== originalName.current.trim()
   const staleTranslations = nameChanged && translatedCount(item.nameI18n) > 0
+  const originalDesc = useRef(item.description ?? '')
+  const descChanged = originalDesc.current.trim() !== '' && (item.description ?? '').trim() !== originalDesc.current.trim()
+  const staleDesc = descChanged && translatedCount(item.descriptionI18n) > 0
 
   return (
     <div className="space-y-4 py-1 animate-fade-in">
@@ -411,6 +416,17 @@ function DishEditor({
           onChange={(e) => onChange({ name: e.target.value })}
           placeholder="Ej. Croquetas caseras"
           className={inputCls}
+        />
+      </div>
+
+      <div>
+        <label className={labelCls}>Descripción (opcional)</label>
+        <textarea
+          value={item.description ?? ''}
+          onChange={(e) => onChange({ description: e.target.value })}
+          placeholder="Sale en pequeño debajo del nombre. Ej.: Salsa de mayonesa, huevo duro, bacon y queso"
+          rows={2}
+          className={`${inputCls} resize-none leading-relaxed`}
         />
       </div>
 
@@ -457,6 +473,16 @@ function DishEditor({
         forceOpen={staleTranslations}
         warning={staleTranslations ? 'Has cambiado el nombre en español: revisa que las traducciones sigan valiendo.' : undefined}
       />
+
+      {!!item.description?.trim() && (
+        <TranslationsToggle
+          label="Traducciones de la descripción"
+          value={item.descriptionI18n}
+          onChange={(descriptionI18n) => onChange({ descriptionI18n })}
+          forceOpen={staleDesc}
+          warning={staleDesc ? 'Has cambiado la descripción en español: revisa sus traducciones.' : undefined}
+        />
+      )}
 
       <div className="flex items-center gap-2 pt-1">
         <SmallBtn danger onClick={onDelete}>Eliminar plato</SmallBtn>
@@ -737,6 +763,8 @@ export default function AdminPage() {
                 ...it,
                 name: it.name.trim(),
                 nameI18n: cleanTranslations(it.nameI18n),
+                description: it.description?.trim() || undefined,
+                descriptionI18n: it.description?.trim() ? cleanTranslations(it.descriptionI18n) : undefined,
                 variants: it.variants?.length
                   ? it.variants
                       .filter((v) => v.name.trim())
@@ -1268,6 +1296,9 @@ export default function AdminPage() {
                                       >
                                         <span className="flex-1 min-w-0">
                                           <span className="block text-sm text-white/90 leading-snug">{item.name || <em className="text-white/30">Sin nombre</em>}</span>
+                                          {!!item.description?.trim() && (
+                                            <span className="block text-xs text-white/45 mt-0.5 leading-snug">{item.description}</span>
+                                          )}
                                           {!!item.variants?.length && (
                                             <span className="block text-xs italic text-gold-soft/75 mt-0.5">
                                               {item.variants.filter((v) => !v.hidden).map((v) => v.name).join(' · ') || 'Sin sabores visibles'}

@@ -275,6 +275,9 @@ function DishRow({ item, priceMode, showAllergens, lang, delay, visible, perPers
           <span className="text-white/40 text-xs italic whitespace-nowrap leading-snug">{t(lang, 'ask')}</span>
         )}
       </div>
+      {item.description?.trim() && (
+        <p className="mt-1 text-[12.5px] leading-snug text-white/55">{tName(lang, item.description, item.descriptionI18n)}</p>
+      )}
       {variants.length > 0 && (
         <p className="mt-1 text-[13px] leading-snug italic font-display tracking-wide text-gold-soft/80">
           {variants.map((v) => tName(lang, v.name, v.nameI18n)).join(' · ')}
