@@ -33,6 +33,9 @@ export interface MenuCategory {
   order: number
   /** Si es true, la sección no se muestra en la carta pública. */
   hidden?: boolean
+  /** Línea corta bajo el título de la sección (p. ej. "Solo los fines de semana"). */
+  note?: string
+  noteI18n?: Translations
   items: MenuItem[]
 }
 
@@ -64,4 +67,6 @@ export interface MenuData {
   importantDay?: boolean
   showWines?: boolean
   updatedAt?: string
+  /** Versión de las actualizaciones de contenido ya aplicadas (ver lib/menuUpdates.ts). */
+  contentVersion?: number
 }

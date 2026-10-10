@@ -31,3 +31,6 @@ export const ALLERGEN_SRC: Record<string, string> = {
   'fruto-cascara': '/alergenos/fruto-cascara.png',
   molusco: '/alergenos/molusco.png',
 }
+
+/** Lista de alérgenos con su icono, en el orden del selector. */
+export const ALLERGENS: { id: string; src: string }[] = ALLERGEN_KEYS.map((id) => ({ id, src: ALLERGEN_SRC[id] }))

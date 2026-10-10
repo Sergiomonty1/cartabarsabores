@@ -1,0 +1,248 @@
+import type { MenuData, MenuItem, Translations } from '@/types/menu'
+
+/**
+ * Actualizaciones de contenido de la carta.
+ *
+ * Se aplican al LEER la carta (carta pública, admin y copia inicial) cuando los datos
+ * guardados tienen una `contentVersion` menor que CONTENT_VERSION. Así los cambios se ven
+ * nada más desplegar, sin tocar la base de datos; al pulsar Guardar en el admin quedan
+ * grabados con la versión nueva y no se vuelven a aplicar.
+ *
+ * Cada cambio comprueba el nombre en español antes de tocar nada, para no pisar
+ * cambios hechos a mano desde el admin.
+ */
+export const CONTENT_VERSION = 3
+
+/* ─── Traducciones revisadas (oct. 2026) ─── */
+
+export const CATEGORY_I18N: Record<string, Translations> = {
+  entrantes: { en: "Starters", de: "Vorspeisen", pt: "Entradas", fr: "Entrées" },
+  tostas: { en: "Toasts", de: "Röstbrote", pt: "Tostas", fr: "Tartines" },
+  caliente: { en: "Hot dishes", de: "Warme Gerichte", pt: "Pratos quentes", fr: "Plats chauds" },
+  arroces: { en: "Rice dishes", de: "Reisgerichte", pt: "Arrozes", fr: "Riz" },
+  postres: { en: "Desserts", de: "Desserts", pt: "Sobremesas", fr: "Desserts" },
+  "fuera-carta": { en: "Off-menu specials", de: "Tagesempfehlungen", pt: "Fora da carta", fr: "Hors carte" },
+}
+
+/** Nombre en español con el que se escribió cada traducción de sección. */
+const CATEGORY_NAMES: Record<string, string> = {
+  entrantes: "Entrantes",
+  tostas: "Tostas",
+  caliente: "Caliente",
+  arroces: "Arroces",
+  postres: "Postres",
+  "fuera-carta": "Fuera de Carta",
+}
+
+export const DISH_I18N: Record<string, Translations> = {
+  e1: { en: "Fried chicken salad with mustard", de: "Salat mit frittiertem Hähnchen und Senf", pt: "Salada de frango frito com mostarda", fr: "Salade de poulet frit à la moutarde" },
+  e2: { en: "Prawn potato salad (ensaladilla)", de: "Kartoffelsalat mit Garnelen (Ensaladilla)", pt: "Salada russa com lagostins", fr: "Salade russe aux gambas" },
+  e3: { en: "Dressed potatoes with salmorejo (cold tomato cream)", de: "Angemachte Kartoffeln mit Salmorejo (kalte Tomatencreme)", pt: "Batatas temperadas com salmorejo (creme frio de tomate)", fr: "Pommes de terre assaisonnées au salmorejo (crème froide de tomate)" },
+  e4: { en: "Homemade patatas bravas (spicy sauce)", de: "Hausgemachte Patatas bravas (scharfe Soße)", pt: "Batatas bravas caseiras (molho picante)", fr: "Patatas bravas maison (sauce piquante)" },
+  e5b: { en: "Cured ham croquettes", de: "Schinkenkroketten", pt: "Croquetes de presunto", fr: "Croquettes de jambon cru" },
+  e5c: { en: "Puchero croquettes (Andalusian stew)", de: "Kroketten vom Puchero (andalusischer Eintopf)", pt: "Croquetes de puchero (cozido andaluz)", fr: "Croquettes de puchero (pot-au-feu andalou)" },
+  e5d: { en: "Prawn croquettes", de: "Garnelenkroketten", pt: "Croquetes de camarão", fr: "Croquettes de crevettes" },
+  e6: { en: "Foie gras Magnum", de: "Foie-gras-Magnum", pt: "Magnum de foie gras", fr: "Magnum de foie gras" },
+  e7: { en: "Prawn taco", de: "Garnelen-Taco", pt: "Taco de lagostins", fr: "Taco aux gambas" },
+  e10: { en: "Iberian pork taco (abanico cut)", de: "Taco mit iberischem Schwein (Abanico)", pt: "Taco de abanico de porco ibérico", fr: "Taco de porc ibérique (abanico)" },
+  e8: { en: "Fried baby squid taco", de: "Taco mit frittierten Baby-Tintenfischen", pt: "Taco de lulinhas fritas", fr: "Taco de chipirons frits" },
+  e9: { en: "Crispy chicken wing ravioli", de: "Knusprige Ravioli mit Hähnchenflügeln", pt: "Ravioli crocante de asas de frango", fr: "Ravioli croustillant aux ailes de poulet" },
+  t1: { en: "Salmorejo, quail egg & cured ham", de: "Salmorejo, Wachtelei und Rohschinken", pt: "Salmorejo, ovo de codorniz e presunto", fr: "Salmorejo, œuf de caille et jambon cru" },
+  t2: { en: "Mackerel, peppers & aioli", de: "Makrele, Paprika und Aioli", pt: "Cavala, pimentos e aioli", fr: "Maquereau, poivrons et aïoli" },
+  t3: { en: "Anchovies, cream cheese & truffle", de: "Sardellen, Frischkäse und Trüffel", pt: "Anchovas, queijo creme e trufa", fr: "Anchois, fromage frais et truffe" },
+  c1: { en: "Pork sirloin in sauce (carbonara, whisky, brava)", de: "Schweinefilet in Soße (Carbonara, Whisky, Brava)", pt: "Lombinho de porco com molho (carbonara, whisky, brava)", fr: "Filet mignon de porc en sauce (carbonara, whisky, brava)" },
+  c2: { en: "Salmon with pipirrana (Andalusian chopped salad)", de: "Lachs mit Pipirrana (andalusischer Gemüsesalat)", pt: "Salmão com pipirrana (salada andaluza)", fr: "Saumon et pipirrana (salade andalouse)" },
+  c3: { en: "Toasted noodles with pear aioli", de: "Geröstete Nudeln mit Birnen-Aioli", pt: "Massa fina tostada com aioli de pera", fr: "Vermicelles grillés à l’aïoli de poire" },
+  c9: { en: "Cochinita pibil brioche (Mexican-style slow-roasted pork)", de: "Brioche mit Cochinita Pibil (mexikanisches Schmorschwein)", pt: "Brioche de cochinita pibil (porco assado à mexicana)", fr: "Brioche à la cochinita pibil (porc mariné à la mexicaine)" },
+  c5: { en: "Potatoes with egg & truffle", de: "Kartoffeln mit Ei und Trüffel", pt: "Batatas com ovo e trufa", fr: "Pommes de terre, œuf et truffe" },
+  c6: { en: "Sirloin burger with bacon & cheese", de: "Filet-Burger mit Bacon und Käse", pt: "Hambúrguer de lombo com bacon e queijo", fr: "Burger de filet, bacon et fromage" },
+  c7: { en: "Roast chicken burger with cheddar sauce", de: "Burger mit Brathähnchen und Cheddar-Soße", pt: "Hambúrguer de frango assado com molho cheddar", fr: "Burger de poulet rôti, sauce cheddar" },
+  c10: { en: "Iberian pork (presa) burger with homemade sauce", de: "Burger von der iberischen Presa mit hausgemachter Soße", pt: "Hambúrguer de presa ibérica com molho caseiro", fr: "Burger de presa ibérique, sauce maison" },
+  c8: { en: "Marinated tuna", de: "Marinierter Thunfisch", pt: "Atum marinado", fr: "Thon mariné" },
+  c11: { en: "Beef meatballs in tomato sauce", de: "Rindfleischbällchen in Tomatensoße", pt: "Almôndegas de vaca com molho de tomate", fr: "Boulettes de bœuf à la sauce tomate" },
+  c12: { en: "Cuban sandwich", de: "Kubanisches Sandwich", pt: "Sanduíche cubana", fr: "Sandwich cubain" },
+  c13: { en: "Roast pork belly", de: "Gebratener Schweinebauch", pt: "Entremeada assada", fr: "Poitrine de porc rôtie" },
+  c14: { en: "Weever fish, Rota style (tomato & pepper sauce)", de: "Petermännchen nach Art von Rota (Tomaten-Paprika-Soße)", pt: "Peixe-aranha à moda de Rota (molho de tomate e pimento)", fr: "Vive à la mode de Rota (sauce tomate et poivron)" },
+  a1: { en: "Ask about our rice dishes (weekends)", de: "Fragen Sie nach unseren Reisgerichten (Wochenende)", pt: "Pergunte pelos nossos arrozes (fim de semana)", fr: "Demandez nos plats de riz (week-end)" },
+  p1: { en: "Cheesecake with mascarpone ice cream & coulis", de: "Käsekuchen mit Mascarpone-Eis und Coulis", pt: "Tarte de queijo com gelado de mascarpone e coulis", fr: "Cheesecake, glace au mascarpone et coulis" },
+  p2: { en: "Chocolate lava cake with pistachio ice cream", de: "Schokoladen-Coulant mit Pistazieneis", pt: "Coulant de chocolate com gelado de pistácio", fr: "Coulant au chocolat, glace à la pistache" },
+  p3: { en: "Brioche torrija (Spanish-style French toast)", de: "Brioche-Torrija (spanische Arme Ritter)", pt: "Rabanada de brioche", fr: "Pain perdu à la brioche (torrija)" },
+  p4: { en: "Scoop of ice cream (ask for flavours)", de: "Kugel Eis (fragen Sie nach den Sorten)", pt: "Bola de gelado (pergunte pelos sabores)", fr: "Boule de glace (demandez les parfums)" },
+  f1: { en: "Iberian pork presa (shoulder cut)", de: "Iberische Presa (Schulterstück vom Schwein)", pt: "Presa de porco ibérico", fr: "Presa de porc ibérique (épaule)" },
+  f2: { en: "Beef striploin (lomo bajo)", de: "Rumpsteak (Lomo bajo)", pt: "Vazia de vaca (lomo bajo)", fr: "Faux-filet de bœuf" },
+  f3: { en: "Beef rib steak (chuletón)", de: "Rinderkotelett (Chuletón)", pt: "Costeleta de vaca", fr: "Côte de bœuf" },
+  f4: { en: "T-bone steak", de: "T-Bone-Steak", pt: "T-Bone", fr: "T-Bone" },
+  f5: { en: "Slow-cooked suckling pig with potato parmentier", de: "Spanferkel bei Niedrigtemperatur mit Kartoffelpüree", pt: "Leitão a baixa temperatura com puré de batata", fr: "Cochon de lait basse température, parmentier de pommes de terre" },
+  f8: { en: "Garlic prawns (al ajillo)", de: "Garnelen in Knoblauchöl", pt: "Gambas ao alho", fr: "Crevettes à l’ail" },
+  f9: { en: "Prawns cooked on rock salt", de: "Garnelen auf Salz gegart", pt: "Gambas ao sal", fr: "Crevettes au gros sel" },
+  f10: { en: "Carril clams (Galicia)", de: "Venusmuscheln aus Carril (Galicien)", pt: "Amêijoas de Carril (Galiza)", fr: "Palourdes de Carril (Galice)" },
+  f11: { en: "Baby mussels in sauce", de: "Kleine Miesmuscheln in Soße", pt: "Mexilhões pequenos com molho", fr: "Petites moules en sauce" },
+  e5: { en: "Braised pork cheek croquettes", de: "Kroketten mit geschmorten Schweinebäckchen", pt: "Croquetes de bochecha de porco", fr: "Croquettes de joue de porc braisée" },
+}
+
+/** Nombre en español con el que se escribió cada traducción de plato. */
+export const DISH_NAMES: Record<string, string> = {
+  e1: "Ensalada de pollo frito y mostaza",
+  e2: "Ensaladilla de langostinos",
+  e3: "Patatas aliñadas con salmorejo",
+  e4: "Patatas bravas caseras",
+  e5b: "Croquetas de jamón",
+  e5c: "Croquetas de puchero",
+  e5d: "Croquetas de gambas",
+  e6: "Magnum de foie",
+  e7: "Taco de langostinos",
+  e10: "Taco de abanico ibérico",
+  e8: "Taco de chipirón frito",
+  e9: "Ravioli crujiente de alitas",
+  t1: "Salmorejo, huevo de codorniz y jamón",
+  t2: "Caballa, pimientos y alioli",
+  t3: "Anchoas, queso crema y trufa",
+  c1: "Solomillo en salsa (carbonara, whisky, brava)",
+  c2: "Salmón con pipirrana",
+  c3: "Fideos tostados con alioli de pera",
+  c9: "Brioche de cochinita pibil",
+  c5: "Patatas con huevo y trufa",
+  c6: "Hamburguesa de solomillo con bacon y queso",
+  c7: "Hamburguesa de pollo asado con salsa cheddar",
+  c10: "Hamburguesa de presa ibérica con salsa casera",
+  c8: "Atún macerado",
+  c11: "Albóndigas de vaca con salsa de tomate",
+  c12: "Sándwich cubano",
+  c13: "Panceta asada",
+  c14: "Salvariego con roteña",
+  a1: "Preguntar por nuestros arroces (fin de semana)",
+  p1: "Tarta de queso con helado de mascarpone y coulis",
+  p2: "Coulant de chocolate con helado de pistacho",
+  p3: "Torrija de brioche",
+  p4: "Bola de helado (preguntar por sabores)",
+  f1: "Presa ibérica",
+  f2: "Lomo bajo",
+  f3: "Chuletón de vaca",
+  f4: "T-Bone",
+  f5: "Cochinillo a baja temperatura con parmentier de patatas",
+  f8: "Gambas al ajillo",
+  f9: "Gambas a la sal",
+  f10: "Almejas de carril",
+  f11: "Mejillones baby en salsa",
+  e5: "Croquetas de carrillada",
+}
+
+export const WINE_CATEGORY_I18N: Record<string, Translations> = {
+  andalucia: { en: "Andalusia — Seville / Cádiz", de: "Andalusien — Sevilla / Cádiz", pt: "Andaluzia — Sevilha / Cádis", fr: "Andalousie — Séville / Cadix" },
+}
+const WINE_CATEGORY_NAMES: Record<string, string> = {
+  andalucia: "Andalucía — Sevilla / Cádiz",
+}
+
+const ARROCES_NOTE = "Solo los fines de semana"
+const ARROCES_NOTE_I18N: Translations = { en: "Weekends only", de: "Nur am Wochenende", pt: "Só ao fim de semana", fr: "Uniquement le week-end" }
+
+/* ─── Platos nuevos ─── */
+
+const dish = (id: string, extra: Partial<MenuItem> = {}): MenuItem => ({
+  id,
+  name: DISH_NAMES[id],
+  nameI18n: { ...DISH_I18N[id] },
+  priceTapa: 0,
+  priceMedia: 0,
+  samePrice: true,
+  order: 0,
+  ...extra,
+})
+
+/* ─── Helpers ─── */
+
+const byOrder = (a: { order: number }, b: { order: number }) => a.order - b.order
+
+function insertAfter(items: MenuItem[], afterId: string | null, item: MenuItem) {
+  if (items.some((i) => i.id === item.id)) return
+  const idx = afterId ? items.findIndex((i) => i.id === afterId) : -1
+  if (idx === -1) items.push(item)
+  else items.splice(idx + 1, 0, item)
+}
+
+function removeIf(items: MenuItem[], id: string, name: string) {
+  const idx = items.findIndex((i) => i.id === id && i.name === name)
+  if (idx !== -1) items.splice(idx, 1)
+}
+
+/** Aplica los cambios pendientes. Devuelve una copia; no modifica el original. */
+export function applyContentUpdates(input: MenuData): MenuData {
+  if ((input.contentVersion ?? 0) >= CONTENT_VERSION) return input
+  const data: MenuData = JSON.parse(JSON.stringify(input))
+
+  for (const cat of data.categories ?? []) {
+    const items = [...(cat.items ?? [])].sort(byOrder)
+    const find = (id: string) => items.find((i) => i.id === id)
+
+    if (cat.id === 'entrantes') {
+      // Croquetas: carrillada y jamón visibles; puchero y gambas guardadas pero ocultas
+      const e5 = find('e5')
+      if (e5 && e5.name === 'Croquetas sabores') e5.name = DISH_NAMES.e5
+      const base = e5 ?? { priceTapa: 4.2, priceMedia: 8.4, samePrice: false, allergens: ['gluten', 'huevo', 'sulfitos'] }
+      const croqueta = (id: string, hidden: boolean, allergens: string[] | undefined) =>
+        dish(id, { priceTapa: base.priceTapa, priceMedia: base.priceMedia, samePrice: base.samePrice, allergens, ...(hidden ? { hidden: true } : {}) })
+      insertAfter(items, 'e5', croqueta('e5b', false, base.allergens ? [...base.allergens] : undefined))
+      insertAfter(items, 'e5b', croqueta('e5c', true, base.allergens ? [...base.allergens] : undefined))
+      const gambasAllergens = base.allergens ? Array.from(new Set([...base.allergens, 'crustaceo'])) : ['crustaceo']
+      insertAfter(items, 'e5c', croqueta('e5d', true, gambasAllergens))
+      // Tacos: añadir el de abanico ibérico y ocultar el de chipirón
+      insertAfter(items, 'e7', dish('e10', { priceTapa: 7.5, priceMedia: 7.5 }))
+      const e8 = find('e8')
+      if (e8) e8.hidden = true
+    }
+
+    if (cat.id === 'caliente') {
+      // Brioche de pulled pork → brioche de cochinita pibil (mismo sitio y precio)
+      const c4 = find('c4')
+      if (c4 && c4.name === 'Brioche de pulled pork') {
+        const idx = items.indexOf(c4)
+        items.splice(idx, 1, dish('c9', { priceTapa: c4.priceTapa, priceMedia: c4.priceMedia, samePrice: c4.samePrice }))
+      }
+      const c6 = find('c6')
+      if (c6 && c6.name === 'Hamburguesa') c6.name = DISH_NAMES.c6
+      const c7 = find('c7')
+      if (c7 && c7.name === 'Hamburguesa de pollo asado') {
+        c7.name = DISH_NAMES.c7
+        if (c7.allergens && !c7.allergens.includes('lacteo')) c7.allergens = [...c7.allergens, 'lacteo']
+      }
+      insertAfter(items, 'c7', dish('c10'))
+      const c8 = find('c8')
+      if (c8) c8.hidden = true
+      insertAfter(items, null, dish('c11'))
+      insertAfter(items, null, dish('c12'))
+      insertAfter(items, null, dish('c13'))
+      insertAfter(items, null, dish('c14', { hidden: true }))
+    }
+
+    if (cat.id === 'arroces' && cat.note === undefined) {
+      cat.note = ARROCES_NOTE
+      cat.noteI18n = { ...ARROCES_NOTE_I18N }
+    }
+
+    if (cat.id === 'postres') {
+      insertAfter(items, null, dish('p4', { priceTapa: 3, priceMedia: 3 }))
+    }
+
+    if (cat.id === 'fuera-carta') {
+      // Vuelven a su sitio en la carta (Entrantes y Caliente)
+      removeIf(items, 'f6', 'Taco de abanico')
+      removeIf(items, 'f7', 'Hamburguesa de presa')
+    }
+
+    // Traducciones revisadas, solo si el nombre en español sigue siendo el mismo
+    if (CATEGORY_I18N[cat.id] && cat.name === CATEGORY_NAMES[cat.id]) cat.nameI18n = { ...CATEGORY_I18N[cat.id] }
+    for (const it of items) {
+      if (DISH_I18N[it.id] && it.name === DISH_NAMES[it.id]) it.nameI18n = { ...DISH_I18N[it.id] }
+    }
+
+    cat.items = items.map((it, i) => ({ ...it, order: i }))
+  }
+
+  for (const wc of data.wineCategories ?? []) {
+    if (WINE_CATEGORY_I18N[wc.id] && wc.name === WINE_CATEGORY_NAMES[wc.id]) wc.nameI18n = { ...WINE_CATEGORY_I18N[wc.id] }
+  }
+
+  data.contentVersion = CONTENT_VERSION
+  return data
+}

@@ -2,15 +2,15 @@ import type { Metadata, Viewport } from 'next'
 import '@/styles/globals.css'
 
 export const metadata: Metadata = {
-  title: 'Carta — Sabores',
-  description: 'Consulta nuestra carta de tapas y medias raciones. Actualizada en tiempo real.',
+  title: 'Sabores — Carta',
+  description: 'Carta de tapas, medias raciones, vinos y alérgenos en 5 idiomas. Actualizada en tiempo real.',
   icons: { icon: '/logo.svg' },
 }
 
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
-  themeColor: '#0d0d0d',
+  themeColor: '#021530',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

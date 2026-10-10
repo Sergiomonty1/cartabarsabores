@@ -3,17 +3,24 @@ module.exports = {
   content: [
     './app/**/*.{js,ts,jsx,tsx}',
     './lib/**/*.{js,ts,jsx,tsx}',
+    './components/**/*.{js,ts,jsx,tsx}',
   ],
   theme: {
     extend: {
       colors: {
-        amber: {
-          950: '#1a0f00',
+        navy: {
+          900: '#021530',
+          800: '#04244f',
+          700: '#063169',
+        },
+        gold: {
+          DEFAULT: '#d8b975',
+          soft: '#e9d6a8',
         },
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
-        display: ['Playfair Display', 'Georgia', 'serif'],
+        sans: ['Manrope', 'system-ui', 'sans-serif'],
+        display: ['Cormorant Garamond', 'Georgia', 'serif'],
       },
     },
   },

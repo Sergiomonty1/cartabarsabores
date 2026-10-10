@@ -1,135 +1,311 @@
 'use client'
 
-import React, { useEffect, useState, useCallback, useRef } from 'react'
-import type {
-  MenuData,
-  MenuCategory,
-  MenuItem,
-  WineCategory,
-  WineItem,
-  Translations,
-} from '@/types/menu'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
+import Image from 'next/image'
+import type { MenuData, MenuCategory, MenuItem, WineCategory, WineItem, Translations } from '@/types/menu'
 import { menuService } from '@/lib/menuService'
+import { ALLERGENS, ALLERGEN_SRC } from '@/lib/allergens'
 import { I18N_LANGS, tAllergen } from '@/lib/translations'
-import { ALLERGEN_KEYS, ALLERGEN_SRC } from '@/lib/allergens'
+import { GradientOrbs, LogoMark } from '@/components/Brand'
 
-const PASSCODE = '2010'
+const ADMIN_PASSCODE = '2010'
+/** Contraseña para restablecer la copia guardada (botón oculto en Opciones avanzadas). */
+const RESET_PASSWORD = '7954'
+const LANG_CODES = I18N_LANGS.map((l) => l.code)
 
-type Tab = 'comida' | 'vinos' | 'inicial'
+/* ──────────────────────────── helpers ──────────────────────────── */
 
-/* ──────── price input with local string state ──────── */
-function PriceInput({
-  value,
-  onChange,
-  disabled,
-  placeholder = '0.00',
-}: {
-  value: number
-  onChange: (v: number) => void
-  disabled?: boolean
-  placeholder?: string
-}) {
-  const [raw, setRaw] = useState(() => (value === 0 ? '' : value.toString()))
-  const prevValue = useRef(value)
+const eur = (n: number) => (n > 0 ? n.toFixed(2).replace('.', ',') + ' €' : '')
+const uid = (prefix: string) => `${prefix}-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`
+const byOrder = <T extends { order: number }>(a: T, b: T) => a.order - b.order
 
-  // Sync from parent when value changes externally (e.g. samePrice toggle)
-  useEffect(() => {
-    if (value !== prevValue.current) {
-      prevValue.current = value
-      setRaw(value === 0 ? '' : value.toString())
-    }
-  }, [value])
+/** Move an element one position up/down and renumber the order of the whole list. */
+function moveInList<T extends { id: string; order: number }>(list: T[], id: string, dir: -1 | 1): T[] {
+  const sorted = [...list].sort(byOrder)
+  const i = sorted.findIndex((x) => x.id === id)
+  const j = i + dir
+  if (i < 0 || j < 0 || j >= sorted.length) return list
+  const tmp = sorted[i]
+  sorted[i] = sorted[j]
+  sorted[j] = tmp
+  return sorted.map((x, k) => ({ ...x, order: k }))
+}
 
+const translatedCount = (tr?: Translations) => LANG_CODES.filter((l) => tr?.[l]?.trim()).length
+
+function cleanTranslations(tr?: Translations): Translations | undefined {
+  if (!tr) return undefined
+  const out: Translations = {}
+  LANG_CODES.forEach((l) => {
+    const v = tr[l]?.trim()
+    if (v) out[l] = v
+  })
+  return Object.keys(out).length ? out : undefined
+}
+
+function normalize(m: MenuData): MenuData {
+  return {
+    ...m,
+    importantDay: m.importantDay ?? false,
+    showWines: m.showWines ?? true,
+    categories: m.categories.filter((c) => c.id !== 'bebidas'),
+    wineCategories: m.wineCategories ?? [],
+  }
+}
+
+function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error('timeout')), ms)
+    p.then(
+      (v) => { clearTimeout(timer); resolve(v) },
+      (e) => { clearTimeout(timer); reject(e) }
+    )
+  })
+}
+
+/* ──────────────────────────── UI primitives ──────────────────────────── */
+
+const inputCls =
+  'w-full rounded-xl bg-white/[0.05] border border-white/10 px-3 py-2.5 text-sm text-white placeholder:text-white/25 focus:outline-none focus:border-gold/60 focus:ring-2 focus:ring-gold/15 transition disabled:opacity-30'
+const labelCls = 'block text-[10px] uppercase tracking-[0.16em] font-semibold text-white/40 mb-1.5'
+const goldBtn =
+  'rounded-xl bg-gradient-to-br from-gold-soft to-gold text-navy-900 font-bold shadow-lg shadow-gold/15 hover:brightness-105 active:scale-[0.98] transition disabled:opacity-40 disabled:shadow-none disabled:active:scale-100'
+
+function Chevron({ open, className = '' }: { open?: boolean; className?: string }) {
   return (
-    <input
-      type="text"
-      inputMode="decimal"
-      value={raw}
-      onChange={(e) => {
-        let v = e.target.value.replace(',', '.')
-        if (v === '' || v === '.') {
-          setRaw(v)
-          onChange(0)
-          return
-        }
-        if (/^\d*\.?\d{0,2}$/.test(v)) {
-          setRaw(v)
-          const num = parseFloat(v)
-          if (!isNaN(num)) {
-            prevValue.current = num
-            onChange(num)
-          }
-        }
-      }}
-      onBlur={() => {
-        const num = parseFloat(raw) || 0
-        prevValue.current = num
-        setRaw(num === 0 ? '' : num.toString())
-      }}
-      placeholder={placeholder}
-      disabled={disabled}
-      className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-white focus:outline-none disabled:opacity-20 mt-1"
-    />
+    <svg className={`w-4 h-4 transition-transform ${open ? 'rotate-180' : ''} ${className}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+    </svg>
   )
 }
 
-/* ──────── translation inputs (EN/DE/PT/FR) ──────── */
-function TranslationFields({
-  value,
-  onChange,
-  placeholder,
+function Switch({ checked, onChange, label }: { checked: boolean; onChange: (v: boolean) => void; label: string }) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      aria-label={label}
+      onClick={() => onChange(!checked)}
+      className={`relative w-12 h-7 rounded-full flex-shrink-0 transition-colors ${
+        checked ? 'bg-gradient-to-r from-gold-soft to-gold' : 'bg-white/15'
+      }`}
+    >
+      <span className={`absolute top-1 left-1 w-5 h-5 rounded-full bg-white shadow-md transition-transform ${checked ? 'translate-x-5' : ''}`} />
+    </button>
+  )
+}
+
+function SmallBtn({
+  children,
+  onClick,
+  danger,
+  disabled,
+  title,
 }: {
-  value?: Translations
-  onChange: (v: Translations) => void
-  placeholder?: string
+  children: React.ReactNode
+  onClick: () => void
+  danger?: boolean
+  disabled?: boolean
+  title?: string
 }) {
   return (
-    <div className="grid grid-cols-2 gap-2 mt-1.5">
-      {I18N_LANGS.map((l) => (
-        <div key={l.code}>
-          <label className="text-[10px] text-gray-500 font-semibold flex items-center gap-1">
-            <span>{l.flag}</span>
-            {l.label}
-          </label>
-          <input
-            type="text"
-            value={value?.[l.code] ?? ''}
-            onChange={(e) => onChange({ ...value, [l.code]: e.target.value })}
-            placeholder={placeholder}
-            className="mt-1 w-full px-2.5 py-1.5 rounded-lg bg-gray-50 border border-gray-300 text-xs text-gray-900 focus:outline-none focus:ring-1 focus:ring-sky-200/40"
-          />
-        </div>
-      ))}
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      title={title}
+      className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition disabled:opacity-25 ${
+        danger
+          ? 'text-red-300/80 hover:text-red-200 hover:bg-red-500/10'
+          : 'text-white/55 hover:text-white hover:bg-white/[0.07]'
+      }`}
+    >
+      {children}
+    </button>
+  )
+}
+
+function EyeButton({ hidden, onToggle }: { hidden?: boolean; onToggle: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      aria-label={hidden ? 'Mostrar en la carta' : 'Ocultar de la carta'}
+      title={hidden ? 'Oculto — pulsa para mostrarlo' : 'Visible — pulsa para ocultarlo'}
+      className={`p-2 rounded-lg transition ${hidden ? 'text-white/30 hover:text-white/70' : 'text-gold/70 hover:text-gold'}`}
+    >
+      {hidden ? (
+        <svg className="w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M3 3l18 18M10.58 10.58a2 2 0 002.83 2.83M9.88 5.09A9.77 9.77 0 0112 4.86c4.48 0 8.27 2.94 9.54 7a10.05 10.05 0 01-2.64 4.26M6.23 6.23A10.02 10.02 0 002.46 11.86c1.27 4.06 5.06 7 9.54 7 1.6 0 3.12-.38 4.46-1.04" />
+        </svg>
+      ) : (
+        <svg className="w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M2.46 12C3.73 7.94 7.52 5 12 5s8.27 2.94 9.54 7c-1.27 4.06-5.06 7-9.54 7s-8.27-2.94-9.54-7z" />
+          <circle cx="12" cy="12" r="3" strokeWidth={1.8} />
+        </svg>
+      )}
+    </button>
+  )
+}
+
+function VisibleRow({ hidden, onChange }: { hidden?: boolean; onChange: (hidden: boolean) => void }) {
+  return (
+    <div className="flex items-center justify-between gap-3 rounded-xl bg-white/[0.03] border border-white/[0.06] px-3 py-2.5">
+      <div>
+        <p className="text-sm text-white/80">Visible en la carta</p>
+        <p className="text-[11px] text-white/35">{hidden ? 'Oculto: se guarda aquí pero los clientes no lo ven.' : 'Los clientes lo ven en la carta.'}</p>
+      </div>
+      <Switch checked={!hidden} label="Visible en la carta" onChange={(v) => onChange(!v)} />
     </div>
   )
 }
 
-/* ──────── allergen toggle picker ──────── */
-function AllergenPicker({
-  selected,
-  onToggle,
-}: {
-  selected: string[]
-  onToggle: (key: string) => void
-}) {
+function MoveButtons({ onUp, onDown, first, last }: { onUp: () => void; onDown: () => void; first: boolean; last: boolean }) {
   return (
-    <div className="flex flex-wrap gap-1.5 mt-1">
-      {ALLERGEN_KEYS.map((key) => {
-        const active = selected.includes(key)
+    <div className="flex flex-col -my-1">
+      <button type="button" onClick={onUp} disabled={first} aria-label="Subir" className="p-1 text-white/35 hover:text-gold disabled:opacity-15 transition">
+        <Chevron open className="w-3.5 h-3.5" />
+      </button>
+      <button type="button" onClick={onDown} disabled={last} aria-label="Bajar" className="p-1 text-white/35 hover:text-gold disabled:opacity-15 transition">
+        <Chevron className="w-3.5 h-3.5" />
+      </button>
+    </div>
+  )
+}
+
+/* Price input with its own text state so "4," or "4.5" can be typed comfortably */
+function PriceInput({ value, onChange, disabled }: { value: number; onChange: (v: number) => void; disabled?: boolean }) {
+  const [raw, setRaw] = useState(() => (value === 0 ? '' : value.toFixed(2).replace('.', ',')))
+  const prev = useRef(value)
+
+  useEffect(() => {
+    if (value !== prev.current) {
+      prev.current = value
+      setRaw(value === 0 ? '' : value.toFixed(2).replace('.', ','))
+    }
+  }, [value])
+
+  return (
+    <div className="relative">
+      <input
+        type="text"
+        inputMode="decimal"
+        value={raw}
+        disabled={disabled}
+        placeholder="Consultar"
+        onChange={(e) => {
+          const v = e.target.value.replace(',', '.')
+          if (v === '' || v === '.') {
+            setRaw(e.target.value)
+            prev.current = 0
+            onChange(0)
+            return
+          }
+          if (/^\d*\.?\d{0,2}$/.test(v)) {
+            setRaw(e.target.value)
+            const num = parseFloat(v)
+            if (!isNaN(num)) {
+              prev.current = num
+              onChange(num)
+            }
+          }
+        }}
+        onBlur={() => {
+          const num = parseFloat(raw.replace(',', '.')) || 0
+          prev.current = num
+          setRaw(num === 0 ? '' : num.toFixed(2).replace('.', ','))
+        }}
+        className={`${inputCls} pr-8 text-right tabular-nums`}
+      />
+      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-white/30 pointer-events-none">€</span>
+    </div>
+  )
+}
+
+/* ──────────────────────────── translations & allergens ──────────────────────────── */
+
+function TranslationFields({ value, onChange }: { value?: Translations; onChange: (v: Translations) => void }) {
+  return (
+    <div className="space-y-2">
+      {I18N_LANGS.map((info) => {
+        const l = info.code
+        return (
+          <label key={l} className="flex items-center gap-2">
+            <span className="w-8 flex-shrink-0 text-center text-lg" title={info.label}>{info.flag}</span>
+            <input
+              value={value?.[l] ?? ''}
+              onChange={(e) => onChange({ ...(value ?? {}), [l]: e.target.value })}
+              placeholder={info.label}
+              className={inputCls}
+            />
+          </label>
+        )
+      })}
+      <p className="text-[11px] text-white/35 pl-10">Si dejas un idioma vacío, se mostrará el nombre en español.</p>
+    </div>
+  )
+}
+
+function TranslationsToggle({
+  value,
+  onChange,
+  forceOpen,
+  warning,
+}: {
+  value?: Translations
+  onChange: (v: Translations) => void
+  forceOpen?: boolean
+  warning?: string
+}) {
+  const [open, setOpen] = useState(false)
+  const n = translatedCount(value)
+  const isOpen = open || !!forceOpen
+  return (
+    <div className="rounded-xl border border-white/[0.07] bg-white/[0.02]">
+      <button type="button" onClick={() => setOpen((o) => !o)} className="w-full flex items-center gap-2 px-3 py-2.5 text-left">
+        <span className="text-sm">🌍</span>
+        <span className="text-sm text-white/75 flex-1">Traducciones</span>
+        <span
+          className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+            n === 4 ? 'bg-emerald-400/15 text-emerald-300' : n === 0 ? 'bg-amber-400/15 text-amber-200' : 'bg-white/10 text-white/60'
+          }`}
+        >
+          {n}/4
+        </span>
+        <Chevron open={isOpen} className="text-white/40" />
+      </button>
+      {warning && <p className="px-3 pb-2 text-[11px] text-amber-200/85">{warning}</p>}
+      {isOpen && (
+        <div className="px-3 pb-3 animate-fade-in">
+          <TranslationFields value={value} onChange={onChange} />
+        </div>
+      )}
+    </div>
+  )
+}
+
+function AllergenPicker({ value, onChange }: { value?: string[]; onChange: (v: string[]) => void }) {
+  const selected = value ?? []
+  return (
+    <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
+      {ALLERGENS.map((a) => {
+        const on = selected.includes(a.id)
         return (
           <button
-            key={key}
             type="button"
-            onClick={() => onToggle(key)}
-            className={`flex items-center gap-1 px-2 py-1 rounded-lg border text-[11px] transition-colors ${
-              active
-                ? 'bg-sky-300/20 border-sky-400/50 text-sky-100'
-                : 'bg-white/5 border-white/10 text-white/40 hover:text-white/70'
+            key={a.id}
+            aria-pressed={on}
+            onClick={() => {
+              const next = on ? selected.filter((x) => x !== a.id) : [...selected, a.id]
+              onChange(ALLERGENS.map((x) => x.id).filter((id) => next.includes(id)))
+            }}
+            className={`flex items-center gap-2 rounded-xl px-2.5 py-2 border text-left text-xs transition ${
+              on ? 'bg-gold/[0.14] border-gold/50 text-white' : 'bg-white/[0.03] border-white/[0.07] text-white/45 hover:text-white/75'
             }`}
           >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={ALLERGEN_SRC[key]} alt="" width={16} height={16} className="rounded-full" />
-            {tAllergen('es', key)}
+            <Image src={a.src} alt="" width={20} height={20} className={`rounded-full flex-shrink-0 transition ${on ? '' : 'opacity-35 grayscale'}`} />
+            <span className="truncate">{tAllergen('es', a.id)}</span>
           </button>
         )
       })}
@@ -137,1095 +313,1093 @@ function AllergenPicker({
   )
 }
 
-/* ──────── reordenar (subir/bajar) ──────── */
-function ReorderButtons({
-  onUp,
-  onDown,
-  isFirst,
-  isLast,
+/* ──────────────────────────── editors ──────────────────────────── */
+
+function DishEditor({
+  item,
+  onChange,
+  onDelete,
+  onDone,
 }: {
-  onUp: () => void
-  onDown: () => void
-  isFirst: boolean
-  isLast: boolean
+  item: MenuItem
+  onChange: (patch: Partial<MenuItem>) => void
+  onDelete: () => void
+  onDone: () => void
 }) {
-  const cls =
-    'w-7 h-6 flex items-center justify-center rounded-md bg-white/[0.06] border border-white/10 text-white/70 text-[10px] leading-none hover:bg-white/15 hover:text-white active:scale-90 disabled:opacity-20 disabled:pointer-events-none transition-all'
+  const originalName = useRef(item.name)
+  const nameChanged = originalName.current.trim() !== '' && item.name.trim() !== originalName.current.trim()
+  const staleTranslations = nameChanged && translatedCount(item.nameI18n) > 0
+
   return (
-    <div className="flex flex-col gap-0.5 flex-shrink-0" title="Cambiar el orden">
-      <button type="button" onClick={onUp} disabled={isFirst} aria-label="Subir" className={cls}>
-        ▲
-      </button>
-      <button type="button" onClick={onDown} disabled={isLast} aria-label="Bajar" className={cls}>
-        ▼
-      </button>
+    <div className="space-y-4 py-1 animate-fade-in">
+      <div>
+        <label className={labelCls}>Nombre del plato (español)</label>
+        <input
+          value={item.name}
+          autoFocus={!item.name}
+          onChange={(e) => onChange({ name: e.target.value })}
+          placeholder="Ej. Croquetas caseras"
+          className={inputCls}
+        />
+      </div>
+
+      <VisibleRow hidden={item.hidden} onChange={(hidden) => onChange({ hidden })} />
+
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className={labelCls}>{item.samePrice ? 'Precio' : 'Precio tapa'}</label>
+          <PriceInput
+            value={item.priceTapa}
+            onChange={(v) => onChange({ priceTapa: v, ...(item.samePrice ? { priceMedia: v } : {}) })}
+          />
+        </div>
+        <div>
+          <label className={labelCls}>Precio media</label>
+          <PriceInput value={item.priceMedia} disabled={item.samePrice} onChange={(v) => onChange({ priceMedia: v })} />
+        </div>
+      </div>
+
+      <div className="flex items-center justify-between gap-3 rounded-xl bg-white/[0.03] border border-white/[0.06] px-3 py-2.5">
+        <div>
+          <p className="text-sm text-white/80">Mismo precio en tapa y media</p>
+          <p className="text-[11px] text-white/35">Sin precio, en la carta sale «Consultar».</p>
+        </div>
+        <Switch
+          checked={item.samePrice}
+          label="Mismo precio"
+          onChange={(v) => onChange({ samePrice: v, ...(v ? { priceMedia: item.priceTapa } : {}) })}
+        />
+      </div>
+
+      <div>
+        <label className={labelCls}>Alérgenos</label>
+        <AllergenPicker value={item.allergens} onChange={(allergens) => onChange({ allergens })} />
+      </div>
+
+      <TranslationsToggle
+        value={item.nameI18n}
+        onChange={(nameI18n) => onChange({ nameI18n })}
+        forceOpen={staleTranslations}
+        warning={staleTranslations ? 'Has cambiado el nombre en español: revisa que las traducciones sigan valiendo.' : undefined}
+      />
+
+      <div className="flex items-center gap-2 pt-1">
+        <SmallBtn danger onClick={onDelete}>Eliminar plato</SmallBtn>
+        <div className="flex-1" />
+        <button type="button" onClick={onDone} className={`${goldBtn} px-6 py-2.5 text-sm`}>Listo</button>
+      </div>
     </div>
   )
 }
 
-/* ──────── passcode gate ──────── */
+function WineEditor({
+  wine,
+  onChange,
+  onDelete,
+  onDone,
+}: {
+  wine: WineItem
+  onChange: (patch: Partial<WineItem>) => void
+  onDelete: () => void
+  onDone: () => void
+}) {
+  return (
+    <div className="space-y-4 py-1 animate-fade-in">
+      <div className="grid grid-cols-[1fr_6rem] gap-3">
+        <div>
+          <label className={labelCls}>Vino / bodega</label>
+          <input value={wine.name} autoFocus={!wine.name} onChange={(e) => onChange({ name: e.target.value })} placeholder="Ej. Protos" className={inputCls} />
+        </div>
+        <div>
+          <label className={labelCls}>Añada</label>
+          <input
+            value={wine.year ?? ''}
+            inputMode="numeric"
+            maxLength={4}
+            onChange={(e) => onChange({ year: e.target.value.replace(/\D/g, '') || undefined })}
+            placeholder="2024"
+            className={`${inputCls} text-center`}
+          />
+        </div>
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className={labelCls}>Copa</label>
+          <PriceInput value={wine.priceCopa} onChange={(v) => onChange({ priceCopa: v })} />
+        </div>
+        <div>
+          <label className={labelCls}>Botella</label>
+          <PriceInput value={wine.priceBottle} onChange={(v) => onChange({ priceBottle: v })} />
+        </div>
+      </div>
+      <p className="text-[11px] text-white/35 -mt-2">Deja la copa vacía si ese vino no se sirve por copas.</p>
+      <TranslationsToggle value={wine.nameI18n} onChange={(nameI18n) => onChange({ nameI18n })} />
+      <VisibleRow hidden={wine.hidden} onChange={(hidden) => onChange({ hidden })} />
+      <div className="flex items-center gap-2 pt-1">
+        <SmallBtn danger onClick={onDelete}>Eliminar vino</SmallBtn>
+        <div className="flex-1" />
+        <button type="button" onClick={onDone} className={`${goldBtn} px-6 py-2.5 text-sm`}>Listo</button>
+      </div>
+    </div>
+  )
+}
+
+/* ──────────────────────────── modals & gate ──────────────────────────── */
+
 function PasscodeGate({ onUnlock }: { onUnlock: () => void }) {
   const [code, setCode] = useState('')
-  const [error, setError] = useState(false)
+  const [error, setError] = useState(0)
 
   const check = () => {
-    if (code === PASSCODE) {
+    if (code === ADMIN_PASSCODE) {
       localStorage.setItem('menu-admin', '1')
       onUnlock()
     } else {
-      setError(true)
-      setTimeout(() => setError(false), 1200)
+      setError((e) => e + 1)
+      setCode('')
     }
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#071a35] px-6">
-      <div className="w-full max-w-xs">
-        <h1 className="text-2xl font-bold text-sky-100 text-center mb-1">Panel Admin</h1>
-        <p className="text-center text-white/30 text-sm mb-8">Introduce el código de acceso</p>
-        <div className="flex flex-col gap-3">
+    <div className="min-h-screen flex items-center justify-center bg-[#021530] px-6 relative overflow-hidden">
+      <GradientOrbs />
+      <div className="relative z-10 w-full max-w-xs text-center animate-fade-in-up">
+        <LogoMark className="w-16 h-16 mx-auto mb-6" />
+        <p className="text-[10px] tracking-[0.45em] uppercase text-gold/70 font-semibold">Sabores</p>
+        <h1 className="font-display text-4xl font-semibold text-white mt-1">Panel de gestión</h1>
+        <p className="text-sm text-white/40 mt-2 mb-8">Introduce el código de acceso</p>
+        <div key={error} className={error ? 'animate-shake' : ''}>
           <input
             type="password"
+            inputMode="numeric"
+            autoComplete="off"
             placeholder="••••"
             value={code}
             onChange={(e) => setCode(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && check()}
-            className={`w-full px-4 py-3.5 rounded-xl bg-white/5 border text-gray-900 placeholder:text-gray-400 text-center text-xl tracking-[0.4em] focus:outline-none focus:ring-2 focus:ring-sky-200/40 transition-all ${
-              error ? 'border-red-500 animate-[shake_0.3s_ease-in-out]' : 'border-white/10'
-            }`}
+            className={`${inputCls} py-3.5 text-center text-2xl tracking-[0.5em] ${error ? 'border-red-400/70' : ''}`}
             autoFocus
           />
-          <button
-            onClick={check}
-            className="w-full py-3.5 rounded-xl bg-sky-300 text-black font-bold tracking-wide hover:bg-sky-200 transition-colors"
-          >
-            Entrar
-          </button>
         </div>
+        <button onClick={check} disabled={!code} className={`${goldBtn} w-full mt-3 py-3.5 tracking-wide`}>
+          Entrar
+        </button>
+        <p className={`text-xs text-red-300 mt-3 h-4 ${error ? '' : 'invisible'}`}>Código incorrecto</p>
       </div>
-      <style jsx global>{`
-        @keyframes shake {
-          0%, 100% { transform: translateX(0) }
-          25% { transform: translateX(-6px) }
-          75% { transform: translateX(6px) }
-        }
-      `}</style>
     </div>
   )
 }
 
-/* ──────── admin panel ──────── */
+function ResetModal({ onClose, onConfirm, copyDate }: { onClose: () => void; onConfirm: () => void; copyDate: string | null }) {
+  const [pw, setPw] = useState('')
+  const [error, setError] = useState(0)
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [onClose])
+
+  const submit = () => {
+    if (pw === RESET_PASSWORD) onConfirm()
+    else {
+      setError((e) => e + 1)
+      setPw('')
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-[70] flex items-end sm:items-center justify-center p-4" role="dialog" aria-modal="true">
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm animate-fade-in" onClick={onClose} />
+      <div key={error} className={`relative w-full max-w-sm rounded-3xl bg-[#04244f] border border-red-400/25 p-6 shadow-2xl ${error ? 'animate-shake' : 'animate-modal-pop'}`}>
+        <div className="w-11 h-11 rounded-full bg-red-500/15 border border-red-400/30 flex items-center justify-center mb-4">
+          <svg className="w-5 h-5 text-red-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+          </svg>
+        </div>
+        <h3 className="font-display text-2xl font-semibold text-white">Restablecer la copia guardada</h3>
+        <p className="text-sm text-white/55 mt-2 leading-relaxed">
+          Se sustituirán todos los platos, precios, alérgenos y vinos por la copia guardada
+          {copyDate ? <> del <span className="text-white">{copyDate}</span></> : ' (no hay copia: se usará la carta de fábrica)'}.
+          No se publica nada hasta que pulses <span className="text-white font-semibold">Guardar</span>.
+        </p>
+        <label className={`${labelCls} mt-5`}>Contraseña de restablecimiento</label>
+        <input
+          type="password"
+          inputMode="numeric"
+          autoComplete="off"
+          autoFocus
+          value={pw}
+          onChange={(e) => setPw(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && pw && submit()}
+          placeholder="••••"
+          className={`${inputCls} py-3 text-center text-xl tracking-[0.5em] ${error ? 'border-red-400/70' : ''}`}
+        />
+        <p className={`text-xs text-red-300 mt-2 h-4 ${error ? '' : 'invisible'}`}>Contraseña incorrecta</p>
+        <div className="flex gap-2 mt-3">
+          <button type="button" onClick={onClose} className="flex-1 py-3 rounded-xl bg-white/[0.07] text-white/80 text-sm font-semibold hover:bg-white/[0.12] transition">
+            Cancelar
+          </button>
+          <button
+            type="button"
+            onClick={submit}
+            disabled={!pw}
+            className="flex-1 py-3 rounded-xl bg-red-500/90 hover:bg-red-500 text-white text-sm font-bold transition disabled:opacity-40"
+          >
+            Restablecer
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/* ──────────────────────────── main page ──────────────────────────── */
+
+type Editing = { kind: 'dish' | 'wine'; catId: string; itemId: string } | null
+type LoadState = 'loading' | 'ready' | 'error'
+
 export default function AdminPage() {
   const [authed, setAuthed] = useState(false)
   const [menu, setMenu] = useState<MenuData | null>(null)
-  const [tab, setTab] = useState<Tab>('comida')
-  const [importantDay, setImportantDay] = useState(false)
-  const [showWines, setShowWines] = useState(true)
+  const [snapshot, setSnapshot] = useState('')
+  const [loadState, setLoadState] = useState<LoadState>('loading')
+  const [loadError, setLoadError] = useState('')
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [saveError, setSaveError] = useState('')
-  const [editingItem, setEditingItem] = useState<{ catId: string; itemId: string } | null>(null)
-  const [editingWine, setEditingWine] = useState<{ catId: string; itemId: string } | null>(null)
-  const [i18nCat, setI18nCat] = useState<string | null>(null)
-  const [i18nWineCat, setI18nWineCat] = useState<string | null>(null)
-  const [initialSavedAt, setInitialSavedAt] = useState<string | null>(null)
-  const [initialMsg, setInitialMsg] = useState('')
+  const [view, setView] = useState<'carta' | 'vinos'>('carta')
+  const [openCats, setOpenCats] = useState<string[]>([])
+  const [trCats, setTrCats] = useState<string[]>([])
+  const [editing, setEditing] = useState<Editing>(null)
+  const [advanced, setAdvanced] = useState(false)
+  const [resetOpen, setResetOpen] = useState(false)
+  const [resetNotice, setResetNotice] = useState(false)
   const [visits, setVisits] = useState<{ total: number; today: number }>({ total: 0, today: 0 })
+  const [copySavedAt, setCopySavedAt] = useState<string | null>(null)
+  const [copyMsg, setCopyMsg] = useState('')
+
+  const dirty = !!menu && loadState === 'ready' && JSON.stringify(menu) !== snapshot
 
   useEffect(() => {
-    if (typeof window !== 'undefined' && localStorage.getItem('menu-admin') === '1')
-      setAuthed(true)
+    if (localStorage.getItem('menu-admin') === '1') setAuthed(true)
+  }, [])
+
+  /* Load the LIVE menu. Never fall back to the defaults here: saving them by accident is what wipes the carta. */
+  const load = useCallback(async () => {
+    setLoadState('loading')
+    setLoadError('')
+    try {
+      const fresh = normalize(await withTimeout(menuService.fetchMenu({ strict: true }), 15000))
+      setMenu(fresh)
+      setSnapshot(JSON.stringify(fresh))
+      setLoadState('ready')
+    } catch (err: any) {
+      console.error('Load error:', err)
+      setLoadError(
+        err?.message === 'timeout'
+          ? 'La conexión está tardando demasiado.'
+          : err?.code === 'permission-denied'
+          ? 'Sin permisos de lectura en Firestore.'
+          : 'No se ha podido cargar la carta.'
+      )
+      setLoadState('error')
+    }
   }, [])
 
   useEffect(() => {
     if (!authed) return
+    load()
+    menuService.fetchInitialMenu().then((init) => setCopySavedAt(init?.updatedAt ?? null))
     const unsub = menuService.subscribeVisits(setVisits)
     return () => unsub()
-  }, [authed])
-
-  useEffect(() => {
-    if (!authed) return
-    const filterBebidas = (m: MenuData): MenuData => ({
-      ...m,
-      importantDay: m.importantDay ?? false,
-      showWines: m.showWines ?? true,
-      categories: m.categories.filter((c) => c.id !== 'bebidas'),
-    })
-    // Show defaults instantly so admin panel is usable right away
-    const defaultMenu = filterBebidas(menuService.getDefaultMenu())
-    setMenu(defaultMenu)
-    setImportantDay(defaultMenu.importantDay ?? false)
-    setShowWines(defaultMenu.showWines ?? true)
-    // Then fetch fresh data from Firestore in background
-    menuService.fetchMenu().then((fresh) => {
-      const filtered = filterBebidas(fresh)
-      setMenu(filtered)
-      setImportantDay(filtered.importantDay ?? false)
-      setShowWines(filtered.showWines ?? true)
-    })
-    // Load saved initial-menu metadata
-    menuService.fetchInitialMenu().then((init) => {
-      setInitialSavedAt(init?.updatedAt ?? null)
-    })
-  }, [authed])
+  }, [authed, load])
 
   const save = useCallback(async () => {
-    if (!menu) return
+    if (!menu || loadState !== 'ready' || saving) return
     setSaving(true)
     setSaved(false)
     setSaveError('')
     try {
-      const cleanMenu: MenuData = {
+      const clean: MenuData = {
         ...menu,
-        importantDay: menu.importantDay ?? false,
-        showWines: menu.showWines ?? true,
         categories: menu.categories
           .filter((c) => c.id !== 'bebidas')
           .map((c) => ({
             ...c,
-            items: c.items.filter((it) => it.name && it.name.trim() !== ''),
+            nameI18n: cleanTranslations(c.nameI18n),
+            note: c.note?.trim() ?? '',
+            noteI18n: c.note?.trim() ? cleanTranslations(c.noteI18n) : undefined,
+            items: c.items
+              .filter((it) => it.name.trim())
+              .map((it) => ({ ...it, name: it.name.trim(), nameI18n: cleanTranslations(it.nameI18n) })),
           })),
-        wineCategories: (menu.wineCategories ?? []).map((c) => ({
-          ...c,
-          items: c.items.filter((it) => it.name && it.name.trim() !== ''),
+        wineCategories: (menu.wineCategories ?? []).map((wc) => ({
+          ...wc,
+          nameI18n: cleanTranslations(wc.nameI18n),
+          items: wc.items.filter((w) => w.name.trim()).map((w) => ({ ...w, name: w.name.trim(), nameI18n: cleanTranslations(w.nameI18n) })),
         })),
       }
-      await menuService.saveMenu(cleanMenu)
-      setMenu(cleanMenu)
+      const updatedAt = await menuService.saveMenu(clean)
+      const next: MenuData = JSON.parse(JSON.stringify({ ...clean, updatedAt }))
+      setMenu(next)
+      setSnapshot(JSON.stringify(next))
       setSaved(true)
+      setResetNotice(false)
       setTimeout(() => setSaved(false), 2500)
     } catch (err: any) {
-      const msg =
-        err?.code === 'permission-denied'
-          ? 'Sin permisos — actualiza las reglas de Firestore'
-          : err?.message || 'Error desconocido'
       console.error('Save error:', err?.code, err?.message, err)
-      setSaveError(msg)
+      setSaveError(err?.code === 'permission-denied' ? 'Sin permisos: revisa las reglas de Firestore' : err?.message || 'Error desconocido')
       setTimeout(() => setSaveError(''), 6000)
     } finally {
       setSaving(false)
     }
-  }, [menu])
+  }, [menu, loadState, saving])
 
-  /* ─── food item handlers ─── */
-  const updateItem = (catId: string, itemId: string, patch: Partial<MenuItem>) => {
-    setMenu((m) =>
-      !m
-        ? m
-        : {
-            ...m,
-            categories: m.categories.map((cat) =>
-              cat.id === catId
-                ? { ...cat, items: cat.items.map((it) => (it.id === itemId ? { ...it, ...patch } : it)) }
-                : cat
-            ),
-          }
-    )
-  }
+  /* Warn before leaving with unsaved changes + Ctrl/Cmd+S to save */
+  useEffect(() => {
+    const beforeUnload = (e: BeforeUnloadEvent) => {
+      if (!dirty) return
+      e.preventDefault()
+      e.returnValue = ''
+    }
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 's') {
+        e.preventDefault()
+        if (dirty) save()
+      }
+    }
+    window.addEventListener('beforeunload', beforeUnload)
+    window.addEventListener('keydown', onKey)
+    return () => {
+      window.removeEventListener('beforeunload', beforeUnload)
+      window.removeEventListener('keydown', onKey)
+    }
+  }, [dirty, save])
 
-  const toggleAllergen = (catId: string, item: MenuItem, key: string) => {
-    const current = item.allergens || []
-    const next = current.includes(key) ? current.filter((a) => a !== key) : [...current, key]
-    updateItem(catId, item.id, { allergens: next })
-  }
+  /* ── state updaters ── */
+  const patchMenu = (fn: (m: MenuData) => MenuData) => setMenu((m) => (m ? fn(m) : m))
 
-  const removeItem = (catId: string, itemId: string) => {
-    setMenu((m) =>
-      !m
-        ? m
-        : {
-            ...m,
-            categories: m.categories.map((cat) =>
-              cat.id === catId ? { ...cat, items: cat.items.filter((it) => it.id !== itemId) } : cat
-            ),
-          }
-    )
-  }
+  const toggleIn = (list: string[], id: string) => (list.includes(id) ? list.filter((x) => x !== id) : [...list, id])
+
+  // dishes
+  const updateCat = (catId: string, patch: Partial<MenuCategory>) =>
+    patchMenu((m) => ({ ...m, categories: m.categories.map((c) => (c.id === catId ? { ...c, ...patch } : c)) }))
+
+  const updateItem = (catId: string, itemId: string, patch: Partial<MenuItem>) =>
+    patchMenu((m) => ({
+      ...m,
+      categories: m.categories.map((c) =>
+        c.id === catId ? { ...c, items: c.items.map((it) => (it.id === itemId ? { ...it, ...patch } : it)) } : c
+      ),
+    }))
+
+  const removeItem = (catId: string, itemId: string) =>
+    patchMenu((m) => ({
+      ...m,
+      categories: m.categories.map((c) => (c.id === catId ? { ...c, items: c.items.filter((it) => it.id !== itemId) } : c)),
+    }))
 
   const addItem = (catId: string) => {
-    if (!menu) return
-    const cat = menu.categories.find((c) => c.id === catId)
-    if (!cat) return
-    const maxOrder = cat.items.length > 0 ? Math.max(...cat.items.map((it) => it.order)) : -1
-    const newItem: MenuItem = {
-      id: `${catId}-${Date.now()}`,
-      name: '',
-      priceTapa: 0,
-      priceMedia: 0,
-      samePrice: true,
-      order: maxOrder + 1,
-    }
-    setMenu({
-      ...menu,
-      categories: menu.categories.map((c) =>
-        c.id === catId ? { ...c, items: [...c.items, newItem] } : c
-      ),
-    })
-    setEditingItem({ catId, itemId: newItem.id })
+    const id = uid(catId)
+    patchMenu((m) => ({
+      ...m,
+      categories: m.categories.map((c) => {
+        if (c.id !== catId) return c
+        const order = c.items.length ? Math.max(...c.items.map((it) => it.order)) + 1 : 0
+        return { ...c, items: [...c.items, { id, name: '', priceTapa: 0, priceMedia: 0, samePrice: true, order, allergens: [] }] }
+      }),
+    }))
+    setEditing({ kind: 'dish', catId, itemId: id })
   }
+
+  const moveItem = (catId: string, itemId: string, dir: -1 | 1) =>
+    patchMenu((m) => ({
+      ...m,
+      categories: m.categories.map((c) => (c.id === catId ? { ...c, items: moveInList(c.items, itemId, dir) } : c)),
+    }))
 
   const addCategory = () => {
-    if (!menu) return
-    const newCat: MenuCategory = {
-      id: `cat-${Date.now()}`,
-      name: 'Nueva categoría',
-      icon: '🍽️',
-      order: menu.categories.length,
-      items: [],
-    }
-    setMenu({ ...menu, categories: [...menu.categories, newCat] })
+    const id = uid('cat')
+    patchMenu((m) => ({
+      ...m,
+      categories: [...m.categories, { id, name: 'Nueva sección', icon: '🍽️', order: m.categories.length, items: [] }],
+    }))
+    setOpenCats((o) => [...o, id])
   }
 
-  const removeCategory = (catId: string) => {
-    if (!confirm('¿Eliminar esta categoría y todos sus platos?')) return
-    setMenu((m) => (!m ? m : { ...m, categories: m.categories.filter((c) => c.id !== catId) }))
+  const removeCategory = (cat: MenuCategory) => {
+    if (!confirm(`¿Eliminar la sección «${cat.name}» y sus ${cat.items.length} platos?`)) return
+    patchMenu((m) => ({ ...m, categories: m.categories.filter((c) => c.id !== cat.id) }))
   }
 
-  const updateCategory = (catId: string, patch: Partial<MenuCategory>) => {
-    setMenu((m) =>
-      !m ? m : { ...m, categories: m.categories.map((c) => (c.id === catId ? { ...c, ...patch } : c)) }
-    )
-  }
+  const moveCategory = (catId: string, dir: -1 | 1) => patchMenu((m) => ({ ...m, categories: moveInList(m.categories, catId, dir) }))
 
-  /* ─── wine handlers ─── */
-  const updateWine = (catId: string, itemId: string, patch: Partial<WineItem>) => {
-    setMenu((m) =>
-      !m
-        ? m
-        : {
-            ...m,
-            wineCategories: (m.wineCategories ?? []).map((cat) =>
-              cat.id === catId
-                ? { ...cat, items: cat.items.map((it) => (it.id === itemId ? { ...it, ...patch } : it)) }
-                : cat
-            ),
-          }
-    )
-  }
+  // wines
+  const updateWineCat = (catId: string, patch: Partial<WineCategory>) =>
+    patchMenu((m) => ({ ...m, wineCategories: (m.wineCategories ?? []).map((c) => (c.id === catId ? { ...c, ...patch } : c)) }))
 
-  const removeWine = (catId: string, itemId: string) => {
-    setMenu((m) =>
-      !m
-        ? m
-        : {
-            ...m,
-            wineCategories: (m.wineCategories ?? []).map((cat) =>
-              cat.id === catId ? { ...cat, items: cat.items.filter((it) => it.id !== itemId) } : cat
-            ),
-          }
-    )
-  }
+  const updateWine = (catId: string, wineId: string, patch: Partial<WineItem>) =>
+    patchMenu((m) => ({
+      ...m,
+      wineCategories: (m.wineCategories ?? []).map((c) =>
+        c.id === catId ? { ...c, items: c.items.map((w) => (w.id === wineId ? { ...w, ...patch } : w)) } : c
+      ),
+    }))
+
+  const removeWine = (catId: string, wineId: string) =>
+    patchMenu((m) => ({
+      ...m,
+      wineCategories: (m.wineCategories ?? []).map((c) => (c.id === catId ? { ...c, items: c.items.filter((w) => w.id !== wineId) } : c)),
+    }))
 
   const addWine = (catId: string) => {
-    if (!menu) return
-    const cat = (menu.wineCategories ?? []).find((c) => c.id === catId)
-    if (!cat) return
-    const maxOrder = cat.items.length > 0 ? Math.max(...cat.items.map((it) => it.order)) : -1
-    const newWine: WineItem = {
-      id: `wine-${Date.now()}`,
-      name: '',
-      priceCopa: 0,
-      priceBottle: 0,
-      order: maxOrder + 1,
-    }
-    setMenu({
-      ...menu,
-      wineCategories: (menu.wineCategories ?? []).map((c) =>
-        c.id === catId ? { ...c, items: [...c.items, newWine] } : c
-      ),
-    })
-    setEditingWine({ catId, itemId: newWine.id })
+    const id = uid('w')
+    patchMenu((m) => ({
+      ...m,
+      wineCategories: (m.wineCategories ?? []).map((c) => {
+        if (c.id !== catId) return c
+        const order = c.items.length ? Math.max(...c.items.map((w) => w.order)) + 1 : 0
+        return { ...c, items: [...c.items, { id, name: '', priceCopa: 0, priceBottle: 0, order }] }
+      }),
+    }))
+    setEditing({ kind: 'wine', catId, itemId: id })
   }
+
+  const moveWine = (catId: string, wineId: string, dir: -1 | 1) =>
+    patchMenu((m) => ({
+      ...m,
+      wineCategories: (m.wineCategories ?? []).map((c) => (c.id === catId ? { ...c, items: moveInList(c.items, wineId, dir) } : c)),
+    }))
 
   const addWineCategory = () => {
-    if (!menu) return
-    const cats = menu.wineCategories ?? []
-    const newCat: WineCategory = {
-      id: `winecat-${Date.now()}`,
-      name: 'Nueva sección de vinos',
-      order: cats.length,
-      items: [],
+    const id = uid('wc')
+    patchMenu((m) => ({
+      ...m,
+      wineCategories: [...(m.wineCategories ?? []), { id, name: 'Nueva denominación', order: (m.wineCategories ?? []).length, items: [] }],
+    }))
+    setOpenCats((o) => [...o, id])
+  }
+
+  const removeWineCategory = (cat: WineCategory) => {
+    if (!confirm(`¿Eliminar «${cat.name}» y sus ${cat.items.length} vinos?`)) return
+    patchMenu((m) => ({ ...m, wineCategories: (m.wineCategories ?? []).filter((c) => c.id !== cat.id) }))
+  }
+
+  const moveWineCategory = (catId: string, dir: -1 | 1) =>
+    patchMenu((m) => ({ ...m, wineCategories: moveInList(m.wineCategories ?? [], catId, dir) }))
+
+  /** Close the editor; an item left without a name is discarded. */
+  const closeEditor = () => {
+    if (editing && menu) {
+      if (editing.kind === 'dish') {
+        const it = menu.categories.find((c) => c.id === editing.catId)?.items.find((i) => i.id === editing.itemId)
+        if (it && !it.name.trim()) removeItem(editing.catId, editing.itemId)
+      } else {
+        const w = menu.wineCategories?.find((c) => c.id === editing.catId)?.items.find((i) => i.id === editing.itemId)
+        if (w && !w.name.trim()) removeWine(editing.catId, editing.itemId)
+      }
     }
-    setMenu({ ...menu, wineCategories: [...cats, newCat] })
+    setEditing(null)
   }
 
-  const removeWineCategory = (catId: string) => {
-    if (!confirm('¿Eliminar esta sección de vinos y todos sus vinos?')) return
-    setMenu((m) =>
-      !m ? m : { ...m, wineCategories: (m.wineCategories ?? []).filter((c) => c.id !== catId) }
-    )
+  const confirmReset = async () => {
+    setResetOpen(false)
+    try {
+      const target = normalize(await menuService.fetchResetTarget())
+      setMenu(target)
+      setResetNotice(true)
+      setAdvanced(false)
+      setEditing(null)
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    } catch {
+      setSaveError('No se ha podido cargar la copia guardada')
+      setTimeout(() => setSaveError(''), 6000)
+    }
   }
 
-  const updateWineCategory = (catId: string, patch: Partial<WineCategory>) => {
-    setMenu((m) =>
-      !m
-        ? m
-        : {
-            ...m,
-            wineCategories: (m.wineCategories ?? []).map((c) => (c.id === catId ? { ...c, ...patch } : c)),
-          }
-    )
-  }
-
-  /* ─── reordenar categorías y platos (subir/bajar) ─── */
-  const moveCategory = (catId: string, dir: -1 | 1) => {
-    setMenu((m) => {
-      if (!m) return m
-      const list = m.categories.filter((c) => c.id !== 'bebidas').sort((a, b) => a.order - b.order)
-      const idx = list.findIndex((c) => c.id === catId)
-      const swap = idx + dir
-      if (idx < 0 || swap < 0 || swap >= list.length) return m
-      ;[list[idx], list[swap]] = [list[swap], list[idx]]
-      const orderById = new Map(list.map((c, i) => [c.id, i] as const))
-      return {
-        ...m,
-        categories: m.categories.map((c) =>
-          orderById.has(c.id) ? { ...c, order: orderById.get(c.id)! } : c
-        ),
-      }
-    })
-  }
-
-  const moveItem = (catId: string, itemId: string, dir: -1 | 1) => {
-    setMenu((m) =>
-      !m
-        ? m
-        : {
-            ...m,
-            categories: m.categories.map((cat) => {
-              if (cat.id !== catId) return cat
-              const list = [...cat.items].sort((a, b) => a.order - b.order)
-              const idx = list.findIndex((it) => it.id === itemId)
-              const swap = idx + dir
-              if (idx < 0 || swap < 0 || swap >= list.length) return cat
-              ;[list[idx], list[swap]] = [list[swap], list[idx]]
-              const orderById = new Map(list.map((it, i) => [it.id, i] as const))
-              return { ...cat, items: cat.items.map((it) => ({ ...it, order: orderById.get(it.id) ?? it.order })) }
-            }),
-          }
-    )
-  }
-
-  const moveWineCat = (catId: string, dir: -1 | 1) => {
-    setMenu((m) => {
-      if (!m) return m
-      const list = [...(m.wineCategories ?? [])].sort((a, b) => a.order - b.order)
-      const idx = list.findIndex((c) => c.id === catId)
-      const swap = idx + dir
-      if (idx < 0 || swap < 0 || swap >= list.length) return m
-      ;[list[idx], list[swap]] = [list[swap], list[idx]]
-      const orderById = new Map(list.map((c, i) => [c.id, i] as const))
-      return {
-        ...m,
-        wineCategories: (m.wineCategories ?? []).map((c) =>
-          orderById.has(c.id) ? { ...c, order: orderById.get(c.id)! } : c
-        ),
-      }
-    })
-  }
-
-  const moveWine = (catId: string, itemId: string, dir: -1 | 1) => {
-    setMenu((m) =>
-      !m
-        ? m
-        : {
-            ...m,
-            wineCategories: (m.wineCategories ?? []).map((cat) => {
-              if (cat.id !== catId) return cat
-              const list = [...cat.items].sort((a, b) => a.order - b.order)
-              const idx = list.findIndex((it) => it.id === itemId)
-              const swap = idx + dir
-              if (idx < 0 || swap < 0 || swap >= list.length) return cat
-              ;[list[idx], list[swap]] = [list[swap], list[idx]]
-              const orderById = new Map(list.map((it, i) => [it.id, i] as const))
-              return { ...cat, items: cat.items.map((it) => ({ ...it, order: orderById.get(it.id) ?? it.order })) }
-            }),
-          }
-    )
-  }
-
-  /* ─── initial menu / reset ─── */
-  const saveAsInitial = async () => {
+  const saveCopy = async () => {
     if (!menu) return
-    setInitialMsg('Guardando…')
+    if (!confirm('¿Guardar la carta tal y como está ahora como copia de seguridad? Sustituye a la copia anterior.')) return
+    setCopyMsg('Guardando copia…')
     try {
       await menuService.saveInitialMenu(menu)
-      const now = new Date().toISOString()
-      setInitialSavedAt(now)
-      setInitialMsg('✓ Carta inicial guardada')
-      setTimeout(() => setInitialMsg(''), 3000)
+      setCopySavedAt(new Date().toISOString())
+      setCopyMsg('✓ Copia guardada')
     } catch (err: any) {
-      setInitialMsg(err?.code === 'permission-denied' ? 'Sin permisos de Firestore' : 'Error al guardar')
-      setTimeout(() => setInitialMsg(''), 5000)
+      setCopyMsg(err?.code === 'permission-denied' ? 'Sin permisos de Firestore' : 'Error al guardar la copia')
     }
+    setTimeout(() => setCopyMsg(''), 4000)
   }
 
-  const resetToInitial = async () => {
-    if (!confirm('¿Resetear la carta a la carta inicial guardada? (deberás pulsar Guardar para publicarla)')) return
-    setInitialMsg('Cargando carta inicial…')
-    const target = await menuService.fetchResetTarget()
-    setMenu({ ...target, categories: target.categories.filter((c) => c.id !== 'bebidas') })
-    setImportantDay(target.importantDay ?? false)
-    setShowWines(target.showWines ?? true)
-    setEditingItem(null)
-    setEditingWine(null)
-    setInitialMsg('Carta inicial cargada — pulsa Guardar para publicarla')
-    setTimeout(() => setInitialMsg(''), 5000)
-  }
+  const fmtDate = (iso: string | null) =>
+    iso ? new Date(iso).toLocaleString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : null
+
+  /* ── render ── */
 
   if (!authed) return <PasscodeGate onUnlock={() => setAuthed(true)} />
 
-  if (!menu) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-[#071a35]">
-        <div className="w-8 h-8 border-2 border-sky-300 border-t-transparent rounded-full animate-spin" />
-      </div>
-    )
-  }
+  const cats = menu ? [...menu.categories].sort(byOrder) : []
+  const wineCats = menu ? [...(menu.wineCategories ?? [])].sort(byOrder) : []
+  const dishCount = cats.reduce((n, c) => n + c.items.length, 0)
+  const wineCount = wineCats.reduce((n, c) => n + c.items.length, 0)
+  const untranslated = cats.reduce((n, c) => n + c.items.filter((it) => it.name.trim() && translatedCount(it.nameI18n) < 4).length, 0)
 
-  const sortedFood = [...menu.categories]
-    .filter((c) => c.id !== 'bebidas')
-    .sort((a, b) => a.order - b.order)
-  const sortedWineCats = [...(menu.wineCategories ?? [])].sort((a, b) => a.order - b.order)
+  const status = saving
+    ? { dot: 'bg-sky-300 animate-pulse', text: 'Guardando…' }
+    : saveError
+    ? { dot: 'bg-red-400', text: 'Error al guardar' }
+    : saved
+    ? { dot: 'bg-emerald-400', text: 'Guardado y publicado' }
+    : dirty
+    ? { dot: 'bg-amber-300', text: 'Cambios sin guardar' }
+    : loadState === 'ready'
+    ? {
+        dot: 'bg-emerald-400/70',
+        text: menu?.updatedAt
+          ? `Publicado ${new Date(menu.updatedAt).toLocaleString('es-ES', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}`
+          : 'Al día',
+      }
+    : { dot: 'bg-white/30', text: loadState === 'loading' ? 'Cargando…' : 'Sin conexión' }
 
   return (
-    <div className="min-h-screen bg-[#0d0d0d] text-white pb-32">
-      {/* ─── IMPORTANTE DAY SECTION ─── */}
-      <div className="bg-gradient-to-r from-amber-500/20 to-amber-600/10 border-b border-amber-400/30 px-4 py-4">
-        <div className="max-w-2xl mx-auto">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs text-amber-200/80 uppercase tracking-wider font-semibold">Estado Global</p>
-              <h2 className="text-xl font-bold text-amber-100 mt-1">DÍA IMPORTANTE</h2>
-            </div>
-            <button
-              onClick={() => {
-                const next = !importantDay
-                setImportantDay(next)
-                setMenu((prev) => (prev ? { ...prev, importantDay: next } : prev))
-              }}
-              className={`px-6 py-3 rounded-lg text-sm font-bold transition-all transform ${
-                importantDay
-                  ? 'bg-amber-400 text-[#031f4a] hover:bg-amber-300 hover:scale-105'
-                  : 'bg-white/10 text-white/80 hover:bg-white/20 hover:scale-105'
-              }`}
-            >
-              {importantDay ? '🔴 ACTIVADO' : '⚪ Desactivado'}
-            </button>
-          </div>
-          {importantDay && (
-            <p className="text-xs text-amber-200 mt-3 italic">
-              📌 Cuando está activado: La carta de Tapas está bloqueada y solo se muestra la carta de Media Ración.
+    <div className="min-h-screen bg-[#021530] text-white pb-40 relative">
+      <GradientOrbs />
+      {resetOpen && <ResetModal onClose={() => setResetOpen(false)} onConfirm={confirmReset} copyDate={fmtDate(copySavedAt)} />}
+
+      {/* ─── header ─── */}
+      <header className="sticky top-0 z-50 bg-[#021530]/95 backdrop-blur-xl border-b border-white/[0.07]">
+        <div className="max-w-2xl mx-auto px-4 py-3 flex items-center gap-3">
+          <LogoMark className="w-9 h-9 flex-shrink-0" />
+          <div className="flex-1 min-w-0">
+            <p className="font-display text-xl leading-none font-semibold truncate">
+              {menu?.barName || 'Sabores'} <span className="font-sans text-xs font-semibold text-gold/80 tracking-wider uppercase ml-1">Admin</span>
             </p>
-          )}
-        </div>
-      </div>
-
-      {/* ─── SHOW WINES TOGGLE ─── */}
-      <div className="bg-gradient-to-r from-purple-500/20 to-purple-600/10 border-b border-purple-400/30 px-4 py-4">
-        <div className="max-w-2xl mx-auto">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs text-purple-200/80 uppercase tracking-wider font-semibold">Carta de Vinos</p>
-              <h2 className="text-xl font-bold text-purple-100 mt-1">🍷 VINOS</h2>
-            </div>
-            <button
-              onClick={() => {
-                const next = !showWines
-                setShowWines(next)
-                setMenu((prev) => (prev ? { ...prev, showWines: next } : prev))
-              }}
-              className={`px-6 py-3 rounded-lg text-sm font-bold transition-all transform ${
-                showWines
-                  ? 'bg-purple-400 text-[#031f4a] hover:bg-purple-300 hover:scale-105'
-                  : 'bg-white/10 text-white/80 hover:bg-white/20 hover:scale-105'
-              }`}
-            >
-              {showWines ? '🟢 VISIBLE' : '⚪ Oculta'}
-            </button>
-          </div>
-          {!showWines && (
-            <p className="text-xs text-purple-200 mt-3 italic">
-              📌 La pestaña de Vinos está oculta en la carta pública.
+            <p className="flex items-center gap-1.5 mt-1 text-[11px] text-white/45">
+              <span className={`w-1.5 h-1.5 rounded-full ${status.dot}`} />
+              {status.text}
             </p>
-          )}
-        </div>
-      </div>
-
-      {/* ─── VISITAS (contador propio, solo admin) ─── */}
-      <div className="bg-gradient-to-r from-emerald-500/20 to-emerald-600/10 border-b border-emerald-400/30 px-4 py-4">
-        <div className="max-w-2xl mx-auto">
-          <p className="text-xs text-emerald-200/80 uppercase tracking-wider font-semibold">Visitas de la carta</p>
-          <div className="flex items-end gap-8 mt-2">
-            <div>
-              <p className="text-3xl font-bold text-emerald-100 leading-none">{visits.today}</p>
-              <p className="text-xs text-emerald-200/70 mt-1">hoy</p>
-            </div>
-            <div>
-              <p className="text-3xl font-bold text-emerald-100 leading-none">{visits.total}</p>
-              <p className="text-xs text-emerald-200/70 mt-1">en total</p>
-            </div>
           </div>
-          <p className="text-xs text-emerald-200/60 mt-3 italic">
-            📱 Cada vez que alguien abre la carta (normalmente al escanear el QR) se cuenta una visita por sesión.
-          </p>
+          <a
+            href="/menu/medias"
+            target="_blank"
+            rel="noreferrer"
+            className="hidden sm:inline-flex text-xs text-white/50 hover:text-white px-3 py-2 rounded-lg hover:bg-white/[0.06] transition"
+          >
+            Ver carta ↗
+          </a>
+          <button onClick={save} disabled={!dirty || saving} className={`${goldBtn} px-4 py-2 text-sm`}>
+            {saving ? 'Guardando…' : 'Guardar'}
+          </button>
         </div>
-      </div>
+      </header>
 
-      {/* ─── top bar ─── */}
-      <div className="sticky top-0 z-50 bg-[#0d0d0d]/95 backdrop-blur-xl border-b border-white/[0.04] px-4 py-3.5">
-        <div className="max-w-2xl mx-auto flex items-center justify-between">
-          <div>
-            <h1 className="text-lg font-bold text-sky-100">Admin — Carta</h1>
-            <p className="text-xs text-white/30 mt-0.5">Edita platos, vinos y precios</p>
+      <main className="relative z-10 max-w-2xl mx-auto px-4 pt-5 space-y-5">
+        {resetNotice && (
+          <div className="rounded-2xl border border-amber-300/30 bg-amber-300/[0.08] px-4 py-3 flex items-start gap-3 animate-fade-in">
+            <span className="text-lg leading-none mt-0.5">↺</span>
+            <p className="text-sm text-amber-100/90 flex-1">
+              Has cargado la copia guardada. Revísala y pulsa <span className="font-semibold">Guardar</span> para publicarla.
+              Si sales sin guardar, la carta publicada no cambia.
+            </p>
           </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={resetToInitial}
-              className="px-3 py-1.5 rounded-lg text-xs bg-gray-50 text-gray-600 hover:bg-gray-100 hover:text-gray-800 transition-colors"
-              title="Restaura la carta a la carta inicial guardada"
-            >
-              Resetear
-            </button>
+        )}
+
+        {saveError && (
+          <div className="rounded-2xl border border-red-400/30 bg-red-500/[0.08] px-4 py-3 text-sm text-red-200 animate-fade-in">✕ {saveError}</div>
+        )}
+
+        {loadState === 'loading' && (
+          <div className="space-y-3" aria-label="Cargando">
+            <div className="h-36 rounded-2xl skeleton" />
+            <div className="h-12 rounded-2xl skeleton" />
+            {[0, 1, 2, 3].map((i) => (
+              <div key={i} className="h-16 rounded-2xl skeleton" />
+            ))}
+          </div>
+        )}
+
+        {loadState === 'error' && (
+          <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-6 text-center">
+            <p className="font-display text-2xl text-white">No se ha podido cargar la carta</p>
+            <p className="text-sm text-white/50 mt-2">{loadError} Para no sobrescribir nada, no se puede editar hasta que cargue.</p>
+            <button onClick={load} className={`${goldBtn} mt-5 px-6 py-2.5 text-sm`}>Reintentar</button>
+          </div>
+        )}
+
+        {menu && loadState === 'ready' && (
+          <>
+            {/* ─── status card ─── */}
+            <section className="rounded-2xl border border-white/[0.08] bg-white/[0.025] divide-y divide-white/[0.06]">
+              <div className="flex items-center gap-4 px-4 py-3.5">
+                <div className="flex-1">
+                  <p className="text-sm font-semibold text-white">Día importante</p>
+                  <p className="text-xs text-white/45 mt-0.5">
+                    {menu.importantDay ? 'Activo: la carta de tapas está oculta, solo se ven medias.' : 'Se ven tapas y medias raciones.'}
+                  </p>
+                </div>
+                <Switch checked={!!menu.importantDay} label="Día importante" onChange={(v) => patchMenu((m) => ({ ...m, importantDay: v }))} />
+              </div>
+              <div className="flex items-center gap-4 px-4 py-3.5">
+                <div className="flex-1">
+                  <p className="text-sm font-semibold text-white">Carta de vinos visible</p>
+                  <p className="text-xs text-white/45 mt-0.5">{menu.showWines ? 'La pestaña Vinos aparece en la carta.' : 'La pestaña Vinos está oculta.'}</p>
+                </div>
+                <Switch checked={!!menu.showWines} label="Vinos visibles" onChange={(v) => patchMenu((m) => ({ ...m, showWines: v }))} />
+              </div>
+              <div className="flex items-center gap-6 px-4 py-3.5">
+                <div className="flex-1">
+                  <p className="text-sm font-semibold text-white">Visitas a la carta</p>
+                  <p className="text-xs text-white/45 mt-0.5">Una por sesión (≈ cada escaneo del QR).</p>
+                </div>
+                <div className="text-center">
+                  <p className="font-display text-3xl font-semibold text-gold-soft leading-none tabular-nums">{visits.today}</p>
+                  <p className="text-[10px] uppercase tracking-wider text-white/40 mt-1">hoy</p>
+                </div>
+                <div className="text-center">
+                  <p className="font-display text-3xl font-semibold text-white/85 leading-none tabular-nums">{visits.total}</p>
+                  <p className="text-[10px] uppercase tracking-wider text-white/40 mt-1">total</p>
+                </div>
+              </div>
+              <div className="px-4 py-3.5">
+                <label className={labelCls}>Nombre del local</label>
+                <input value={menu.barName} onChange={(e) => patchMenu((m) => ({ ...m, barName: e.target.value }))} className={inputCls} />
+              </div>
+            </section>
+
+            {/* ─── view switch ─── */}
+            <div className="grid grid-cols-2 gap-1 p-1 rounded-2xl bg-white/[0.05] border border-white/[0.08]">
+              {(
+                [
+                  ['carta', 'Carta', dishCount],
+                  ['vinos', 'Vinos', wineCount],
+                ] as const
+              ).map(([key, label, n]) => (
+                <button
+                  key={key}
+                  onClick={() => {
+                    closeEditor()
+                    setView(key)
+                  }}
+                  className={`py-2.5 rounded-xl text-sm font-semibold transition ${
+                    view === key ? 'bg-gradient-to-br from-gold-soft to-gold text-navy-900 shadow-md shadow-gold/20' : 'text-white/60 hover:text-white'
+                  }`}
+                >
+                  {label} <span className={`ml-1 text-xs ${view === key ? 'text-navy-900/60' : 'text-white/35'}`}>{n}</span>
+                </button>
+              ))}
+            </div>
+
+            {view === 'carta' && untranslated > 0 && (
+              <p className="text-xs text-amber-200/75 px-1">
+                🌍 {untranslated} {untranslated === 1 ? 'plato no tiene' : 'platos no tienen'} las 4 traducciones. En esos idiomas saldrán en español.
+              </p>
+            )}
+
+            {/* ─── dish categories ─── */}
+            {view === 'carta' && (
+              <div className="space-y-3">
+                {cats.map((cat, ci) => {
+                  const open = openCats.includes(cat.id)
+                  const items = [...cat.items].sort(byOrder)
+                  return (
+                    <section key={cat.id} className="rounded-2xl border border-white/[0.08] bg-white/[0.025] overflow-hidden">
+                      <div className="flex items-center gap-2 px-3 py-2.5">
+                        <input
+                          value={cat.icon || ''}
+                          onChange={(e) => updateCat(cat.id, { icon: e.target.value })}
+                          className="w-10 h-10 rounded-xl bg-white/[0.04] text-center text-xl focus:outline-none focus:ring-2 focus:ring-gold/25"
+                          title="Emoji de la sección"
+                          aria-label="Emoji"
+                        />
+                        <input
+                          value={cat.name}
+                          onChange={(e) => updateCat(cat.id, { name: e.target.value })}
+                          className="flex-1 min-w-0 bg-transparent font-display text-[1.35rem] font-semibold text-white focus:outline-none border-b border-transparent focus:border-gold/50 transition"
+                          aria-label="Nombre de la sección"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setOpenCats((o) => toggleIn(o, cat.id))
+                            if (open && editing?.catId === cat.id) closeEditor()
+                          }}
+                          className="flex items-center gap-1.5 pl-2 pr-1 py-2 text-white/45 hover:text-white transition"
+                          aria-expanded={open}
+                        >
+                          {cat.hidden && (
+                            <span className="text-[9px] font-bold uppercase tracking-wider text-white/70 bg-white/10 rounded px-1.5 py-0.5">Oculta</span>
+                          )}
+                          <span className="text-xs tabular-nums">{cat.items.length}</span>
+                          <Chevron open={open} />
+                        </button>
+                      </div>
+
+                      {open && (
+                        <div className="animate-fade-in">
+                          <div className="flex flex-wrap items-center gap-1 px-2 pb-2 border-b border-white/[0.06]">
+                            <SmallBtn onClick={() => moveCategory(cat.id, -1)} disabled={ci === 0}>↑ Subir</SmallBtn>
+                            <SmallBtn onClick={() => moveCategory(cat.id, 1)} disabled={ci === cats.length - 1}>↓ Bajar</SmallBtn>
+                            <SmallBtn onClick={() => setTrCats((o) => toggleIn(o, cat.id))}>
+                              🌍 Traducir <span className="text-white/35">{translatedCount(cat.nameI18n)}/4</span>
+                            </SmallBtn>
+                            <SmallBtn onClick={() => updateCat(cat.id, { hidden: !cat.hidden })}>
+                              {cat.hidden ? '👁 Mostrar' : 'Ocultar'}
+                            </SmallBtn>
+                            <div className="flex-1" />
+                            <SmallBtn danger onClick={() => removeCategory(cat)}>Eliminar</SmallBtn>
+                          </div>
+
+                          <div className="px-4 py-2.5 border-b border-white/[0.06]">
+                            <input
+                              value={cat.note ?? ''}
+                              onChange={(e) => updateCat(cat.id, { note: e.target.value })}
+                              placeholder="Nota bajo el título (opcional)"
+                              className={`${inputCls} py-2 text-xs italic`}
+                              aria-label="Nota bajo el título"
+                            />
+                          </div>
+
+                          {trCats.includes(cat.id) && (
+                            <div className="px-4 py-3 border-b border-white/[0.06] bg-white/[0.015] space-y-4 animate-fade-in">
+                              <div>
+                                <p className={labelCls}>Nombre de la sección</p>
+                                <TranslationFields value={cat.nameI18n} onChange={(nameI18n) => updateCat(cat.id, { nameI18n })} />
+                              </div>
+                              {!!cat.note?.trim() && (
+                                <div>
+                                  <p className={labelCls}>Nota «{cat.note}»</p>
+                                  <TranslationFields value={cat.noteI18n} onChange={(noteI18n) => updateCat(cat.id, { noteI18n })} />
+                                </div>
+                              )}
+                            </div>
+                          )}
+
+                          <div className="divide-y divide-white/[0.05]">
+                            {items.map((item, ii) => {
+                              const isEditing = editing?.kind === 'dish' && editing.catId === cat.id && editing.itemId === item.id
+                              const nTr = translatedCount(item.nameI18n)
+                              return (
+                                <div key={item.id} className={`px-4 transition-colors ${isEditing ? 'bg-gold/[0.05] py-3' : 'hover:bg-white/[0.02]'}`}>
+                                  {isEditing ? (
+                                    <DishEditor
+                                      item={item}
+                                      onChange={(patch) => updateItem(cat.id, item.id, patch)}
+                                      onDelete={() => {
+                                        if (!item.name.trim() || confirm(`¿Eliminar «${item.name}»?`)) {
+                                          removeItem(cat.id, item.id)
+                                          setEditing(null)
+                                        }
+                                      }}
+                                      onDone={closeEditor}
+                                    />
+                                  ) : (
+                                    <div className="flex items-center gap-2">
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          closeEditor()
+                                          setEditing({ kind: 'dish', catId: cat.id, itemId: item.id })
+                                        }}
+                                        className={`flex-1 min-w-0 flex items-center gap-3 py-3 text-left transition-opacity ${item.hidden ? 'opacity-45' : ''}`}
+                                      >
+                                        <span className="flex-1 min-w-0">
+                                          <span className="block text-sm text-white/90 leading-snug">{item.name || <em className="text-white/30">Sin nombre</em>}</span>
+                                          <span className="flex flex-wrap items-center gap-1 mt-1.5">
+                                            {item.hidden && (
+                                              <span className="text-[9px] font-bold uppercase tracking-wider text-white/70 bg-white/10 rounded px-1.5 py-0.5 mr-0.5">Oculto</span>
+                                            )}
+                                            {(item.allergens ?? []).map((a) =>
+                                              ALLERGEN_SRC[a] ? (
+                                                <Image key={a} src={ALLERGEN_SRC[a]} alt={tAllergen('es', a)} title={tAllergen('es', a)} width={15} height={15} className="rounded-full" />
+                                              ) : null
+                                            )}
+                                            {nTr < 4 && (
+                                              <span className="text-[9px] font-bold uppercase tracking-wider text-amber-200/80 bg-amber-300/10 rounded px-1.5 py-0.5 ml-0.5">
+                                                {nTr === 0 ? 'Sin traducir' : `${nTr}/4 idiomas`}
+                                              </span>
+                                            )}
+                                          </span>
+                                        </span>
+                                        <span className="text-right tabular-nums flex-shrink-0">
+                                          {item.samePrice || item.priceTapa === item.priceMedia ? (
+                                            <span className={`block text-sm font-semibold ${item.priceTapa ? 'text-gold-soft' : 'text-white/35 italic font-normal'}`}>
+                                              {eur(item.priceTapa) || 'Consultar'}
+                                            </span>
+                                          ) : (
+                                            <>
+                                              <span className="block text-sm font-semibold text-gold-soft">
+                                                <span className="text-[10px] text-white/35 font-normal mr-1">T</span>
+                                                {eur(item.priceTapa) || '—'}
+                                              </span>
+                                              <span className="block text-sm font-semibold text-gold-soft/80">
+                                                <span className="text-[10px] text-white/35 font-normal mr-1">M</span>
+                                                {eur(item.priceMedia) || '—'}
+                                              </span>
+                                            </>
+                                          )}
+                                        </span>
+                                      </button>
+                                      <EyeButton hidden={item.hidden} onToggle={() => updateItem(cat.id, item.id, { hidden: !item.hidden })} />
+                                      <MoveButtons
+                                        first={ii === 0}
+                                        last={ii === items.length - 1}
+                                        onUp={() => moveItem(cat.id, item.id, -1)}
+                                        onDown={() => moveItem(cat.id, item.id, 1)}
+                                      />
+                                    </div>
+                                  )}
+                                </div>
+                              )
+                            })}
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              closeEditor()
+                              addItem(cat.id)
+                            }}
+                            className="w-full px-4 py-3 text-sm text-gold/70 hover:text-gold hover:bg-white/[0.02] transition text-left border-t border-white/[0.05]"
+                          >
+                            + Añadir plato
+                          </button>
+                        </div>
+                      )}
+                    </section>
+                  )
+                })}
+
+                <button
+                  type="button"
+                  onClick={addCategory}
+                  className="w-full py-4 rounded-2xl border border-dashed border-white/15 text-sm text-white/45 hover:border-gold/40 hover:text-gold transition"
+                >
+                  + Añadir sección
+                </button>
+              </div>
+            )}
+
+            {/* ─── wine categories ─── */}
+            {view === 'vinos' && (
+              <div className="space-y-3">
+                {wineCats.map((cat, ci) => {
+                  const open = openCats.includes(cat.id)
+                  const items = [...cat.items].sort(byOrder)
+                  return (
+                    <section key={cat.id} className="rounded-2xl border border-white/[0.08] bg-white/[0.025] overflow-hidden">
+                      <div className="flex items-center gap-2 px-3 py-2.5">
+                        <span className="w-10 h-10 rounded-xl bg-white/[0.04] flex items-center justify-center text-xl">🍷</span>
+                        <input
+                          value={cat.name}
+                          onChange={(e) => updateWineCat(cat.id, { name: e.target.value })}
+                          className="flex-1 min-w-0 bg-transparent font-display text-[1.35rem] font-semibold text-white focus:outline-none border-b border-transparent focus:border-gold/50 transition"
+                          aria-label="Denominación"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setOpenCats((o) => toggleIn(o, cat.id))
+                            if (open && editing?.catId === cat.id) closeEditor()
+                          }}
+                          className="flex items-center gap-1.5 pl-2 pr-1 py-2 text-white/45 hover:text-white transition"
+                          aria-expanded={open}
+                        >
+                          {cat.hidden && (
+                            <span className="text-[9px] font-bold uppercase tracking-wider text-white/70 bg-white/10 rounded px-1.5 py-0.5">Oculta</span>
+                          )}
+                          <span className="text-xs tabular-nums">{cat.items.length}</span>
+                          <Chevron open={open} />
+                        </button>
+                      </div>
+
+                      {open && (
+                        <div className="animate-fade-in">
+                          <div className="flex flex-wrap items-center gap-1 px-2 pb-2 border-b border-white/[0.06]">
+                            <SmallBtn onClick={() => moveWineCategory(cat.id, -1)} disabled={ci === 0}>↑ Subir</SmallBtn>
+                            <SmallBtn onClick={() => moveWineCategory(cat.id, 1)} disabled={ci === wineCats.length - 1}>↓ Bajar</SmallBtn>
+                            <SmallBtn onClick={() => setTrCats((o) => toggleIn(o, cat.id))}>
+                              🌍 Traducir <span className="text-white/35">{translatedCount(cat.nameI18n)}/4</span>
+                            </SmallBtn>
+                            <SmallBtn onClick={() => updateWineCat(cat.id, { hidden: !cat.hidden })}>
+                              {cat.hidden ? '👁 Mostrar' : 'Ocultar'}
+                            </SmallBtn>
+                            <div className="flex-1" />
+                            <SmallBtn danger onClick={() => removeWineCategory(cat)}>Eliminar</SmallBtn>
+                          </div>
+
+                          {trCats.includes(cat.id) && (
+                            <div className="px-4 py-3 border-b border-white/[0.06] bg-white/[0.015] animate-fade-in">
+                              <TranslationFields value={cat.nameI18n} onChange={(nameI18n) => updateWineCat(cat.id, { nameI18n })} />
+                            </div>
+                          )}
+
+                          <div className="divide-y divide-white/[0.05]">
+                            {items.map((wine, wi) => {
+                              const isEditing = editing?.kind === 'wine' && editing.catId === cat.id && editing.itemId === wine.id
+                              return (
+                                <div key={wine.id} className={`px-4 transition-colors ${isEditing ? 'bg-gold/[0.05] py-3' : 'hover:bg-white/[0.02]'}`}>
+                                  {isEditing ? (
+                                    <WineEditor
+                                      wine={wine}
+                                      onChange={(patch) => updateWine(cat.id, wine.id, patch)}
+                                      onDelete={() => {
+                                        if (!wine.name.trim() || confirm(`¿Eliminar «${wine.name}»?`)) {
+                                          removeWine(cat.id, wine.id)
+                                          setEditing(null)
+                                        }
+                                      }}
+                                      onDone={closeEditor}
+                                    />
+                                  ) : (
+                                    <div className="flex items-center gap-2">
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          closeEditor()
+                                          setEditing({ kind: 'wine', catId: cat.id, itemId: wine.id })
+                                        }}
+                                        className={`flex-1 min-w-0 flex items-center gap-3 py-3 text-left transition-opacity ${wine.hidden ? 'opacity-45' : ''}`}
+                                      >
+                                        <span className="flex-1 min-w-0 text-sm text-white/90">
+                                          {wine.hidden && (
+                                            <span className="text-[9px] font-bold uppercase tracking-wider text-white/70 bg-white/10 rounded px-1.5 py-0.5 mr-1.5 align-middle">Oculto</span>
+                                          )}
+                                          {wine.name || <em className="text-white/30">Sin nombre</em>}
+                                          {wine.year && <span className="text-white/35 text-xs ml-1.5">{wine.year}</span>}
+                                        </span>
+                                        <span className="text-right tabular-nums flex-shrink-0 text-sm">
+                                          <span className="block font-semibold text-gold-soft">
+                                            <span className="text-[10px] text-white/35 font-normal mr-1">copa</span>
+                                            {eur(wine.priceCopa) || '—'}
+                                          </span>
+                                          <span className="block font-semibold text-gold-soft/80">
+                                            <span className="text-[10px] text-white/35 font-normal mr-1">bot.</span>
+                                            {eur(wine.priceBottle) || '—'}
+                                          </span>
+                                        </span>
+                                      </button>
+                                      <EyeButton hidden={wine.hidden} onToggle={() => updateWine(cat.id, wine.id, { hidden: !wine.hidden })} />
+                                      <MoveButtons
+                                        first={wi === 0}
+                                        last={wi === items.length - 1}
+                                        onUp={() => moveWine(cat.id, wine.id, -1)}
+                                        onDown={() => moveWine(cat.id, wine.id, 1)}
+                                      />
+                                    </div>
+                                  )}
+                                </div>
+                              )
+                            })}
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              closeEditor()
+                              addWine(cat.id)
+                            }}
+                            className="w-full px-4 py-3 text-sm text-gold/70 hover:text-gold hover:bg-white/[0.02] transition text-left border-t border-white/[0.05]"
+                          >
+                            + Añadir vino
+                          </button>
+                        </div>
+                      )}
+                    </section>
+                  )
+                })}
+
+                <button
+                  type="button"
+                  onClick={addWineCategory}
+                  className="w-full py-4 rounded-2xl border border-dashed border-white/15 text-sm text-white/45 hover:border-gold/40 hover:text-gold transition"
+                >
+                  + Añadir denominación
+                </button>
+              </div>
+            )}
+
+            {/* ─── advanced (hidden reset) ─── */}
+            <section className="pt-6">
+              <button
+                type="button"
+                onClick={() => setAdvanced((a) => !a)}
+                className="mx-auto flex items-center gap-2 text-xs text-white/35 hover:text-white/65 transition px-3 py-2"
+                aria-expanded={advanced}
+              >
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                Opciones avanzadas
+                <Chevron open={advanced} className="w-3 h-3" />
+              </button>
+
+              {advanced && (
+                <div className="mt-3 space-y-3 animate-fade-in">
+                  <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+                    <p className="text-sm font-semibold text-white">Copia de seguridad</p>
+                    <p className="text-xs text-white/45 mt-1 leading-relaxed">
+                      Guarda la carta tal y como está ahora. Si algún día se estropea, la puedes recuperar con «Restablecer».
+                    </p>
+                    <p className="text-[11px] text-white/35 mt-2">
+                      {copySavedAt ? `Última copia: ${fmtDate(copySavedAt)}` : 'Todavía no hay ninguna copia guardada.'}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={saveCopy}
+                      className="mt-3 px-4 py-2 rounded-xl border border-gold/40 text-gold-soft text-sm font-semibold hover:bg-gold/10 transition"
+                    >
+                      Guardar copia de la carta actual
+                    </button>
+                    {copyMsg && <p className="text-xs text-gold-soft/80 mt-2">{copyMsg}</p>}
+                  </div>
+                  <div className="rounded-2xl border border-red-400/20 bg-red-500/[0.04] p-4">
+                    <p className="text-sm font-semibold text-red-200">Restablecer la copia guardada</p>
+                    <p className="text-xs text-white/45 mt-1 leading-relaxed">
+                      Sustituye toda la carta por la copia de seguridad. Pide contraseña y no se publica hasta que pulses Guardar.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setResetOpen(true)}
+                      className="mt-3 px-4 py-2 rounded-xl border border-red-400/40 text-red-200 text-sm font-semibold hover:bg-red-500/10 transition"
+                    >
+                      Restablecer…
+                    </button>
+                  </div>
+                  <div className="flex justify-center">
+                    <SmallBtn
+                      onClick={() => {
+                        localStorage.removeItem('menu-admin')
+                        setAuthed(false)
+                      }}
+                    >
+                      Cerrar sesión
+                    </SmallBtn>
+                  </div>
+                </div>
+              )}
+            </section>
+          </>
+        )}
+      </main>
+
+      {/* ─── floating save bar (only with pending changes) ─── */}
+      {(dirty || saving || saved) && (
+        <div className="fixed bottom-0 inset-x-0 z-50 p-4 bg-gradient-to-t from-[#021530] via-[#021530]/90 to-transparent pointer-events-none">
+          <div className="max-w-2xl mx-auto pointer-events-auto animate-slide-up">
             <button
               onClick={save}
-              disabled={saving}
-              className={`px-5 py-1.5 rounded-lg text-sm font-bold transition-all ${
-                saveError
-                  ? 'bg-red-500 text-white'
-                  : saved
-                  ? 'bg-green-500 text-black'
-                  : 'bg-sky-300 text-black hover:bg-sky-200'
+              disabled={!dirty || saving}
+              className={`w-full py-3.5 text-sm tracking-wide ${
+                saved ? 'rounded-2xl bg-emerald-500 text-white font-bold' : `${goldBtn} rounded-2xl`
               }`}
             >
-              {saving ? 'Guardando…' : saveError ? '✕ Error' : saved ? '✓ Guardado' : 'Guardar'}
+              {saving ? 'Guardando…' : saved ? '✓ Cambios publicados' : 'Guardar y publicar cambios'}
             </button>
           </div>
         </div>
-        {/* tabs */}
-        <div className="max-w-2xl mx-auto mt-3 flex flex-wrap gap-1.5">
-          {([
-            ['comida', '🍽️ Comida'],
-            ['vinos', '🍷 Vinos'],
-            ['inicial', '♻️ Carta inicial'],
-          ] as [Tab, string][]).map(([key, label]) => (
-            <button
-              key={key}
-              onClick={() => setTab(key)}
-              className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-colors ${
-                tab === key ? 'bg-sky-300 text-black' : 'bg-white/5 text-white/50 hover:text-white/80'
-              }`}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* ─── general settings ─── */}
-      <div className="max-w-2xl mx-auto px-4 pt-6 pb-3 space-y-3">
-        <div>
-          <label className="text-[10px] text-gray-500 uppercase tracking-wider font-semibold">Nombre del bar</label>
-          <input
-            type="text"
-            value={menu.barName}
-            onChange={(e) => setMenu({ ...menu, barName: e.target.value })}
-            className="mt-1.5 w-full px-3 py-2.5 rounded-xl bg-gray-50 border border-gray-300 text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-200/40 text-sm"
-          />
-        </div>
-      </div>
-
-      {/* ─── preview links ─── */}
-      <div className="max-w-2xl mx-auto px-4 pb-5 flex flex-wrap gap-x-4 gap-y-2">
-        <a href="/menu/tapas" target="_blank" className="text-xs text-sky-200/70 hover:text-sky-100 hover:underline transition-colors">↗ Ver Tapas</a>
-        <a href="/menu/medias" target="_blank" className="text-xs text-sky-200/70 hover:text-sky-100 hover:underline transition-colors">↗ Ver Medias</a>
-        <a href="/menu/alergenos" target="_blank" className="text-xs text-sky-200/70 hover:text-sky-100 hover:underline transition-colors">↗ Ver Alérgenos</a>
-        <a href="/menu/vinos" target="_blank" className="text-xs text-purple-200/70 hover:text-purple-100 hover:underline transition-colors">↗ Ver Vinos</a>
-      </div>
-
-      {/* ═══════════════ COMIDA ═══════════════ */}
-      {tab === 'comida' && (
-        <div className="max-w-2xl mx-auto px-4 space-y-6">
-          {sortedFood.map((cat, ci) => (
-            <div key={cat.id} className={`rounded-2xl border border-white/[0.04] bg-white/[0.015] overflow-hidden ${cat.hidden ? 'opacity-50' : ''}`}>
-              {/* category header */}
-              <div className="flex items-center gap-2 px-4 py-3 bg-white/[0.02] border-b border-white/[0.04]">
-                <input
-                  type="text"
-                  value={cat.icon || ''}
-                  onChange={(e) => updateCategory(cat.id, { icon: e.target.value })}
-                  className="w-10 text-center bg-transparent text-lg focus:outline-none"
-                  title="Emoji"
-                />
-                <input
-                  type="text"
-                  value={cat.name}
-                  onChange={(e) => updateCategory(cat.id, { name: e.target.value })}
-                  className="flex-1 min-w-0 bg-transparent text-sky-100 font-semibold focus:outline-none border-b border-transparent focus:border-sky-500/40 transition-colors"
-                />
-                <ReorderButtons
-                  onUp={() => moveCategory(cat.id, -1)}
-                  onDown={() => moveCategory(cat.id, 1)}
-                  isFirst={ci === 0}
-                  isLast={ci === sortedFood.length - 1}
-                />
-                <button
-                  onClick={() => setI18nCat(i18nCat === cat.id ? null : cat.id)}
-                  className={`text-sm px-1.5 transition-colors ${i18nCat === cat.id ? 'text-sky-300' : 'text-white/30 hover:text-white/70'}`}
-                  title="Traducciones del nombre"
-                >
-                  🌐
-                </button>
-                <button
-                  onClick={() => updateCategory(cat.id, { hidden: !cat.hidden })}
-                  className={`text-sm px-1.5 transition-colors ${cat.hidden ? 'text-amber-400' : 'text-white/30 hover:text-white/70'}`}
-                  title={cat.hidden ? 'Sección oculta — clic para mostrar' : 'Ocultar sección'}
-                >
-                  {cat.hidden ? '🙈' : '👁️'}
-                </button>
-                <button
-                  onClick={() => removeCategory(cat.id)}
-                  className="text-red-400/40 hover:text-red-400 text-sm px-2 transition-colors"
-                  title="Eliminar categoría"
-                >
-                  ✕
-                </button>
-              </div>
-
-              {/* category translations */}
-              {i18nCat === cat.id && (
-                <div className="px-4 py-3 bg-sky-300/[0.04] border-b border-white/[0.04]">
-                  <p className="text-[10px] text-gray-400 uppercase font-semibold">Traducciones de la categoría</p>
-                  <TranslationFields
-                    value={cat.nameI18n}
-                    onChange={(v) => updateCategory(cat.id, { nameI18n: v })}
-                    placeholder={cat.name}
-                  />
-                </div>
-              )}
-
-              {/* items */}
-              <div className="divide-y divide-white/[0.03]">
-                {[...cat.items]
-                  .sort((a, b) => a.order - b.order)
-                  .map((item, ii, arr) => {
-                    const isEditing = editingItem?.catId === cat.id && editingItem.itemId === item.id
-                    return (
-                      <div
-                        key={item.id}
-                        className={`px-4 py-3 transition-colors ${isEditing ? 'bg-sky-300/[0.05]' : 'hover:bg-white/[0.015]'}`}
-                      >
-                        {isEditing ? (
-                          <div className="space-y-3">
-                            <input
-                              type="text"
-                              value={item.name}
-                              onChange={(e) => updateItem(cat.id, item.id, { name: e.target.value })}
-                              className="w-full px-3 py-2 rounded-lg bg-gray-50 border border-gray-300 text-sm text-gray-900 focus:outline-none focus:ring-1 focus:ring-sky-200/40"
-                              placeholder="Nombre del plato (español)"
-                              autoFocus
-                              onFocus={(e) => {
-                                if (e.target.value === '') e.target.select()
-                              }}
-                            />
-
-                            {/* translations */}
-                            <div>
-                              <p className="text-[10px] text-gray-500 uppercase font-semibold">Traducciones</p>
-                              <TranslationFields
-                                value={item.nameI18n}
-                                onChange={(v) => updateItem(cat.id, item.id, { nameI18n: v })}
-                                placeholder={item.name}
-                              />
-                            </div>
-
-                            {/* prices */}
-                            <div className="flex gap-2.5 items-end">
-                              <div className="flex-1 min-w-0">
-                                <label className="text-[10px] text-gray-500 uppercase font-semibold">Tapa €</label>
-                                <PriceInput
-                                  value={item.priceTapa}
-                                  onChange={(v) =>
-                                    updateItem(cat.id, item.id, {
-                                      priceTapa: v,
-                                      ...(item.samePrice ? { priceMedia: v } : {}),
-                                    })
-                                  }
-                                />
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <label className="text-[10px] text-gray-500 uppercase font-semibold">Media €</label>
-                                <PriceInput
-                                  value={item.priceMedia}
-                                  onChange={(v) => updateItem(cat.id, item.id, { priceMedia: v })}
-                                  disabled={item.samePrice}
-                                />
-                              </div>
-                              <label className="flex items-center gap-1.5 cursor-pointer select-none pb-2">
-                                <input
-                                  type="checkbox"
-                                  checked={item.samePrice}
-                                  onChange={(e) =>
-                                    updateItem(cat.id, item.id, {
-                                      samePrice: e.target.checked,
-                                      ...(e.target.checked ? { priceMedia: item.priceTapa } : {}),
-                                    })
-                                  }
-                                  className="accent-sky-500"
-                                />
-                                <span className="text-[10px] text-gray-500 whitespace-nowrap">= precio</span>
-                              </label>
-                            </div>
-
-                            {/* allergens */}
-                            <div>
-                              <p className="text-[10px] text-gray-500 uppercase font-semibold">Alérgenos</p>
-                              <AllergenPicker
-                                selected={item.allergens || []}
-                                onToggle={(key) => toggleAllergen(cat.id, item, key)}
-                              />
-                            </div>
-
-                            <div className="flex gap-2 items-center">
-                              <label className="text-[10px] text-gray-500 uppercase font-semibold">Orden</label>
-                              <input
-                                type="number"
-                                value={item.order}
-                                onChange={(e) => updateItem(cat.id, item.id, { order: Number(e.target.value) })}
-                                className="w-16 px-2 py-1.5 rounded-lg bg-gray-50 border border-gray-300 text-sm text-gray-900 focus:outline-none"
-                              />
-                              <div className="flex-1" />
-                              <button
-                                onClick={() => removeItem(cat.id, item.id)}
-                                className="text-xs text-red-400/50 hover:text-red-400 transition-colors"
-                              >
-                                Eliminar
-                              </button>
-                              <button
-                                onClick={() => setEditingItem(null)}
-                                className="text-xs px-4 py-1.5 rounded-lg bg-sky-300 text-black font-bold"
-                              >
-                                OK
-                              </button>
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="flex items-center gap-3">
-                            <div
-                              className={`flex items-center gap-3 flex-1 min-w-0 cursor-pointer ${item.hidden ? 'opacity-40' : ''}`}
-                              onClick={() => setEditingItem({ catId: cat.id, itemId: item.id })}
-                            >
-                              <span className="text-sm text-gray-700 flex-1 leading-snug">{item.name}</span>
-                              {item.allergens && item.allergens.length > 0 && (
-                                <span className="flex items-center gap-0.5 flex-shrink-0">
-                                  {item.allergens.slice(0, 4).map((a) =>
-                                    ALLERGEN_SRC[a] ? (
-                                      // eslint-disable-next-line @next/next/no-img-element
-                                      <img key={a} src={ALLERGEN_SRC[a]} alt="" width={14} height={14} className="rounded-full opacity-70" />
-                                    ) : null
-                                  )}
-                                </span>
-                              )}
-                              <span className="text-xs text-sky-200/70 whitespace-nowrap font-medium">
-                                {item.priceTapa > 0 ? `${item.priceTapa.toFixed(2)}€` : '—'}
-                              </span>
-                              {!item.samePrice && (
-                                <span className="text-xs text-sky-200/40 whitespace-nowrap">
-                                  / {item.priceMedia > 0 ? `${item.priceMedia.toFixed(2)}€` : '—'}
-                                </span>
-                              )}
-                            </div>
-                            <ReorderButtons
-                              onUp={() => moveItem(cat.id, item.id, -1)}
-                              onDown={() => moveItem(cat.id, item.id, 1)}
-                              isFirst={ii === 0}
-                              isLast={ii === arr.length - 1}
-                            />
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                updateItem(cat.id, item.id, { hidden: !item.hidden })
-                              }}
-                              className={`text-sm px-1 flex-shrink-0 transition-colors ${item.hidden ? 'text-amber-400' : 'text-gray-300 hover:text-gray-500'}`}
-                              title={item.hidden ? 'Plato oculto — clic para mostrar' : 'Ocultar plato'}
-                            >
-                              {item.hidden ? '🙈' : '👁️'}
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    )
-                  })}
-              </div>
-
-              {/* add item */}
-              <button
-                onClick={() => addItem(cat.id)}
-                className="w-full px-4 py-2.5 text-xs text-sky-200/40 hover:text-sky-100 hover:bg-white/[0.02] transition-colors text-left"
-              >
-                + Añadir plato
-              </button>
-            </div>
-          ))}
-
-          {/* add category */}
-          <button
-            onClick={addCategory}
-            className="w-full py-4 rounded-2xl border border-dashed border-gray-300/[0.06] text-sm text-gray-600 hover:border-sky-300/25 hover:text-sky-700/50 transition-colors"
-          >
-            + Añadir categoría
-          </button>
-        </div>
       )}
-
-      {/* ═══════════════ VINOS ═══════════════ */}
-      {tab === 'vinos' && (
-        <div className="max-w-2xl mx-auto px-4 space-y-6">
-          {sortedWineCats.map((cat, ci) => (
-            <div key={cat.id} className={`rounded-2xl border border-white/[0.04] bg-white/[0.015] overflow-hidden ${cat.hidden ? 'opacity-50' : ''}`}>
-              {/* wine category header */}
-              <div className="flex items-center gap-2 px-4 py-3 bg-white/[0.02] border-b border-white/[0.04]">
-                <span className="text-lg">🍷</span>
-                <input
-                  type="text"
-                  value={cat.name}
-                  onChange={(e) => updateWineCategory(cat.id, { name: e.target.value })}
-                  className="flex-1 min-w-0 bg-transparent text-purple-100 font-semibold focus:outline-none border-b border-transparent focus:border-purple-500/40 transition-colors"
-                />
-                <ReorderButtons
-                  onUp={() => moveWineCat(cat.id, -1)}
-                  onDown={() => moveWineCat(cat.id, 1)}
-                  isFirst={ci === 0}
-                  isLast={ci === sortedWineCats.length - 1}
-                />
-                <button
-                  onClick={() => setI18nWineCat(i18nWineCat === cat.id ? null : cat.id)}
-                  className={`text-sm px-1.5 transition-colors ${i18nWineCat === cat.id ? 'text-purple-300' : 'text-white/30 hover:text-white/70'}`}
-                  title="Traducciones del nombre"
-                >
-                  🌐
-                </button>
-                <button
-                  onClick={() => updateWineCategory(cat.id, { hidden: !cat.hidden })}
-                  className={`text-sm px-1.5 transition-colors ${cat.hidden ? 'text-amber-400' : 'text-white/30 hover:text-white/70'}`}
-                  title={cat.hidden ? 'Sección oculta — clic para mostrar' : 'Ocultar sección'}
-                >
-                  {cat.hidden ? '🙈' : '👁️'}
-                </button>
-                <button
-                  onClick={() => removeWineCategory(cat.id)}
-                  className="text-red-400/40 hover:text-red-400 text-sm px-2 transition-colors"
-                  title="Eliminar sección"
-                >
-                  ✕
-                </button>
-              </div>
-
-              {/* wine category translations */}
-              {i18nWineCat === cat.id && (
-                <div className="px-4 py-3 bg-purple-300/[0.04] border-b border-white/[0.04]">
-                  <p className="text-[10px] text-gray-400 uppercase font-semibold">Traducciones de la sección</p>
-                  <TranslationFields
-                    value={cat.nameI18n}
-                    onChange={(v) => updateWineCategory(cat.id, { nameI18n: v })}
-                    placeholder={cat.name}
-                  />
-                </div>
-              )}
-
-              {/* wines */}
-              <div className="divide-y divide-white/[0.03]">
-                {[...cat.items]
-                  .sort((a, b) => a.order - b.order)
-                  .map((wine, ii, arr) => {
-                    const isEditing = editingWine?.catId === cat.id && editingWine.itemId === wine.id
-                    return (
-                      <div
-                        key={wine.id}
-                        className={`px-4 py-3 transition-colors ${isEditing ? 'bg-purple-300/[0.05]' : 'hover:bg-white/[0.015]'}`}
-                      >
-                        {isEditing ? (
-                          <div className="space-y-3">
-                            <input
-                              type="text"
-                              value={wine.name}
-                              onChange={(e) => updateWine(cat.id, wine.id, { name: e.target.value })}
-                              className="w-full px-3 py-2 rounded-lg bg-gray-50 border border-gray-300 text-sm text-gray-900 focus:outline-none focus:ring-1 focus:ring-purple-200/40"
-                              placeholder="Nombre del vino"
-                              autoFocus
-                              onFocus={(e) => {
-                                if (e.target.value === '') e.target.select()
-                              }}
-                            />
-
-                            <div>
-                              <p className="text-[10px] text-gray-500 uppercase font-semibold">Traducciones (opcional)</p>
-                              <TranslationFields
-                                value={wine.nameI18n}
-                                onChange={(v) => updateWine(cat.id, wine.id, { nameI18n: v })}
-                                placeholder={wine.name}
-                              />
-                            </div>
-
-                            <div className="flex gap-2.5 items-end">
-                              <div className="flex-1 min-w-0">
-                                <label className="text-[10px] text-gray-500 uppercase font-semibold">Copa €</label>
-                                <PriceInput
-                                  value={wine.priceCopa}
-                                  onChange={(v) => updateWine(cat.id, wine.id, { priceCopa: v })}
-                                />
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <label className="text-[10px] text-gray-500 uppercase font-semibold">Botella €</label>
-                                <PriceInput
-                                  value={wine.priceBottle}
-                                  onChange={(v) => updateWine(cat.id, wine.id, { priceBottle: v })}
-                                />
-                              </div>
-                              <div className="w-20">
-                                <label className="text-[10px] text-gray-500 uppercase font-semibold">Año</label>
-                                <input
-                                  type="text"
-                                  value={wine.year ?? ''}
-                                  onChange={(e) => updateWine(cat.id, wine.id, { year: e.target.value })}
-                                  placeholder="—"
-                                  className="w-full px-2 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-white focus:outline-none mt-1"
-                                />
-                              </div>
-                            </div>
-
-                            <div className="flex gap-2 items-center">
-                              <label className="text-[10px] text-gray-500 uppercase font-semibold">Orden</label>
-                              <input
-                                type="number"
-                                value={wine.order}
-                                onChange={(e) => updateWine(cat.id, wine.id, { order: Number(e.target.value) })}
-                                className="w-16 px-2 py-1.5 rounded-lg bg-gray-50 border border-gray-300 text-sm text-gray-900 focus:outline-none"
-                              />
-                              <div className="flex-1" />
-                              <button
-                                onClick={() => removeWine(cat.id, wine.id)}
-                                className="text-xs text-red-400/50 hover:text-red-400 transition-colors"
-                              >
-                                Eliminar
-                              </button>
-                              <button
-                                onClick={() => setEditingWine(null)}
-                                className="text-xs px-4 py-1.5 rounded-lg bg-purple-300 text-black font-bold"
-                              >
-                                OK
-                              </button>
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="flex items-center gap-3">
-                            <div
-                              className={`flex items-center gap-3 flex-1 min-w-0 cursor-pointer ${wine.hidden ? 'opacity-40' : ''}`}
-                              onClick={() => setEditingWine({ catId: cat.id, itemId: wine.id })}
-                            >
-                              <span className="text-sm text-gray-700 flex-1 leading-snug">
-                                {wine.name}
-                                {wine.year && <span className="text-gray-400 text-xs ml-1.5">({wine.year})</span>}
-                              </span>
-                              <span className="text-xs text-purple-200/70 whitespace-nowrap font-medium">
-                                {wine.priceCopa > 0 ? `${wine.priceCopa.toFixed(2)}€` : '—'}
-                              </span>
-                              <span className="text-xs text-purple-200/40 whitespace-nowrap">
-                                / {wine.priceBottle > 0 ? `${wine.priceBottle.toFixed(2)}€` : '—'}
-                              </span>
-                            </div>
-                            <ReorderButtons
-                              onUp={() => moveWine(cat.id, wine.id, -1)}
-                              onDown={() => moveWine(cat.id, wine.id, 1)}
-                              isFirst={ii === 0}
-                              isLast={ii === arr.length - 1}
-                            />
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                updateWine(cat.id, wine.id, { hidden: !wine.hidden })
-                              }}
-                              className={`text-sm px-1 flex-shrink-0 transition-colors ${wine.hidden ? 'text-amber-400' : 'text-gray-300 hover:text-gray-500'}`}
-                              title={wine.hidden ? 'Vino oculto — clic para mostrar' : 'Ocultar vino'}
-                            >
-                              {wine.hidden ? '🙈' : '👁️'}
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    )
-                  })}
-              </div>
-
-              {/* add wine */}
-              <button
-                onClick={() => addWine(cat.id)}
-                className="w-full px-4 py-2.5 text-xs text-purple-200/40 hover:text-purple-100 hover:bg-white/[0.02] transition-colors text-left"
-              >
-                + Añadir vino
-              </button>
-            </div>
-          ))}
-
-          {/* add wine category */}
-          <button
-            onClick={addWineCategory}
-            className="w-full py-4 rounded-2xl border border-dashed border-purple-300/[0.1] text-sm text-purple-300/60 hover:border-purple-300/30 hover:text-purple-200 transition-colors"
-          >
-            + Añadir sección de vinos
-          </button>
-        </div>
-      )}
-
-      {/* ═══════════════ CARTA INICIAL ═══════════════ */}
-      {tab === 'inicial' && (
-        <div className="max-w-2xl mx-auto px-4">
-          <div className="rounded-2xl border border-sky-400/20 bg-sky-400/[0.04] p-5">
-            <h2 className="text-lg font-bold text-sky-100">♻️ Carta inicial</h2>
-            <p className="text-sm text-white/50 mt-2 leading-relaxed">
-              <strong className="text-white/70">Guardar</strong> deja la carta de ahora como copia de seguridad. Si te
-              equivocas editando, pulsa <strong className="text-white/70">Resetear</strong> para volver a esa copia.
-            </p>
-            <p className="text-xs text-white/30 mt-2">
-              {initialSavedAt
-                ? `Última copia guardada: ${new Date(initialSavedAt).toLocaleString('es-ES')}`
-                : 'Todavía no has guardado ninguna copia.'}
-            </p>
-
-            <div className="flex flex-col gap-2.5 mt-5">
-              <button
-                onClick={saveAsInitial}
-                className="w-full py-3 rounded-xl bg-sky-300 text-black font-bold text-sm hover:bg-sky-200 transition-colors"
-              >
-                💾 Guardar
-              </button>
-              <button
-                onClick={resetToInitial}
-                className="w-full py-3 rounded-xl bg-white/5 border border-white/10 text-white/80 font-semibold text-sm hover:bg-white/10 transition-colors"
-              >
-                ♻️ Resetear
-              </button>
-            </div>
-
-            {initialMsg && <p className="text-xs text-sky-200 mt-3 text-center">{initialMsg}</p>}
-          </div>
-        </div>
-      )}
-
-      {/* ─── floating save ─── */}
-      <div className="fixed bottom-0 left-0 right-0 z-50 bg-gradient-to-t from-[#071a35] via-[#071a35]/95 to-transparent p-4 pointer-events-none">
-        <div className="pointer-events-auto max-w-2xl mx-auto">
-          <button
-            onClick={save}
-            disabled={saving}
-            className={`w-full py-3.5 rounded-2xl font-bold text-sm tracking-wide transition-all active:scale-[0.98] ${
-              saveError ? 'bg-red-500 text-white' : saved ? 'bg-green-500 text-black' : 'bg-sky-300 text-black hover:bg-sky-200'
-            }`}
-          >
-            {saving ? 'Guardando…' : saveError ? `✕ ${saveError}` : saved ? '✓ Cambios guardados' : 'Guardar cambios'}
-          </button>
-        </div>
-      </div>
     </div>
   )
 }

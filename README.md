@@ -18,7 +18,8 @@ npm run dev                  # http://localhost:3000
 ```
 
 La home redirige a `/menu/tapas`. El panel de administración está en `/menu/admin`
-(código de acceso por defecto: `2010`, definido en `app/menu/admin/page.tsx`).
+(código de acceso: `2010`; contraseña para restablecer la copia: `7954`; ambos en
+`app/menu/admin/page.tsx`).
 
 ## Variables de entorno
 
@@ -40,8 +41,17 @@ porque el SDK de Firebase corre en el cliente.
 Colección `menu`:
 
 - **`data`** — la carta publicada que ven los clientes.
-- **`initial`** — la "carta inicial / de fábrica" guardada desde el admin; es la que restaura
-  el botón **Resetear**.
+- **`initial`** — la copia de seguridad guardada desde el admin (*Opciones avanzadas → Guardar
+  copia*); es la que recupera **Restablecer** (pide la contraseña `7954`).
+- **`visits`** — contador de visitas a la carta (una por sesión), visible solo en el admin.
+
+### Actualizaciones de contenido
+
+`lib/menuUpdates.ts` contiene cambios de carta preparados en código (platos nuevos, ocultos,
+renombrados y traducciones revisadas). Se aplican al **leer** la carta cuando el documento
+tiene una `contentVersion` menor que `CONTENT_VERSION`, así que se ven nada más desplegar;
+al guardar desde el admin quedan grabados y no se vuelven a aplicar. Cada cambio comprueba
+el nombre en español para no pisar ediciones hechas a mano.
 
 El modelo de datos está en [`types/menu.ts`](types/menu.ts). Cada categoría, plato y vino admite
 traducciones manuales por idioma (`nameI18n`: EN/DE/PT/FR; el español es el campo base `name`).
@@ -59,9 +69,11 @@ En `/menu/admin` puedes:
 - Editar nombre del bar, platos, precios (tapa/media), orden y alérgenos.
 - Gestionar la carta de **vinos** (secciones, vinos, precios copa/botella, año).
 - Añadir traducciones por idioma para platos, categorías y vinos.
-- **Ocultar** o **borrar** secciones.
+- **Ocultar** (👁) o **borrar** platos, vinos y secciones; añadir una nota bajo el título de una sección.
 - Activar el modo **Día Importante** (solo media ración) y mostrar/ocultar la carta de vinos.
-- **Guardar la carta actual como inicial** y **Resetear** a ese estado guardado.
+- En *Opciones avanzadas*: **guardar una copia** de la carta y **restablecerla** (con contraseña).
+- Ver las **visitas** de la carta (hoy y total).
 
-> ⚠️ La seguridad real depende de las **reglas de Firestore**. El código de admin (`2010`) es
-> solo una barrera de cliente: protege el acceso a la base de datos con reglas adecuadas.
+> ⚠️ La seguridad real depende de las **reglas de Firestore**. El código de admin (`2010`) y la
+> contraseña de restablecer (`7954`) son solo barreras de cliente: protege el acceso a la base de
+> datos con reglas adecuadas.
