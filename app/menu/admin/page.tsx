@@ -1001,7 +1001,7 @@ export default function AdminPage() {
       )}
 
       {/* ─── header ─── */}
-      <header className="sticky top-0 z-50 bg-[#021530]/95 backdrop-blur-xl border-b border-white/[0.07]">
+      <header className="sticky top-0 z-50 bg-[#021530]/[0.97] border-b border-white/[0.07]">
         <div className="max-w-2xl mx-auto px-4 py-3 flex items-center gap-3">
           <LogoMark className="w-9 h-9 flex-shrink-0" />
           <div className="flex-1 min-w-0">

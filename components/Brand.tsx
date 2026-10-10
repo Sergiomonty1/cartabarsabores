@@ -29,14 +29,12 @@ export function LogoMark({ className = '' }: { className?: string }) {
   )
 }
 
+/**
+ * Brillos de fondo. Son degradados ESTÁTICOS: antes eran «orbs» con blur animados y en
+ * móvil obligaban a repintar cada fotograma (la carta iba a tirones).
+ */
 export function GradientOrbs() {
-  return (
-    <div className="fixed inset-0 pointer-events-none overflow-hidden z-0" aria-hidden="true">
-      <div className="orb orb-1" />
-      <div className="orb orb-2" />
-      <div className="orb orb-3" />
-    </div>
-  )
+  return <div className="bg-glow fixed inset-0 pointer-events-none z-0" aria-hidden="true" />
 }
 
 export function GoldenDivider({ className = 'my-7' }: { className?: string }) {

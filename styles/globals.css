@@ -55,17 +55,6 @@ button {
   touch-action: manipulation;
 }
 
-/* Subtle film-grain / paper texture overlay for depth */
-body::before {
-  content: '';
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: 1;
-  opacity: 0.04;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-}
-
 /* Scrollbar */
 ::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-track { background: var(--navy-900); }
@@ -80,48 +69,13 @@ body::before {
 .scrollbar-hide::-webkit-scrollbar { display: none; }
 .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
 
-/* ─── Gradient Orbs (morphing background) ─── */
-.orb {
-  position: absolute;
-  border-radius: 50%;
-  filter: blur(60px);
-  will-change: transform;
-  contain: strict;
-}
-.orb-1 {
-  width: 380px;
-  height: 380px;
-  top: -120px;
-  left: -120px;
-  background: radial-gradient(circle, rgba(124, 196, 240, 0.10), transparent 70%);
-  animation: orbFloat1 22s ease-in-out infinite;
-}
-.orb-2 {
-  width: 320px;
-  height: 320px;
-  top: 45%;
-  right: -140px;
-  background: radial-gradient(circle, rgba(216, 185, 117, 0.08), transparent 70%);
-  animation: orbFloat2 28s ease-in-out infinite;
-}
-.orb-3 {
-  width: 260px;
-  height: 260px;
-  bottom: -80px;
-  left: 30%;
-  background: radial-gradient(circle, rgba(6, 49, 105, 0.5), transparent 70%);
-  animation: orbFloat1 26s ease-in-out infinite reverse;
-}
-
-@keyframes orbFloat1 {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  33% { transform: translate(60px, 80px) scale(1.15); }
-  66% { transform: translate(-40px, 40px) scale(0.9); }
-}
-@keyframes orbFloat2 {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  33% { transform: translate(-50px, -60px) scale(1.1); }
-  66% { transform: translate(30px, 50px) scale(0.85); }
+/* ─── Brillos de fondo (estáticos: sin blur ni animación, que daban lag en móvil) ─── */
+.bg-glow {
+  background:
+    radial-gradient(420px 420px at -60px -40px, rgba(124, 196, 240, 0.11), transparent 70%),
+    radial-gradient(380px 380px at calc(100% + 80px) 46%, rgba(216, 185, 117, 0.08), transparent 70%),
+    radial-gradient(360px 360px at 30% calc(100% + 60px), rgba(6, 49, 105, 0.55), transparent 70%);
+  transform: translateZ(0);
 }
 
 /* ─── Slow spin for glow ring ─── */

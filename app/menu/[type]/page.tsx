@@ -60,7 +60,7 @@ function LanguageSelector({ lang, setLang }: { lang: Lang; setLang: (l: Lang) =>
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-label={t(lang, 'selectLang')}
-        className="flex items-center gap-1.5 pl-2.5 pr-2 py-1.5 rounded-full bg-white/[0.08] border border-white/15 text-white/85 hover:bg-white/[0.14] transition backdrop-blur-xl"
+        className="flex items-center gap-1.5 pl-2.5 pr-2 py-1.5 rounded-full bg-white/[0.08] border border-white/15 text-white/85 hover:bg-white/[0.14] transition"
       >
         <span className="text-base leading-none">{current.flag}</span>
         <span className="text-[11px] font-bold tracking-wider">{current.short}</span>
@@ -71,7 +71,7 @@ function LanguageSelector({ lang, setLang }: { lang: Lang; setLang: (l: Lang) =>
       {open && (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-          <ul role="listbox" className="absolute right-0 mt-2 z-50 rounded-2xl bg-[#04244f]/95 backdrop-blur-xl border border-white/15 shadow-2xl overflow-hidden min-w-[170px] py-1 animate-fade-in">
+          <ul role="listbox" className="absolute right-0 mt-2 z-50 rounded-2xl bg-[#04244f] border border-white/15 shadow-2xl overflow-hidden min-w-[170px] py-1 animate-fade-in">
             {LANGUAGES.map((l) => (
               <li key={l.code}>
                 <button
@@ -217,7 +217,7 @@ function ScrollHint() {
       className={`fixed bottom-5 left-1/2 -translate-x-1/2 z-40 pointer-events-none transition-opacity duration-500 ${show ? 'opacity-100' : 'opacity-0'}`}
       aria-hidden="true"
     >
-      <div className="flex items-center justify-center w-10 h-10 rounded-full bg-[#04244f]/85 border border-gold/30 backdrop-blur-md shadow-lg shadow-black/30 animate-bounce-soft">
+      <div className="flex items-center justify-center w-10 h-10 rounded-full bg-[#04244f] border border-gold/30 shadow-lg shadow-black/30 animate-bounce-soft">
         <svg className="w-5 h-5 text-gold" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.4} d="M19 9l-7 7-7-7" />
         </svg>
@@ -625,7 +625,7 @@ export default function MenuPage({ params }: { params: { type: string } }) {
         {/* View tabs */}
         <nav
           aria-label="Carta"
-          className="mt-6 mx-auto max-w-md grid gap-1 rounded-2xl bg-white/[0.06] p-1 border border-white/[0.12] backdrop-blur-xl animate-fade-in-up"
+          className="mt-6 mx-auto max-w-md grid gap-1 rounded-2xl bg-white/[0.06] p-1 border border-white/[0.12] animate-fade-in-up"
           style={{ gridTemplateColumns: `repeat(${tabs.length}, minmax(0, 1fr))`, animationDelay: '0.7s' }}
         >
           {tabs.map((tab) => {
@@ -670,7 +670,7 @@ export default function MenuPage({ params }: { params: { type: string } }) {
 
       {/* ─── Sticky section nav ─── */}
       {menu && navItems.length > 1 && (
-        <nav className="sticky top-0 z-40 bg-[#021530]/90 backdrop-blur-2xl border-y border-white/[0.07]" aria-label="Secciones">
+        <nav className="sticky top-0 z-40 bg-[#021530] border-y border-white/[0.07] shadow-[0_8px_24px_-12px_rgba(0,0,0,0.6)]" aria-label="Secciones">
           <div ref={navRef} className="overflow-x-auto scrollbar-hide">
             <div className="flex gap-1.5 w-max mx-auto px-4 py-2.5">
               {navItems.map((n) => {
