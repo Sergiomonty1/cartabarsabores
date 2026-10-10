@@ -490,7 +490,21 @@ function PasscodeGate({ onUnlock }: { onUnlock: () => void }) {
   )
 }
 
-function ResetModal({ onClose, onConfirm, copyDate }: { onClose: () => void; onConfirm: () => void; copyDate: string | null }) {
+function PasswordModal({
+  title,
+  children,
+  confirmLabel,
+  danger,
+  onClose,
+  onConfirm,
+}: {
+  title: string
+  children: React.ReactNode
+  confirmLabel: string
+  danger?: boolean
+  onClose: () => void
+  onConfirm: () => void
+}) {
   const [pw, setPw] = useState('')
   const [error, setError] = useState(0)
 
@@ -511,19 +525,25 @@ function ResetModal({ onClose, onConfirm, copyDate }: { onClose: () => void; onC
   return (
     <div className="fixed inset-0 z-[70] flex items-end sm:items-center justify-center p-4" role="dialog" aria-modal="true">
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm animate-fade-in" onClick={onClose} />
-      <div key={error} className={`relative w-full max-w-sm rounded-3xl bg-[#04244f] border border-red-400/25 p-6 shadow-2xl ${error ? 'animate-shake' : 'animate-modal-pop'}`}>
-        <div className="w-11 h-11 rounded-full bg-red-500/15 border border-red-400/30 flex items-center justify-center mb-4">
-          <svg className="w-5 h-5 text-red-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+      <div
+        key={error}
+        className={`relative w-full max-w-sm rounded-3xl bg-[#04244f] border p-6 shadow-2xl ${danger ? 'border-red-400/25' : 'border-gold/25'} ${
+          error ? 'animate-shake' : 'animate-modal-pop'
+        }`}
+      >
+        <div
+          className={`w-11 h-11 rounded-full flex items-center justify-center mb-4 border ${
+            danger ? 'bg-red-500/15 border-red-400/30 text-red-300' : 'bg-gold/15 border-gold/30 text-gold'
+          }`}
+        >
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+            <rect x="5" y="11" width="14" height="10" rx="2" strokeWidth={2} />
+            <path strokeLinecap="round" strokeWidth={2} d="M8 11V8a4 4 0 118 0v3" />
           </svg>
         </div>
-        <h3 className="font-display text-2xl font-semibold text-white">Restablecer la copia guardada</h3>
-        <p className="text-sm text-white/55 mt-2 leading-relaxed">
-          Se sustituirán todos los platos, precios, alérgenos y vinos por la copia guardada
-          {copyDate ? <> del <span className="text-white">{copyDate}</span></> : ' (no hay copia: se usará la carta de fábrica)'}.
-          No se publica nada hasta que pulses <span className="text-white font-semibold">Guardar</span>.
-        </p>
-        <label className={`${labelCls} mt-5`}>Contraseña de restablecimiento</label>
+        <h3 className="font-display text-2xl font-semibold text-white">{title}</h3>
+        <div className="text-sm text-white/55 mt-2 leading-relaxed">{children}</div>
+        <label className={`${labelCls} mt-5`}>Contraseña</label>
         <input
           type="password"
           inputMode="numeric"
@@ -544,9 +564,13 @@ function ResetModal({ onClose, onConfirm, copyDate }: { onClose: () => void; onC
             type="button"
             onClick={submit}
             disabled={!pw}
-            className="flex-1 py-3 rounded-xl bg-red-500/90 hover:bg-red-500 text-white text-sm font-bold transition disabled:opacity-40"
+            className={
+              danger
+                ? 'flex-1 py-3 rounded-xl bg-red-500/90 hover:bg-red-500 text-white text-sm font-bold transition disabled:opacity-40'
+                : `flex-1 py-3 text-sm ${goldBtn}`
+            }
           >
-            Restablecer
+            {confirmLabel}
           </button>
         </div>
       </div>
@@ -573,11 +597,11 @@ export default function AdminPage() {
   const [trCats, setTrCats] = useState<string[]>([])
   const [editing, setEditing] = useState<Editing>(null)
   const [advanced, setAdvanced] = useState(false)
-  const [resetOpen, setResetOpen] = useState(false)
-  const [resetNotice, setResetNotice] = useState(false)
+  const [pwAction, setPwAction] = useState<'reset' | 'factory' | null>(null)
+  const [notice, setNotice] = useState('')
   const [visits, setVisits] = useState<{ total: number; today: number }>({ total: 0, today: 0 })
-  const [copySavedAt, setCopySavedAt] = useState<string | null>(null)
-  const [copyMsg, setCopyMsg] = useState('')
+  const [factorySavedAt, setFactorySavedAt] = useState<string | null>(null)
+  const [factoryMsg, setFactoryMsg] = useState('')
 
   const dirty = !!menu && loadState === 'ready' && JSON.stringify(menu) !== snapshot
 
@@ -610,7 +634,7 @@ export default function AdminPage() {
   useEffect(() => {
     if (!authed) return
     load()
-    menuService.fetchInitialMenu().then((init) => setCopySavedAt(init?.updatedAt ?? null))
+    menuService.fetchInitialMenu().then((init) => setFactorySavedAt(init?.updatedAt ?? null))
     const unsub = menuService.subscribeVisits(setVisits)
     return () => unsub()
   }, [authed, load])
@@ -645,7 +669,7 @@ export default function AdminPage() {
       setMenu(next)
       setSnapshot(JSON.stringify(next))
       setSaved(true)
-      setResetNotice(false)
+      setNotice('')
       setTimeout(() => setSaved(false), 2500)
     } catch (err: any) {
       console.error('Save error:', err?.code, err?.message, err)
@@ -666,7 +690,7 @@ export default function AdminPage() {
     const onKey = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 's') {
         e.preventDefault()
-        if (dirty) save()
+        save()
       }
     }
     window.addEventListener('beforeunload', beforeUnload)
@@ -803,33 +827,42 @@ export default function AdminPage() {
     setEditing(null)
   }
 
+  /** Restablecer: vuelve a poner la carta de fábrica y la publica al momento. */
   const confirmReset = async () => {
-    setResetOpen(false)
+    setPwAction(null)
+    setSaving(true)
     try {
       const target = normalize(await menuService.fetchResetTarget())
-      setMenu(target)
-      setResetNotice(true)
-      setAdvanced(false)
+      const updatedAt = await menuService.saveMenu(target)
+      const next: MenuData = JSON.parse(JSON.stringify({ ...target, updatedAt }))
+      setMenu(next)
+      setSnapshot(JSON.stringify(next))
       setEditing(null)
+      setAdvanced(false)
+      setNotice('Carta de fábrica restablecida y publicada.')
+      setTimeout(() => setNotice(''), 8000)
       window.scrollTo({ top: 0, behavior: 'smooth' })
-    } catch {
-      setSaveError('No se ha podido cargar la copia guardada')
+    } catch (err: any) {
+      setSaveError(err?.code === 'permission-denied' ? 'Sin permisos: revisa las reglas de Firestore' : 'No se ha podido restablecer la carta de fábrica')
       setTimeout(() => setSaveError(''), 6000)
+    } finally {
+      setSaving(false)
     }
   }
 
-  const saveCopy = async () => {
+  /** Guardar carta de fábrica: la carta guardada ahora pasa a ser la que pone «Restablecer». */
+  const confirmSaveFactory = async () => {
+    setPwAction(null)
     if (!menu) return
-    if (!confirm('¿Guardar la carta tal y como está ahora como copia de seguridad? Sustituye a la copia anterior.')) return
-    setCopyMsg('Guardando copia…')
+    setFactoryMsg('Guardando carta de fábrica…')
     try {
       await menuService.saveInitialMenu(menu)
-      setCopySavedAt(new Date().toISOString())
-      setCopyMsg('✓ Copia guardada')
+      setFactorySavedAt(new Date().toISOString())
+      setFactoryMsg('✓ Guardada como carta de fábrica')
     } catch (err: any) {
-      setCopyMsg(err?.code === 'permission-denied' ? 'Sin permisos de Firestore' : 'Error al guardar la copia')
+      setFactoryMsg(err?.code === 'permission-denied' ? 'Sin permisos de Firestore' : 'Error al guardar la carta de fábrica')
     }
-    setTimeout(() => setCopyMsg(''), 4000)
+    setTimeout(() => setFactoryMsg(''), 5000)
   }
 
   const fmtDate = (iso: string | null) =>
@@ -865,7 +898,21 @@ export default function AdminPage() {
   return (
     <div className="min-h-screen bg-[#021530] text-white pb-40 relative">
       <GradientOrbs />
-      {resetOpen && <ResetModal onClose={() => setResetOpen(false)} onConfirm={confirmReset} copyDate={fmtDate(copySavedAt)} />}
+      {pwAction === 'factory' && (
+        <PasswordModal title="Guardar carta de fábrica" confirmLabel="Guardar" onClose={() => setPwAction(null)} onConfirm={confirmSaveFactory}>
+          La carta que tienes guardada ahora pasará a ser la <span className="text-white">carta de fábrica</span>: la que se pone
+          al pulsar «Restablecer».
+          {factorySavedAt && <> Sustituye a la guardada el <span className="text-white">{fmtDate(factorySavedAt)}</span>.</>}
+        </PasswordModal>
+      )}
+      {pwAction === 'reset' && (
+        <PasswordModal title="Restablecer carta de fábrica" confirmLabel="Restablecer" danger onClose={() => setPwAction(null)} onConfirm={confirmReset}>
+          Se cambiará toda la carta (platos, precios, alérgenos y vinos) por la carta de fábrica
+          {factorySavedAt ? <> guardada el <span className="text-white">{fmtDate(factorySavedAt)}</span></> : ' que viene con la web'} y
+          se <span className="text-white font-semibold">publicará al momento</span>.
+          {dirty && <> Los cambios que no hayas guardado se perderán.</>}
+        </PasswordModal>
+      )}
 
       {/* ─── header ─── */}
       <header className="sticky top-0 z-50 bg-[#021530]/95 backdrop-blur-xl border-b border-white/[0.07]">
@@ -884,24 +931,18 @@ export default function AdminPage() {
             href="/menu/medias"
             target="_blank"
             rel="noreferrer"
-            className="hidden sm:inline-flex text-xs text-white/50 hover:text-white px-3 py-2 rounded-lg hover:bg-white/[0.06] transition"
+            className="inline-flex items-center text-xs font-semibold text-gold-soft/90 hover:text-gold px-3 py-2 rounded-xl border border-gold/25 hover:bg-gold/10 transition"
           >
             Ver carta ↗
           </a>
-          <button onClick={save} disabled={!dirty || saving} className={`${goldBtn} px-4 py-2 text-sm`}>
-            {saving ? 'Guardando…' : 'Guardar'}
-          </button>
         </div>
       </header>
 
       <main className="relative z-10 max-w-2xl mx-auto px-4 pt-5 space-y-5">
-        {resetNotice && (
-          <div className="rounded-2xl border border-amber-300/30 bg-amber-300/[0.08] px-4 py-3 flex items-start gap-3 animate-fade-in">
+        {notice && (
+          <div className="rounded-2xl border border-emerald-300/30 bg-emerald-400/[0.08] px-4 py-3 flex items-start gap-3 animate-fade-in">
             <span className="text-lg leading-none mt-0.5">↺</span>
-            <p className="text-sm text-amber-100/90 flex-1">
-              Has cargado la copia guardada. Revísala y pulsa <span className="font-semibold">Guardar</span> para publicarla.
-              Si sales sin guardar, la carta publicada no cambia.
-            </p>
+            <p className="text-sm text-emerald-100/90 flex-1">{notice}</p>
           </div>
         )}
 
@@ -1338,34 +1379,33 @@ export default function AdminPage() {
               {advanced && (
                 <div className="mt-3 space-y-3 animate-fade-in">
                   <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-                    <p className="text-sm font-semibold text-white">Copia de seguridad</p>
+                    <p className="text-sm font-semibold text-white">Carta de fábrica</p>
                     <p className="text-xs text-white/45 mt-1 leading-relaxed">
-                      Guarda la carta tal y como está ahora. Si algún día se estropea, la puedes recuperar con «Restablecer».
+                      Es la carta que se pone al pulsar «Restablecer». Guarda aquí la carta actual cuando esté como quieres
+                      tenerla de base. Las dos opciones piden contraseña.
                     </p>
                     <p className="text-[11px] text-white/35 mt-2">
-                      {copySavedAt ? `Última copia: ${fmtDate(copySavedAt)}` : 'Todavía no hay ninguna copia guardada.'}
+                      {factorySavedAt ? `Carta de fábrica guardada el ${fmtDate(factorySavedAt)}` : 'Aún no has guardado ninguna: se usa la que viene con la web.'}
                     </p>
-                    <button
-                      type="button"
-                      onClick={saveCopy}
-                      className="mt-3 px-4 py-2 rounded-xl border border-gold/40 text-gold-soft text-sm font-semibold hover:bg-gold/10 transition"
-                    >
-                      Guardar copia de la carta actual
-                    </button>
-                    {copyMsg && <p className="text-xs text-gold-soft/80 mt-2">{copyMsg}</p>}
-                  </div>
-                  <div className="rounded-2xl border border-red-400/20 bg-red-500/[0.04] p-4">
-                    <p className="text-sm font-semibold text-red-200">Restablecer la copia guardada</p>
-                    <p className="text-xs text-white/45 mt-1 leading-relaxed">
-                      Sustituye toda la carta por la copia de seguridad. Pide contraseña y no se publica hasta que pulses Guardar.
-                    </p>
-                    <button
-                      type="button"
-                      onClick={() => setResetOpen(true)}
-                      className="mt-3 px-4 py-2 rounded-xl border border-red-400/40 text-red-200 text-sm font-semibold hover:bg-red-500/10 transition"
-                    >
-                      Restablecer…
-                    </button>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setPwAction('factory')}
+                        disabled={dirty}
+                        className="px-4 py-2 rounded-xl border border-gold/40 text-gold-soft text-sm font-semibold hover:bg-gold/10 transition disabled:opacity-35"
+                      >
+                        Guardar carta de fábrica
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setPwAction('reset')}
+                        className="px-4 py-2 rounded-xl border border-red-400/40 text-red-200 text-sm font-semibold hover:bg-red-500/10 transition"
+                      >
+                        Restablecer
+                      </button>
+                    </div>
+                    {dirty && <p className="text-[11px] text-amber-200/80 mt-2">Para guardar la carta de fábrica, pulsa antes «Guardar carta».</p>}
+                    {factoryMsg && <p className="text-xs text-gold-soft/80 mt-2">{factoryMsg}</p>}
                   </div>
                   <div className="flex justify-center">
                     <SmallBtn
@@ -1384,18 +1424,18 @@ export default function AdminPage() {
         )}
       </main>
 
-      {/* ─── floating save bar (only with pending changes) ─── */}
-      {(dirty || saving || saved) && (
+      {/* ─── big save button, always visible ─── */}
+      {menu && loadState === 'ready' && (
         <div className="fixed bottom-0 inset-x-0 z-50 p-4 bg-gradient-to-t from-[#021530] via-[#021530]/90 to-transparent pointer-events-none">
-          <div className="max-w-2xl mx-auto pointer-events-auto animate-slide-up">
+          <div className="max-w-2xl mx-auto pointer-events-auto">
             <button
               onClick={save}
-              disabled={!dirty || saving}
-              className={`w-full py-3.5 text-sm tracking-wide ${
-                saved ? 'rounded-2xl bg-emerald-500 text-white font-bold' : `${goldBtn} rounded-2xl`
+              disabled={saving}
+              className={`w-full py-4 text-base tracking-wide rounded-2xl ${
+                saved ? 'bg-emerald-500 text-white font-bold shadow-lg' : goldBtn
               }`}
             >
-              {saving ? 'Guardando…' : saved ? '✓ Cambios publicados' : 'Guardar y publicar cambios'}
+              {saving ? 'Guardando…' : saved ? '✓ Carta guardada' : dirty ? '● Guardar cambios' : 'Guardar carta'}
             </button>
           </div>
         </div>

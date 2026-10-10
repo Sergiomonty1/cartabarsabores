@@ -18,7 +18,7 @@ npm run dev                  # http://localhost:3000
 ```
 
 La home redirige a `/menu/tapas`. El panel de administración está en `/menu/admin`
-(código de acceso: `2010`; contraseña para restablecer la copia: `7954`; ambos en
+(código de acceso: `2010`; contraseña de la carta de fábrica: `7954`; ambos en
 `app/menu/admin/page.tsx`).
 
 ## Variables de entorno
@@ -41,8 +41,9 @@ porque el SDK de Firebase corre en el cliente.
 Colección `menu`:
 
 - **`data`** — la carta publicada que ven los clientes.
-- **`initial`** — la copia de seguridad guardada desde el admin (*Opciones avanzadas → Guardar
-  copia*); es la que recupera **Restablecer** (pide la contraseña `7954`).
+- **`initial`** — la **carta de fábrica**, guardada desde el admin (*Opciones avanzadas →
+  Guardar carta de fábrica*). **Restablecer** la vuelve a poner y la publica al momento.
+  Las dos acciones piden la contraseña `7954`.
 - **`visits`** — contador de visitas a la carta (una por sesión), visible solo en el admin.
 
 ### Actualizaciones de contenido
@@ -71,7 +72,9 @@ En `/menu/admin` puedes:
 - Añadir traducciones por idioma para platos, categorías y vinos.
 - **Ocultar** (👁) o **borrar** platos, vinos y secciones; añadir una nota bajo el título de una sección.
 - Activar el modo **Día Importante** (solo media ración) y mostrar/ocultar la carta de vinos.
-- En *Opciones avanzadas*: **guardar una copia** de la carta y **restablecerla** (con contraseña).
+- **Guardar carta** (botón grande, siempre abajo): guarda y publica la carta tal como está.
+- En *Opciones avanzadas* (con contraseña): **Guardar carta de fábrica** (la carta guardada pasa a
+  ser la de fábrica) y **Restablecer** (vuelve a poner la carta de fábrica y la publica).
 - Ver las **visitas** de la carta (hoy y total).
 
 > ⚠️ La seguridad real depende de las **reglas de Firestore**. El código de admin (`2010`) y la
