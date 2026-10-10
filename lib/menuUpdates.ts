@@ -11,7 +11,7 @@ import type { MenuData, MenuItem, Translations } from '@/types/menu'
  * Cada cambio comprueba el nombre en español antes de tocar nada, para no pisar
  * cambios hechos a mano desde el admin.
  */
-export const CONTENT_VERSION = 4
+export const CONTENT_VERSION = 5
 
 /* ─── Traducciones revisadas (oct. 2026) ─── */
 
@@ -179,8 +179,29 @@ export function applyContentUpdates(input: MenuData): MenuData {
   const data: MenuData = JSON.parse(JSON.stringify(input))
   if (from < 3) applyV3(data)
   if (from < 4) applyV4(data)
+  if (from < 5) applyV5(data)
   data.contentVersion = CONTENT_VERSION
   return data
+}
+
+const ARROCES_DESCRIPTION = 'Paella hecha al momento para compartir. Cuantos más seáis, más grande la hacemos: para 2, 3, 4, 5, 6 personas…'
+const ARROCES_DESCRIPTION_I18N: Translations = {
+  en: 'Paella cooked to order for sharing. The more of you there are, the bigger we make it: for 2, 3, 4, 5, 6 people…',
+  de: 'Frisch zubereitete Paella zum Teilen. Je mehr Personen, desto größer die Paella: für 2, 3, 4, 5, 6 Personen …',
+  pt: 'Paelha feita na hora para partilhar. Quanto mais forem, maior a fazemos: para 2, 3, 4, 5, 6 pessoas…',
+  fr: 'Paella préparée minute, à partager. Plus vous êtes nombreux, plus elle est grande : pour 2, 3, 4, 5, 6 personnes…',
+}
+
+/** v5 (10/10/2026): arroces mínimo 2 personas, precio por persona y explicación. */
+function applyV5(data: MenuData) {
+  const cat = (data.categories ?? []).find((c) => c.id === 'arroces')
+  if (!cat) return
+  if (cat.minPeople === undefined) cat.minPeople = 2
+  if (cat.pricePerPerson === undefined) cat.pricePerPerson = true
+  if (cat.description === undefined) {
+    cat.description = ARROCES_DESCRIPTION
+    cat.descriptionI18n = { ...ARROCES_DESCRIPTION_I18N }
+  }
 }
 
 /** v4 (10/10/2026): salmón con patatas o ensalada, chipirones a su amiga y dos arroces. */

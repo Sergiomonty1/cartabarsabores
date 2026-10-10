@@ -56,6 +56,8 @@ const ui: Record<Lang, Record<string, string>> = {
     vatIncluded: 'Precios con IVA incluido',
     backToTop: 'Volver arriba',
     close: 'Cerrar',
+    minPeople: 'Mínimo {n} personas',
+    perPerson: '/ pers.',
   },
   en: {
     welcomeTo: 'Welcome to',
@@ -82,6 +84,8 @@ const ui: Record<Lang, Record<string, string>> = {
     vatIncluded: 'Prices include VAT',
     backToTop: 'Back to top',
     close: 'Close',
+    minPeople: 'Minimum {n} people',
+    perPerson: '/ person',
   },
   de: {
     welcomeTo: 'Willkommen bei',
@@ -108,6 +112,8 @@ const ui: Record<Lang, Record<string, string>> = {
     vatIncluded: 'Preise inkl. MwSt.',
     backToTop: 'Nach oben',
     close: 'Schließen',
+    minPeople: 'Mindestens {n} Personen',
+    perPerson: '/ Person',
   },
   pt: {
     welcomeTo: 'Bem-vindo ao',
@@ -134,6 +140,8 @@ const ui: Record<Lang, Record<string, string>> = {
     vatIncluded: 'Preços com IVA incluído',
     backToTop: 'Voltar ao topo',
     close: 'Fechar',
+    minPeople: 'Mínimo {n} pessoas',
+    perPerson: '/ pessoa',
   },
   fr: {
     welcomeTo: 'Bienvenue chez',
@@ -160,6 +168,8 @@ const ui: Record<Lang, Record<string, string>> = {
     vatIncluded: 'Prix TTC',
     backToTop: 'Haut de page',
     close: 'Fermer',
+    minPeople: 'Minimum {n} personnes',
+    perPerson: '/ pers.',
   },
 }
 

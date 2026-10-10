@@ -654,6 +654,8 @@ export default function AdminPage() {
             nameI18n: cleanTranslations(c.nameI18n),
             note: c.note?.trim() ?? '',
             noteI18n: c.note?.trim() ? cleanTranslations(c.noteI18n) : undefined,
+            description: c.description?.trim() ?? '',
+            descriptionI18n: c.description?.trim() ? cleanTranslations(c.descriptionI18n) : undefined,
             items: c.items
               .filter((it) => it.name.trim())
               .map((it) => ({ ...it, name: it.name.trim(), nameI18n: cleanTranslations(it.nameI18n) })),
@@ -1095,10 +1097,40 @@ export default function AdminPage() {
                             <input
                               value={cat.note ?? ''}
                               onChange={(e) => updateCat(cat.id, { note: e.target.value })}
-                              placeholder="Nota bajo el título (opcional)"
+                              placeholder="Etiqueta bajo el título (opcional). Ej.: Solo los fines de semana"
                               className={`${inputCls} py-2 text-xs italic`}
                               aria-label="Nota bajo el título"
                             />
+                            <textarea
+                              value={cat.description ?? ''}
+                              onChange={(e) => updateCat(cat.id, { description: e.target.value })}
+                              placeholder="Explicación bajo el título (opcional)"
+                              rows={3}
+                              className={`${inputCls} mt-2 py-2 text-xs leading-relaxed resize-none`}
+                              aria-label="Explicación de la sección"
+                            />
+                            <div className="mt-2 grid grid-cols-2 gap-2">
+                              <label className="flex items-center justify-between gap-2 rounded-xl bg-white/[0.03] border border-white/[0.06] px-3 py-2">
+                                <span className="text-xs text-white/70">Mínimo personas</span>
+                                <input
+                                  type="number"
+                                  inputMode="numeric"
+                                  min={0}
+                                  max={20}
+                                  value={cat.minPeople ?? ''}
+                                  onChange={(e) => {
+                                    const n = parseInt(e.target.value, 10)
+                                    updateCat(cat.id, { minPeople: Number.isFinite(n) && n > 1 ? n : 0 })
+                                  }}
+                                  placeholder="—"
+                                  className="w-12 rounded-lg bg-white/[0.06] border border-white/10 px-1 py-1 text-center text-sm text-white focus:outline-none focus:border-gold/60"
+                                />
+                              </label>
+                              <div className="flex items-center justify-between gap-2 rounded-xl bg-white/[0.03] border border-white/[0.06] px-3 py-2">
+                                <span className="text-xs text-white/70">Precio por persona</span>
+                                <Switch checked={!!cat.pricePerPerson} label="Precio por persona" onChange={(v) => updateCat(cat.id, { pricePerPerson: v })} />
+                              </div>
+                            </div>
                           </div>
 
                           {trCats.includes(cat.id) && (
@@ -1109,8 +1141,14 @@ export default function AdminPage() {
                               </div>
                               {!!cat.note?.trim() && (
                                 <div>
-                                  <p className={labelCls}>Nota «{cat.note}»</p>
+                                  <p className={labelCls}>Etiqueta «{cat.note}»</p>
                                   <TranslationFields value={cat.noteI18n} onChange={(noteI18n) => updateCat(cat.id, { noteI18n })} />
+                                </div>
+                              )}
+                              {!!cat.description?.trim() && (
+                                <div>
+                                  <p className={labelCls}>Explicación</p>
+                                  <TranslationFields value={cat.descriptionI18n} onChange={(descriptionI18n) => updateCat(cat.id, { descriptionI18n })} />
                                 </div>
                               )}
                             </div>

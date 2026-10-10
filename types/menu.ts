@@ -36,6 +36,13 @@ export interface MenuCategory {
   /** Línea corta bajo el título de la sección (p. ej. "Solo los fines de semana"). */
   note?: string
   noteI18n?: Translations
+  /** Texto corto bajo el título (p. ej. cómo funcionan los arroces). */
+  description?: string
+  descriptionI18n?: Translations
+  /** Mínimo de personas para pedir (se muestra como etiqueta). */
+  minPeople?: number
+  /** Si es true, los precios de la sección se muestran «por persona». */
+  pricePerPerson?: boolean
   items: MenuItem[]
 }
 

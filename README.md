@@ -70,7 +70,9 @@ En `/menu/admin` puedes:
 - Editar nombre del bar, platos, precios (tapa/media), orden y alérgenos.
 - Gestionar la carta de **vinos** (secciones, vinos, precios copa/botella, año).
 - Añadir traducciones por idioma para platos, categorías y vinos.
-- **Ocultar** (👁) o **borrar** platos, vinos y secciones; añadir una nota bajo el título de una sección.
+- **Ocultar** (👁) o **borrar** platos, vinos y secciones.
+- Por sección: etiqueta bajo el título, explicación, mínimo de personas y precio «por persona»
+  (lo usan los Arroces: solo fines de semana, mínimo 2 personas).
 - Activar el modo **Día Importante** (solo media ración) y mostrar/ocultar la carta de vinos.
 - **Guardar carta** (botón grande, siempre abajo): guarda y publica la carta tal como está.
 - En *Opciones avanzadas* (con contraseña): **Guardar carta de fábrica** (la carta guardada pasa a

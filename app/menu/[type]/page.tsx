@@ -245,8 +245,9 @@ function AllergenChips({ allergens, lang }: { allergens?: string[]; lang: Lang }
 }
 
 /* ─── Dish row ─── */
-function DishRow({ item, priceMode, showAllergens, lang, delay, visible }: {
+function DishRow({ item, priceMode, showAllergens, lang, delay, visible, perPerson }: {
   item: MenuItem
+  perPerson?: boolean
   priceMode: 'tapa' | 'media'
   showAllergens: boolean
   lang: Lang
@@ -265,7 +266,10 @@ function DishRow({ item, priceMode, showAllergens, lang, delay, visible }: {
         <span className="min-w-0 max-w-[74%] text-[0.95rem] text-white/85 leading-snug group-hover:text-white transition-colors">{name}</span>
         <span className="flex-1 border-b border-dotted border-white/[0.12] min-w-[1rem] mb-[0.32rem] group-hover:border-gold/35 transition-colors" />
         {price > 0 ? (
-          <span className="text-gold-soft text-sm font-semibold tracking-wide whitespace-nowrap tabular-nums leading-snug">{fmtEUR(price, lang)}</span>
+          <span className="text-gold-soft text-sm font-semibold tracking-wide whitespace-nowrap tabular-nums leading-snug">
+            {fmtEUR(price, lang)}
+            {perPerson && <span className="ml-1 text-[10.5px] font-medium text-gold-soft/60">{t(lang, 'perPerson')}</span>}
+          </span>
         ) : (
           <span className="text-white/40 text-xs italic whitespace-nowrap leading-snug">{t(lang, 'ask')}</span>
         )}
@@ -277,7 +281,15 @@ function DishRow({ item, priceMode, showAllergens, lang, delay, visible }: {
 }
 
 /* ─── Section heading ─── */
-function SectionHeading({ index, icon, title, note, visible }: { index: number; icon?: string; title: string; note?: string; visible: boolean }) {
+function SectionHeading({ index, icon, title, note, people, description, visible }: {
+  index: number
+  icon?: string
+  title: string
+  note?: string
+  people?: string
+  description?: string
+  visible: boolean
+}) {
   return (
     <div className={`mb-4 transition-all duration-500 ${visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-3'}`}>
       <div className="flex items-center gap-3">
@@ -286,15 +298,29 @@ function SectionHeading({ index, icon, title, note, visible }: { index: number; 
         <h2 className="text-[1.65rem] leading-none font-display font-semibold text-white tracking-tight">{title}</h2>
         <div className={`flex-1 h-px bg-gradient-to-r from-gold/35 to-transparent transition-transform duration-700 origin-left ${visible ? 'scale-x-100' : 'scale-x-0'}`} />
       </div>
-      {note && (
-        <p className="mt-2 ml-9 inline-flex items-center gap-1.5 rounded-full border border-gold/25 bg-gold/[0.08] px-3 py-1 text-[11px] font-semibold tracking-wide text-gold-soft">
-          <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-            <rect x="4" y="5" width="16" height="15" rx="2" strokeWidth={2} />
-            <path strokeLinecap="round" strokeWidth={2} d="M4 10h16M9 3v4M15 3v4" />
-          </svg>
-          {note}
-        </p>
+      {(note || people) && (
+        <div className="mt-2 ml-9 flex flex-wrap gap-1.5">
+          {note && (
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-gold/25 bg-gold/[0.08] px-3 py-1 text-[11px] font-semibold tracking-wide text-gold-soft">
+              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                <rect x="4" y="5" width="16" height="15" rx="2" strokeWidth={2} />
+                <path strokeLinecap="round" strokeWidth={2} d="M4 10h16M9 3v4M15 3v4" />
+              </svg>
+              {note}
+            </span>
+          )}
+          {people && (
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-gold/25 bg-gold/[0.08] px-3 py-1 text-[11px] font-semibold tracking-wide text-gold-soft">
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                <circle cx="9" cy="8" r="3" strokeWidth={2} />
+                <path strokeLinecap="round" strokeWidth={2} d="M3.5 19c.6-3 2.8-5 5.5-5s4.9 2 5.5 5M16 5.5a3 3 0 010 5.5M17.5 14c1.7.6 2.7 2.4 3 5" />
+              </svg>
+              {people}
+            </span>
+          )}
+        </div>
       )}
+      {description && <p className="mt-2.5 ml-9 text-[12.5px] leading-relaxed text-white/55">{description}</p>}
     </div>
   )
 }
@@ -317,14 +343,31 @@ const CategorySection = React.memo(function CategorySection({
 
   return (
     <section ref={ref} id={`cat-${cat.id}`} data-section className="pt-8 scroll-mt-16">
-      <SectionHeading index={index} icon={cat.icon} title={tName(lang, cat.name, cat.nameI18n)} note={noteOf(lang, cat)} visible={visible} />
+      <SectionHeading
+        index={index}
+        icon={cat.icon}
+        title={tName(lang, cat.name, cat.nameI18n)}
+        note={noteOf(lang, cat)}
+        people={cat.minPeople && cat.minPeople > 1 ? t(lang, 'minPeople').replace('{n}', String(cat.minPeople)) : undefined}
+        description={cat.description?.trim() ? tName(lang, cat.description, cat.descriptionI18n) : undefined}
+        visible={visible}
+      />
       {showAllergens && noAllergenData && (
         <p className="-mt-1 mb-3 ml-9 text-[11px] italic text-white/45">{t(lang, 'askAllergens')}</p>
       )}
       <div className={`rounded-2xl bg-white/[0.025] border border-white/[0.06] p-1 transition-all duration-500 ${visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
         <div className="divide-y divide-white/[0.045]">
           {items.map((item, i) => (
-            <DishRow key={item.id} item={item} priceMode={priceMode} showAllergens={showAllergens && !noAllergenData} lang={lang} delay={i * 30} visible={visible} />
+            <DishRow
+              key={item.id}
+              item={item}
+              priceMode={priceMode}
+              perPerson={!!cat.pricePerPerson}
+              showAllergens={showAllergens && !noAllergenData}
+              lang={lang}
+              delay={i * 30}
+              visible={visible}
+            />
           ))}
         </div>
       </div>
