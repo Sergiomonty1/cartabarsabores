@@ -9,6 +9,17 @@ export type Translations = {
   fr?: string
 }
 
+/** Sabor / variedad de un plato (p. ej. los tipos de croqueta). Comparte el precio del plato. */
+export interface MenuVariant {
+  id: string
+  name: string
+  nameI18n?: Translations
+  /** Si es true, el sabor no se muestra (p. ej. cuando no hay). */
+  hidden?: boolean
+  /** Alérgenos que añade este sabor, además de los del plato. */
+  allergens?: string[]
+}
+
 export interface MenuItem {
   id: string
   name: string
@@ -23,6 +34,8 @@ export interface MenuItem {
   allergens?: string[]
   /** Si es true, el plato no se muestra en la carta pública. */
   hidden?: boolean
+  /** Sabores / variedades que se listan bajo el nombre (mismo precio). */
+  variants?: MenuVariant[]
 }
 
 export interface MenuCategory {

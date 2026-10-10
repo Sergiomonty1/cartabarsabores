@@ -1,4 +1,4 @@
-import type { MenuData, MenuItem, Translations } from '@/types/menu'
+import type { MenuData, MenuItem, MenuVariant, Translations } from '@/types/menu'
 
 /**
  * Actualizaciones de contenido de la carta.
@@ -11,7 +11,7 @@ import type { MenuData, MenuItem, Translations } from '@/types/menu'
  * Cada cambio comprueba el nombre en español antes de tocar nada, para no pisar
  * cambios hechos a mano desde el admin.
  */
-export const CONTENT_VERSION = 6
+export const CONTENT_VERSION = 7
 
 /* ─── Traducciones revisadas (oct. 2026) ─── */
 
@@ -181,8 +181,56 @@ export function applyContentUpdates(input: MenuData): MenuData {
   if (from < 4) applyV4(data)
   if (from < 5) applyV5(data)
   if (from < 6) applyV6(data)
+  if (from < 7) applyV7(data)
   data.contentVersion = CONTENT_VERSION
   return data
+}
+
+/** v7 (10/10/2026): las 4 croquetas pasan a ser un solo plato «Croquetas» con sus sabores. */
+const CROQUETAS_I18N: Translations = { en: 'Croquettes', de: 'Kroketten', pt: 'Croquetes', fr: 'Croquettes' }
+const CROQUETA_SABORES: { from: string; fullName: string; variant: MenuVariant }[] = [
+  {
+    from: 'e5',
+    fullName: 'Croquetas de carrillada',
+    variant: { id: 'carrillada', name: 'Carrillada', nameI18n: { en: 'Braised pork cheek', de: 'Geschmorte Schweinebäckchen', pt: 'Bochecha de porco', fr: 'Joue de porc braisée' } },
+  },
+  {
+    from: 'e5b',
+    fullName: 'Croquetas de jamón',
+    variant: { id: 'jamon', name: 'Jamón', nameI18n: { en: 'Cured ham', de: 'Schinken', pt: 'Presunto', fr: 'Jambon cru' } },
+  },
+  {
+    from: 'e5c',
+    fullName: 'Croquetas de puchero',
+    variant: { id: 'puchero', name: 'Puchero', nameI18n: { en: 'Puchero (Andalusian stew)', de: 'Puchero (andalusischer Eintopf)', pt: 'Puchero (cozido andaluz)', fr: 'Puchero (pot-au-feu andalou)' } },
+  },
+  {
+    from: 'e5d',
+    fullName: 'Croquetas de gambas',
+    variant: { id: 'gambas', name: 'Gambas', nameI18n: { en: 'Prawn', de: 'Garnelen', pt: 'Camarão', fr: 'Crevettes' }, allergens: ['crustaceo'] },
+  },
+]
+
+function applyV7(data: MenuData) {
+  const cat = (data.categories ?? []).find((c) => c.id === 'entrantes')
+  if (!cat) return
+  const items = [...(cat.items ?? [])].sort(byOrder)
+  const e5 = items.find((i) => i.id === 'e5' && i.name === 'Croquetas de carrillada')
+  if (!e5 || e5.variants?.length) return
+  const variants: MenuVariant[] = []
+  for (const s of CROQUETA_SABORES) {
+    const it: MenuItem | undefined = s.from === 'e5' ? e5 : items.find((i) => i.id === s.from && i.name === s.fullName)
+    if (!it) continue
+    variants.push({ ...s.variant, nameI18n: { ...s.variant.nameI18n }, ...(it.hidden ? { hidden: true } : {}) })
+    if (it !== e5) items.splice(items.indexOf(it), 1)
+  }
+  e5.name = 'Croquetas'
+  e5.nameI18n = { ...CROQUETAS_I18N }
+  e5.variants = variants
+  // El plato se ve mientras haya algún sabor visible
+  if (variants.some((v) => !v.hidden)) delete e5.hidden
+  else e5.hidden = true
+  cat.items = items.map((it, i) => ({ ...it, order: i }))
 }
 
 /** Frase que se añadió en la v5 y se quitó en la v6 (solo para reconocerla). */

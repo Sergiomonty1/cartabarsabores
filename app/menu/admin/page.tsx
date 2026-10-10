@@ -2,9 +2,9 @@
 
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import Image from 'next/image'
-import type { MenuData, MenuCategory, MenuItem, WineCategory, WineItem, Translations } from '@/types/menu'
+import type { MenuData, MenuCategory, MenuItem, MenuVariant, WineCategory, WineItem, Translations } from '@/types/menu'
 import { menuService } from '@/lib/menuService'
-import { ALLERGENS, ALLERGEN_SRC } from '@/lib/allergens'
+import { ALLERGENS, ALLERGEN_SRC, dishAllergens } from '@/lib/allergens'
 import { I18N_LANGS, tAllergen } from '@/lib/translations'
 import { GradientOrbs, LogoMark } from '@/components/Brand'
 
@@ -315,6 +315,77 @@ function AllergenPicker({ value, onChange }: { value?: string[]; onChange: (v: s
 
 /* ──────────────────────────── editors ──────────────────────────── */
 
+/* Sabores / variedades de un plato (mismo precio), p. ej. los tipos de croqueta */
+function VariantsEditor({ value, onChange }: { value?: MenuVariant[]; onChange: (v: MenuVariant[]) => void }) {
+  const list = value ?? []
+  const [openId, setOpenId] = useState<string | null>(null)
+  const update = (id: string, patch: Partial<MenuVariant>) => onChange(list.map((v) => (v.id === id ? { ...v, ...patch } : v)))
+  const remove = (v: MenuVariant) => {
+    if (v.name.trim() && !confirm(`¿Quitar el sabor «${v.name}»? (si solo no hay hoy, mejor ocúltalo con el ojo)`)) return
+    onChange(list.filter((x) => x.id !== v.id))
+  }
+  const add = () => {
+    const id = uid('sabor')
+    onChange([...list, { id, name: '' }])
+  }
+
+  return (
+    <div>
+      <label className={labelCls}>Sabores / variedades (opcional)</label>
+      <p className="text-[11px] text-white/35 -mt-0.5 mb-2">
+        Salen debajo del nombre, separados por «·», con el mismo precio. Con el ojo los quitas o pones según haya.
+      </p>
+      <div className="space-y-1.5">
+        {list.map((v) => {
+          const open = openId === v.id
+          const n = translatedCount(v.nameI18n)
+          return (
+            <div key={v.id} className="rounded-xl border border-white/[0.07] bg-white/[0.02]">
+              <div className="flex items-center gap-1 pl-1 pr-1 py-1">
+                <EyeButton hidden={v.hidden} onToggle={() => update(v.id, { hidden: !v.hidden })} />
+                <input
+                  value={v.name}
+                  autoFocus={!v.name}
+                  onChange={(e) => update(v.id, { name: e.target.value })}
+                  placeholder="Ej. Jamón"
+                  className={`${inputCls} py-2 ${v.hidden ? 'opacity-45' : ''}`}
+                />
+                <button
+                  type="button"
+                  onClick={() => setOpenId(open ? null : v.id)}
+                  className={`flex items-center gap-1 px-2 py-2 text-[11px] font-semibold rounded-lg transition whitespace-nowrap ${
+                    n === 4 ? 'text-emerald-300/80' : 'text-amber-200/80'
+                  } hover:bg-white/[0.06]`}
+                  aria-expanded={open}
+                  title="Traducciones y alérgenos del sabor"
+                >
+                  🌍 {n}/4
+                  <Chevron open={open} className="w-3 h-3 text-white/40" />
+                </button>
+                <button type="button" onClick={() => remove(v)} aria-label="Quitar sabor" className="p-2 text-red-300/50 hover:text-red-200 transition">
+                  ✕
+                </button>
+              </div>
+              {open && (
+                <div className="px-3 pb-3 pt-1 space-y-3 animate-fade-in">
+                  <TranslationFields value={v.nameI18n} onChange={(nameI18n) => update(v.id, { nameI18n })} />
+                  <div>
+                    <p className={labelCls}>Alérgenos que añade este sabor</p>
+                    <AllergenPicker value={v.allergens} onChange={(allergens) => update(v.id, { allergens })} />
+                  </div>
+                </div>
+              )}
+            </div>
+          )
+        })}
+      </div>
+      <button type="button" onClick={add} className="mt-2 text-sm text-gold/70 hover:text-gold transition">
+        + Añadir sabor
+      </button>
+    </div>
+  )
+}
+
 function DishEditor({
   item,
   onChange,
@@ -372,8 +443,12 @@ function DishEditor({
       </div>
 
       <div>
-        <label className={labelCls}>Alérgenos</label>
+        <label className={labelCls}>{item.variants?.length ? 'Alérgenos comunes a todos los sabores' : 'Alérgenos'}</label>
         <AllergenPicker value={item.allergens} onChange={(allergens) => onChange({ allergens })} />
+      </div>
+
+      <div>
+        <VariantsEditor value={item.variants} onChange={(variants) => onChange({ variants })} />
       </div>
 
       <TranslationsToggle
@@ -658,7 +733,16 @@ export default function AdminPage() {
             descriptionI18n: c.description?.trim() ? cleanTranslations(c.descriptionI18n) : undefined,
             items: c.items
               .filter((it) => it.name.trim())
-              .map((it) => ({ ...it, name: it.name.trim(), nameI18n: cleanTranslations(it.nameI18n) })),
+              .map((it) => ({
+                ...it,
+                name: it.name.trim(),
+                nameI18n: cleanTranslations(it.nameI18n),
+                variants: it.variants?.length
+                  ? it.variants
+                      .filter((v) => v.name.trim())
+                      .map((v) => ({ ...v, name: v.name.trim(), nameI18n: cleanTranslations(v.nameI18n) }))
+                  : undefined,
+              })),
           })),
         wineCategories: (menu.wineCategories ?? []).map((wc) => ({
           ...wc,
@@ -1184,11 +1268,19 @@ export default function AdminPage() {
                                       >
                                         <span className="flex-1 min-w-0">
                                           <span className="block text-sm text-white/90 leading-snug">{item.name || <em className="text-white/30">Sin nombre</em>}</span>
+                                          {!!item.variants?.length && (
+                                            <span className="block text-xs italic text-gold-soft/75 mt-0.5">
+                                              {item.variants.filter((v) => !v.hidden).map((v) => v.name).join(' · ') || 'Sin sabores visibles'}
+                                              {item.variants.some((v) => v.hidden) && (
+                                                <span className="not-italic text-white/35"> · {item.variants.filter((v) => v.hidden).length} oculto{item.variants.filter((v) => v.hidden).length > 1 ? 's' : ''}</span>
+                                              )}
+                                            </span>
+                                          )}
                                           <span className="flex flex-wrap items-center gap-1 mt-1.5">
                                             {item.hidden && (
                                               <span className="text-[9px] font-bold uppercase tracking-wider text-white/70 bg-white/10 rounded px-1.5 py-0.5 mr-0.5">Oculto</span>
                                             )}
-                                            {(item.allergens ?? []).map((a) =>
+                                            {dishAllergens(item).map((a) =>
                                               ALLERGEN_SRC[a] ? (
                                                 <Image key={a} src={ALLERGEN_SRC[a]} alt={tAllergen('es', a)} title={tAllergen('es', a)} width={15} height={15} className="rounded-full" />
                                               ) : null

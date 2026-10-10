@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import type { MenuData, MenuCategory, MenuItem, WineCategory } from '@/types/menu'
 import { menuService } from '@/lib/menuService'
-import { ALLERGENS, ALLERGEN_SRC } from '@/lib/allergens'
+import { ALLERGENS, ALLERGEN_SRC, dishAllergens } from '@/lib/allergens'
 import { type Lang, LANGUAGES, LOCALES, isLang, t, tName, tAllergen, fmtEUR, detectBrowserLang } from '@/lib/translations'
 import { GoldenDivider, GradientOrbs, LogoMark } from '@/components/Brand'
 
@@ -257,6 +257,7 @@ function DishRow({ item, priceMode, showAllergens, lang, delay, visible, perPers
   const price = item.samePrice || priceMode === 'tapa' ? item.priceTapa : item.priceMedia
   const name = tName(lang, item.name, item.nameI18n)
   const showOriginal = lang !== 'es' && name !== item.name
+  const variants = (item.variants ?? []).filter((v) => !v.hidden && v.name?.trim())
   return (
     <div
       className={`group px-4 py-3.5 rounded-xl transition-colors duration-200 hover:bg-gold/[0.06] ${visible ? 'animate-fade-in-item' : 'opacity-0'}`}
@@ -274,8 +275,13 @@ function DishRow({ item, priceMode, showAllergens, lang, delay, visible, perPers
           <span className="text-white/40 text-xs italic whitespace-nowrap leading-snug">{t(lang, 'ask')}</span>
         )}
       </div>
+      {variants.length > 0 && (
+        <p className="mt-1 text-[13px] leading-snug italic font-display tracking-wide text-gold-soft/80">
+          {variants.map((v) => tName(lang, v.name, v.nameI18n)).join(' · ')}
+        </p>
+      )}
       {showOriginal && <p className="text-[11px] italic text-white/35 mt-0.5 font-display tracking-wide">{item.name}</p>}
-      {showAllergens && <AllergenChips allergens={item.allergens} lang={lang} />}
+      {showAllergens && <AllergenChips allergens={dishAllergens(item)} lang={lang} />}
     </div>
   )
 }
@@ -339,7 +345,7 @@ const CategorySection = React.memo(function CategorySection({
   const { ref, visible } = useReveal<HTMLElement>()
   const items = useMemo(() => cat.items.filter((it) => it.name?.trim() && !it.hidden).sort(byOrder), [cat.items])
   if (!items.length) return null
-  const noAllergenData = items.every((it) => !it.allergens?.length)
+  const noAllergenData = items.every((it) => !dishAllergens(it).length)
 
   return (
     <section ref={ref} id={`cat-${cat.id}`} data-section className="pt-8 scroll-mt-16">

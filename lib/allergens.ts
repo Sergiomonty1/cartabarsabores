@@ -34,3 +34,12 @@ export const ALLERGEN_SRC: Record<string, string> = {
 
 /** Lista de alérgenos con su icono, en el orden del selector. */
 export const ALLERGENS: { id: string; src: string }[] = ALLERGEN_KEYS.map((id) => ({ id, src: ALLERGEN_SRC[id] }))
+
+/** Alérgenos de un plato: los suyos + los de los sabores visibles (en el orden del selector). */
+export function dishAllergens(item: { allergens?: string[]; variants?: { hidden?: boolean; allergens?: string[] }[] }): string[] {
+  const all: string[] = [...(item.allergens ?? [])]
+  for (const v of item.variants ?? []) if (!v.hidden) all.push(...(v.allergens ?? []))
+  const known = ALLERGEN_KEYS.filter((k) => all.includes(k)) as string[]
+  const unknown = all.filter((a, i) => !known.includes(a) && all.indexOf(a) === i)
+  return [...known, ...unknown]
+}
