@@ -72,7 +72,7 @@ En `/menu/admin` puedes:
 - Añadir traducciones por idioma para platos, categorías y vinos.
 - **Ocultar** (👁) o **borrar** platos, vinos y secciones.
 - Por sección: etiqueta bajo el título, explicación, mínimo de personas y precio «por persona»
-  (lo usan los Arroces: solo fines de semana, mínimo 2 personas).
+  (los Arroces usan la etiqueta «Solo los fines de semana» y mínimo 2 personas; sin precio → «Consultar»).
 - Activar el modo **Día Importante** (solo media ración) y mostrar/ocultar la carta de vinos.
 - **Guardar carta** (botón grande, siempre abajo): guarda y publica la carta tal como está.
 - En *Opciones avanzadas* (con contraseña): **Guardar carta de fábrica** (la carta guardada pasa a

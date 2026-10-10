@@ -11,7 +11,7 @@ import type { MenuData, MenuItem, Translations } from '@/types/menu'
  * Cada cambio comprueba el nombre en español antes de tocar nada, para no pisar
  * cambios hechos a mano desde el admin.
  */
-export const CONTENT_VERSION = 5
+export const CONTENT_VERSION = 6
 
 /* ─── Traducciones revisadas (oct. 2026) ─── */
 
@@ -180,27 +180,33 @@ export function applyContentUpdates(input: MenuData): MenuData {
   if (from < 3) applyV3(data)
   if (from < 4) applyV4(data)
   if (from < 5) applyV5(data)
+  if (from < 6) applyV6(data)
   data.contentVersion = CONTENT_VERSION
   return data
 }
 
-const ARROCES_DESCRIPTION = 'Paella hecha al momento para compartir. Cuantos más seáis, más grande la hacemos: para 2, 3, 4, 5, 6 personas…'
-const ARROCES_DESCRIPTION_I18N: Translations = {
-  en: 'Paella cooked to order for sharing. The more of you there are, the bigger we make it: for 2, 3, 4, 5, 6 people…',
-  de: 'Frisch zubereitete Paella zum Teilen. Je mehr Personen, desto größer die Paella: für 2, 3, 4, 5, 6 Personen …',
-  pt: 'Paelha feita na hora para partilhar. Quanto mais forem, maior a fazemos: para 2, 3, 4, 5, 6 pessoas…',
-  fr: 'Paella préparée minute, à partager. Plus vous êtes nombreux, plus elle est grande : pour 2, 3, 4, 5, 6 personnes…',
-}
+/** Frase que se añadió en la v5 y se quitó en la v6 (solo para reconocerla). */
+const ARROCES_DESCRIPTION_V5 = 'Paella hecha al momento para compartir. Cuantos más seáis, más grande la hacemos: para 2, 3, 4, 5, 6 personas…'
 
-/** v5 (10/10/2026): arroces mínimo 2 personas, precio por persona y explicación. */
+/** v5 (10/10/2026): arroces mínimo 2 personas. */
 function applyV5(data: MenuData) {
   const cat = (data.categories ?? []).find((c) => c.id === 'arroces')
+  if (cat && cat.minPeople === undefined) cat.minPeople = 2
+}
+
+/** v6 (10/10/2026): arroces sin explicación y sin precio por persona (siempre «Consultar»). */
+function applyV6(data: MenuData) {
+  const cat = (data.categories ?? []).find((c) => c.id === 'arroces')
   if (!cat) return
-  if (cat.minPeople === undefined) cat.minPeople = 2
-  if (cat.pricePerPerson === undefined) cat.pricePerPerson = true
-  if (cat.description === undefined) {
-    cat.description = ARROCES_DESCRIPTION
-    cat.descriptionI18n = { ...ARROCES_DESCRIPTION_I18N }
+  if (cat.description === ARROCES_DESCRIPTION_V5) {
+    cat.description = ''
+    delete cat.descriptionI18n
+  }
+  cat.pricePerPerson = false
+  for (const it of cat.items ?? []) {
+    it.priceTapa = 0
+    it.priceMedia = 0
+    it.samePrice = true
   }
 }
 
