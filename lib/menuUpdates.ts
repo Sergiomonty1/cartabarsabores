@@ -11,7 +11,7 @@ import type { MenuData, MenuItem, MenuVariant, Translations } from '@/types/menu
  * Cada cambio comprueba el nombre en español antes de tocar nada, para no pisar
  * cambios hechos a mano desde el admin.
  */
-export const CONTENT_VERSION = 7
+export const CONTENT_VERSION = 8
 
 /* ─── Traducciones revisadas (oct. 2026) ─── */
 
@@ -182,8 +182,23 @@ export function applyContentUpdates(input: MenuData): MenuData {
   if (from < 5) applyV5(data)
   if (from < 6) applyV6(data)
   if (from < 7) applyV7(data)
+  if (from < 8) applyV8(data)
   data.contentVersion = CONTENT_VERSION
   return data
+}
+
+/** v8 (10/10/2026): la ensalada de pollo lleva salsa de miel y mostaza. */
+function applyV8(data: MenuData) {
+  const cat = (data.categories ?? []).find((c) => c.id === 'entrantes')
+  const e1 = cat?.items?.find((i) => i.id === 'e1' && i.name === 'Ensalada de pollo frito y mostaza')
+  if (!e1) return
+  e1.name = 'Ensalada de pollo frito con salsa de miel y mostaza'
+  e1.nameI18n = {
+    en: 'Fried chicken salad with honey mustard dressing',
+    de: 'Salat mit frittiertem Hähnchen und Honig-Senf-Dressing',
+    pt: 'Salada de frango frito com molho de mel e mostarda',
+    fr: 'Salade de poulet frit, sauce miel-moutarde',
+  }
 }
 
 /** v7 (10/10/2026): las 4 croquetas pasan a ser un solo plato «Croquetas» con sus sabores. */
