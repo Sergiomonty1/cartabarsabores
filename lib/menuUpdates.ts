@@ -11,7 +11,7 @@ import type { MenuData, MenuItem, MenuVariant, Translations } from '@/types/menu
  * Cada cambio comprueba el nombre en español antes de tocar nada, para no pisar
  * cambios hechos a mano desde el admin.
  */
-export const CONTENT_VERSION = 13
+export const CONTENT_VERSION = 14
 
 /* ─── Traducciones revisadas (oct. 2026) ─── */
 
@@ -188,8 +188,41 @@ export function applyContentUpdates(input: MenuData): MenuData {
   if (from < 11) applyV11(data)
   if (from < 12) applyV12(data)
   if (from < 13) applyV13(data)
+  if (from < 14) applyV14(data)
   data.contentVersion = CONTENT_VERSION
   return data
+}
+
+/** v14 (16/10/2026): chipirones con guarnición, horario de los arroces y traducción del de cola de toro. */
+function applyV14(data: MenuData) {
+  for (const cat of data.categories ?? []) {
+    for (const it of cat.items ?? []) {
+      if (it.id === 'c15' && ['Chipirones a su amiga', 'Chipirones con ensalada o patatas'].includes(it.name)) {
+        it.name = 'Chipirones'
+        it.nameI18n = { en: 'Baby squid', de: 'Baby-Tintenfische', pt: 'Lulinhas', fr: 'Chipirons' }
+        it.description = 'Con ensalada o patatas'
+        it.descriptionI18n = { en: 'With salad or potatoes', de: 'Mit Salat oder Kartoffeln', pt: 'Com salada ou batatas', fr: 'Avec salade ou pommes de terre' }
+      }
+      // Renombrado a mano en el admin: las traducciones seguían siendo las del arroz de carrillada
+      if (it.name === 'Arroz de cola de toro y trufa' && (!it.nameI18n?.en || it.nameI18n.en === 'Rice with braised pork cheek & truffle')) {
+        it.nameI18n = {
+          en: 'Oxtail & truffle rice',
+          de: 'Reis mit Ochsenschwanz und Trüffel',
+          pt: 'Arroz de rabo de boi e trufa',
+          fr: 'Riz à la queue de bœuf et à la truffe',
+        }
+      }
+    }
+    if (cat.id === 'arroces' && (!cat.note?.trim() || cat.note === 'Solo los fines de semana')) {
+      cat.note = 'Fines de semana y festivos, solo a mediodía'
+      cat.noteI18n = {
+        en: 'Weekends & holidays, lunchtime only',
+        de: 'Wochenende & Feiertage, nur mittags',
+        pt: 'Fins de semana e feriados, só ao almoço',
+        fr: 'Week-ends et jours fériés, le midi uniquement',
+      }
+    }
+  }
 }
 
 /** v13 (10/10/2026): pulpo a la plancha (16 €) en Caliente, junto a los chipirones. */
