@@ -11,7 +11,7 @@ import type { MenuData, MenuItem, MenuVariant, Translations } from '@/types/menu
  * Cada cambio comprueba el nombre en español antes de tocar nada, para no pisar
  * cambios hechos a mano desde el admin.
  */
-export const CONTENT_VERSION = 14
+export const CONTENT_VERSION = 15
 
 /* ─── Traducciones revisadas (oct. 2026) ─── */
 
@@ -189,8 +189,66 @@ export function applyContentUpdates(input: MenuData): MenuData {
   if (from < 12) applyV12(data)
   if (from < 13) applyV13(data)
   if (from < 14) applyV14(data)
+  if (from < 15) applyV15(data)
   data.contentVersion = CONTENT_VERSION
   return data
+}
+
+/** v15 (23/10/2026): sándwich cubano oculto y traducciones que faltaban (por nombre en español). */
+const I18N_BY_NAME: { name: string; staleEn?: string[]; nameI18n: Translations }[] = [
+  {
+    name: 'Plumas ibérica de bellota',
+    nameI18n: {
+      en: 'Acorn-fed Iberian pork pluma',
+      de: 'Pluma vom Ibérico-Schwein (Eichelmast)',
+      pt: 'Plumas de porco ibérico de bolota',
+      fr: 'Pluma de porc ibérique nourri aux glands',
+    },
+  },
+  {
+    name: 'Solomillo de bellota al Pedro Jimenez',
+    nameI18n: {
+      en: 'Acorn-fed pork tenderloin with Pedro Ximénez sauce',
+      de: 'Schweinefilet (Eichelmast) in Pedro-Ximénez-Soße',
+      pt: 'Lombinho de porco de bolota com molho Pedro Ximénez',
+      fr: 'Filet mignon de porc nourri aux glands, sauce Pedro Ximénez',
+    },
+  },
+  {
+    // Renombrado en el admin: seguía traducido como «arroz de pulpo»
+    name: 'Arroz de calamares, chipirón y gambas',
+    staleEn: ['Octopus rice'],
+    nameI18n: {
+      en: 'Rice with squid, baby squid & prawns',
+      de: 'Reis mit Kalmar, Baby-Tintenfisch und Garnelen',
+      pt: 'Arroz de lulas, lulinhas e gambas',
+      fr: 'Riz aux calmars, chipirons et gambas',
+    },
+  },
+  {
+    // Renombrado en el admin a plural
+    name: 'Bolas de helado (preguntar por sabores)',
+    staleEn: ['Scoop of ice cream (ask for flavours)'],
+    nameI18n: {
+      en: 'Scoops of ice cream (ask for flavours)',
+      de: 'Eiskugeln (fragen Sie nach den Sorten)',
+      pt: 'Bolas de gelado (pergunte pelos sabores)',
+      fr: 'Boules de glace (demandez les parfums)',
+    },
+  },
+]
+
+function applyV15(data: MenuData) {
+  for (const cat of data.categories ?? []) {
+    for (const it of cat.items ?? []) {
+      if (it.name?.trim() === 'Sándwich cubano') it.hidden = true
+      const tr = I18N_BY_NAME.find((x) => x.name === it.name?.trim())
+      if (!tr) continue
+      const complete = (['en', 'de', 'pt', 'fr'] as const).every((l) => it.nameI18n?.[l]?.trim())
+      const stale = !!it.nameI18n?.en && !!tr.staleEn?.includes(it.nameI18n.en)
+      if (!complete || stale) it.nameI18n = { ...tr.nameI18n }
+    }
+  }
 }
 
 /** v14 (16/10/2026): chipirones con guarnición, horario de los arroces y traducción del de cola de toro. */
