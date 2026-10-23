@@ -11,7 +11,7 @@ import type { MenuData, MenuItem, MenuVariant, Translations } from '@/types/menu
  * Cada cambio comprueba el nombre en español antes de tocar nada, para no pisar
  * cambios hechos a mano desde el admin.
  */
-export const CONTENT_VERSION = 15
+export const CONTENT_VERSION = 16
 
 /* ─── Traducciones revisadas (oct. 2026) ─── */
 
@@ -190,8 +190,26 @@ export function applyContentUpdates(input: MenuData): MenuData {
   if (from < 13) applyV13(data)
   if (from < 14) applyV14(data)
   if (from < 15) applyV15(data)
+  if (from < 16) applyV16(data)
   data.contentVersion = CONTENT_VERSION
   return data
+}
+
+/** v16 (23/10/2026): es «Pluma», en singular. */
+function applyV16(data: MenuData) {
+  for (const cat of data.categories ?? []) {
+    for (const it of cat.items ?? []) {
+      if (it.id !== 'fuera-carta-mvkv8zhkvh99' && it.name?.trim() !== 'Plumas ibérica de bellota') continue
+      if (!['Plumas ibérica de bellota', 'Pluma ibérica de bellota'].includes(it.name?.trim())) continue
+      it.name = 'Pluma ibérica de bellota'
+      it.nameI18n = {
+        en: 'Acorn-fed Iberian pork pluma',
+        de: 'Pluma vom Ibérico-Schwein (Eichelmast)',
+        pt: 'Pluma de porco ibérico de bolota',
+        fr: 'Pluma de porc ibérique nourri aux glands',
+      }
+    }
+  }
 }
 
 /** v15 (23/10/2026): sándwich cubano oculto y traducciones que faltaban (por nombre en español). */
