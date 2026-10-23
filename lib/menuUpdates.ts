@@ -11,7 +11,7 @@ import type { MenuData, MenuItem, MenuVariant, Translations } from '@/types/menu
  * Cada cambio comprueba el nombre en español antes de tocar nada, para no pisar
  * cambios hechos a mano desde el admin.
  */
-export const CONTENT_VERSION = 16
+export const CONTENT_VERSION = 17
 
 /* ─── Traducciones revisadas (oct. 2026) ─── */
 
@@ -191,8 +191,26 @@ export function applyContentUpdates(input: MenuData): MenuData {
   if (from < 14) applyV14(data)
   if (from < 15) applyV15(data)
   if (from < 16) applyV16(data)
+  if (from < 17) applyV17(data)
   data.contentVersion = CONTENT_VERSION
   return data
+}
+
+/** v17 (23/10/2026): presa macerada (18 €) en Fuera de carta, junto a la presa ibérica. */
+function applyV17(data: MenuData) {
+  const cat = (data.categories ?? []).find((c) => c.id === 'fuera-carta')
+  if (!cat || cat.items.some((i) => i.id === 'f12' || i.name?.trim() === 'Presa macerada')) return
+  const items = [...(cat.items ?? [])].sort(byOrder)
+  insertAfter(items, items.some((i) => i.id === 'f1') ? 'f1' : null, {
+    id: 'f12',
+    name: 'Presa macerada',
+    nameI18n: { en: 'Marinated pork presa', de: 'Marinierte Presa vom Schwein', pt: 'Presa marinada', fr: 'Presa de porc marinée' },
+    priceTapa: 18,
+    priceMedia: 18,
+    samePrice: true,
+    order: 0,
+  })
+  cat.items = items.map((it, i) => ({ ...it, order: i }))
 }
 
 /** v16 (23/10/2026): es «Pluma», en singular. */
