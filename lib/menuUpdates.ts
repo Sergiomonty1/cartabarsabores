@@ -11,7 +11,7 @@ import type { MenuData, MenuItem, MenuVariant, Translations } from '@/types/menu
  * Cada cambio comprueba el nombre en español antes de tocar nada, para no pisar
  * cambios hechos a mano desde el admin.
  */
-export const CONTENT_VERSION = 17
+export const CONTENT_VERSION = 18
 
 /* ─── Traducciones revisadas (oct. 2026) ─── */
 
@@ -192,8 +192,25 @@ export function applyContentUpdates(input: MenuData): MenuData {
   if (from < 15) applyV15(data)
   if (from < 16) applyV16(data)
   if (from < 17) applyV17(data)
+  if (from < 18) applyV18(data)
   data.contentVersion = CONTENT_VERSION
   return data
+}
+
+/** v18 (24/10/2026): el arroz vuelve a ser de carrillada, pero seguía traducido como de cola de toro. */
+function applyV18(data: MenuData) {
+  for (const cat of data.categories ?? []) {
+    for (const it of cat.items ?? []) {
+      if (it.name?.trim() !== 'Arroz de carrillada y trufa') continue
+      if (it.nameI18n?.en && it.nameI18n.en !== 'Oxtail & truffle rice') continue
+      it.nameI18n = {
+        en: 'Rice with braised pork cheek & truffle',
+        de: 'Reis mit geschmorten Schweinebäckchen und Trüffel',
+        pt: 'Arroz de bochecha de porco e trufa',
+        fr: 'Riz à la joue de porc braisée et à la truffe',
+      }
+    }
+  }
 }
 
 /** v17 (23/10/2026): presa macerada (18 €) en Fuera de carta, junto a la presa ibérica. */
