@@ -11,7 +11,7 @@ import type { MenuData, MenuItem, MenuVariant, Translations } from '@/types/menu
  * Cada cambio comprueba el nombre en español antes de tocar nada, para no pisar
  * cambios hechos a mano desde el admin.
  */
-export const CONTENT_VERSION = 18
+export const CONTENT_VERSION = 19
 
 /* ─── Traducciones revisadas (oct. 2026) ─── */
 
@@ -193,8 +193,24 @@ export function applyContentUpdates(input: MenuData): MenuData {
   if (from < 16) applyV16(data)
   if (from < 17) applyV17(data)
   if (from < 18) applyV18(data)
+  if (from < 19) applyV19(data)
   data.contentVersion = CONTENT_VERSION
   return data
+}
+
+/** v19 (30/10/2026): el arroz ya no lleva chipirones, pero las traducciones seguían nombrándolos. */
+function applyV19(data: MenuData) {
+  for (const cat of data.categories ?? []) {
+    for (const it of cat.items ?? []) {
+      if (it.id !== 'a3' || it.name?.trim() !== 'Arroz de calamares, y gambas') continue
+      it.nameI18n = {
+        en: 'Rice with squid & prawns',
+        de: 'Reis mit Kalmar und Garnelen',
+        pt: 'Arroz de lulas e gambas',
+        fr: 'Riz aux calmars et gambas',
+      }
+    }
+  }
 }
 
 /** v18 (24/10/2026): el arroz vuelve a ser de carrillada, pero seguía traducido como de cola de toro. */
