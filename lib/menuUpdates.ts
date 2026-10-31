@@ -11,7 +11,7 @@ import type { MenuData, MenuItem, MenuVariant, Translations } from '@/types/menu
  * Cada cambio comprueba el nombre en español antes de tocar nada, para no pisar
  * cambios hechos a mano desde el admin.
  */
-export const CONTENT_VERSION = 19
+export const CONTENT_VERSION = 20
 
 /* ─── Traducciones revisadas (oct. 2026) ─── */
 
@@ -194,8 +194,72 @@ export function applyContentUpdates(input: MenuData): MenuData {
   if (from < 17) applyV17(data)
   if (from < 18) applyV18(data)
   if (from < 19) applyV19(data)
+  if (from < 20) applyV20(data)
   data.contentVersion = CONTENT_VERSION
   return data
+}
+
+/** v20 (31/10/2026): taco de chipirón frito (al precio del de abanico) y chipirones a su amiga (5,50 €) en Caliente. */
+function freeId(data: MenuData, candidates: string[]): string {
+  const used = new Set((data.categories ?? []).flatMap((c) => (c.items ?? []).map((i) => i.id)))
+  return candidates.find((id) => !used.has(id)) ?? `${candidates[0]}-${Date.now().toString(36)}`
+}
+
+function moveAfter(items: MenuItem[], item: MenuItem, afterId: string | null) {
+  const i = items.indexOf(item)
+  if (i !== -1) items.splice(i, 1)
+  const at = afterId ? items.findIndex((x) => x.id === afterId) : -1
+  if (at === -1) items.push(item)
+  else items.splice(at + 1, 0, item)
+}
+
+function applyV20(data: MenuData) {
+  for (const cat of data.categories ?? []) {
+    const items = [...(cat.items ?? [])].sort(byOrder)
+    const byName = (n: string) => items.find((i) => i.name?.trim().toLowerCase() === n.toLowerCase())
+
+    if (cat.id === 'entrantes') {
+      const abanico = items.find((i) => i.id === 'e10') ?? items.find((i) => /abanico/i.test(i.name ?? ''))
+      let taco = byName('Taco de chipirón frito')
+      if (!taco) {
+        taco = dish(freeId(data, ['e8', 'e11', 'e12']), { allergens: ['gluten', 'molusco'] })
+        taco.name = 'Taco de chipirón frito'
+        items.push(taco)
+      }
+      delete taco.hidden
+      taco.nameI18n = {
+        en: 'Fried baby squid taco',
+        de: 'Taco mit frittierten Baby-Tintenfischen',
+        pt: 'Taco de lulinhas fritas',
+        fr: 'Taco de chipirons frits',
+      }
+      taco.priceTapa = abanico ? abanico.priceTapa : 7.5
+      taco.priceMedia = abanico ? abanico.priceMedia : 7.5
+      taco.samePrice = abanico ? abanico.samePrice : true
+      // Con los otros dos tacos: justo detrás del de abanico (o del de langostinos)
+      moveAfter(items, taco, abanico?.id ?? (items.some((i) => i.id === 'e7') ? 'e7' : null))
+    } else if (cat.id === 'caliente') {
+      let chipis = byName('Chipirones a su amiga')
+      if (!chipis) {
+        chipis = dish(freeId(data, ['c17', 'c18', 'c19']), { allergens: ['molusco', 'gluten'] })
+        chipis.name = 'Chipirones a su amiga'
+        items.push(chipis)
+      }
+      delete chipis.hidden
+      chipis.nameI18n = {
+        en: 'Baby squid with migas (fried breadcrumbs)',
+        de: 'Baby-Tintenfische mit Migas (gebratenen Brotkrumen)',
+        pt: 'Lulinhas com migas (pão frito esmigalhado)',
+        fr: 'Chipirons aux migas (mie de pain frite)',
+      }
+      chipis.priceTapa = 5.5
+      chipis.priceMedia = 5.5
+      chipis.samePrice = true
+      moveAfter(items, chipis, items.some((i) => i.id === 'c2') ? 'c2' : null)
+    } else continue
+
+    cat.items = items.map((it, i) => ({ ...it, order: i }))
+  }
 }
 
 /** v19 (30/10/2026): el arroz ya no lleva chipirones, pero las traducciones seguían nombrándolos. */
