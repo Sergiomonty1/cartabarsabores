@@ -11,7 +11,7 @@ import type { MenuData, MenuItem, MenuVariant, Translations } from '@/types/menu
  * Cada cambio comprueba el nombre en español antes de tocar nada, para no pisar
  * cambios hechos a mano desde el admin.
  */
-export const CONTENT_VERSION = 20
+export const CONTENT_VERSION = 21
 
 /* ─── Traducciones revisadas (oct. 2026) ─── */
 
@@ -195,6 +195,7 @@ export function applyContentUpdates(input: MenuData): MenuData {
   if (from < 18) applyV18(data)
   if (from < 19) applyV19(data)
   if (from < 20) applyV20(data)
+  if (from < 21) applyV21(data)
   data.contentVersion = CONTENT_VERSION
   return data
 }
@@ -211,6 +212,24 @@ function moveAfter(items: MenuItem[], item: MenuItem, afterId: string | null) {
   const at = afterId ? items.findIndex((x) => x.id === afterId) : -1
   if (at === -1) items.push(item)
   else items.splice(at + 1, 0, item)
+}
+
+/** v21 (01/11/2026): traducción del solomillo ibérico de bellota (fuera de carta), añadido en el admin. */
+function applyV21(data: MenuData) {
+  const tr: Translations = {
+    en: 'Acorn-fed Iberian pork tenderloin',
+    de: 'Filet vom Ibérico-Schwein (Eichelmast)',
+    pt: 'Lombinho de porco ibérico de bolota',
+    fr: 'Filet mignon de porc ibérique nourri aux glands',
+  }
+  for (const cat of data.categories ?? []) {
+    for (const it of cat.items ?? []) {
+      if (it.name?.trim().toLowerCase() !== 'solomillo ibérico de bellota') continue
+      const complete = (['en', 'de', 'pt', 'fr'] as const).every((l) => it.nameI18n?.[l]?.trim())
+      const stale = !!it.nameI18n?.en?.includes('Pedro Ximénez')
+      if (!complete || stale) it.nameI18n = { ...tr }
+    }
+  }
 }
 
 function applyV20(data: MenuData) {
