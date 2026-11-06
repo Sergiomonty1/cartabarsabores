@@ -11,7 +11,7 @@ import type { MenuData, MenuItem, MenuVariant, Translations } from '@/types/menu
  * Cada cambio comprueba el nombre en español antes de tocar nada, para no pisar
  * cambios hechos a mano desde el admin.
  */
-export const CONTENT_VERSION = 22
+export const CONTENT_VERSION = 23
 
 /* ─── Traducciones revisadas (oct. 2026) ─── */
 
@@ -197,6 +197,7 @@ export function applyContentUpdates(input: MenuData): MenuData {
   if (from < 20) applyV20(data)
   if (from < 21) applyV21(data)
   if (from < 22) applyV22(data)
+  if (from < 23) applyV23(data)
   data.contentVersion = CONTENT_VERSION
   return data
 }
@@ -213,6 +214,63 @@ function moveAfter(items: MenuItem[], item: MenuItem, afterId: string | null) {
   const at = afterId ? items.findIndex((x) => x.id === afterId) : -1
   if (at === -1) items.push(item)
   else items.splice(at + 1, 0, item)
+}
+
+/**
+ * v23 (06/11/2026): archivo de platos que han pasado por la carta. Los que ya no están
+ * se añaden OCULTOS y traducidos, para activarlos desde el admin cuando vuelvan.
+ * Si el plato ya existe (visible u oculto), no se toca.
+ */
+type ArchivedDish = Omit<MenuItem, 'id' | 'order' | 'hidden'> & { cat: string }
+const NO_PRICE = { priceTapa: 0, priceMedia: 0, samePrice: true }
+const ARCHIVED_DISHES: ArchivedDish[] = [
+  // Entrantes
+  { cat: 'entrantes', name: 'Taco de abanico ibérico', nameI18n: { en: 'Iberian pork taco (abanico cut)', de: 'Taco mit iberischem Schwein (Abanico)', pt: 'Taco de abanico de porco ibérico', fr: 'Taco de porc ibérique (abanico)' }, priceTapa: 7.5, priceMedia: 7.5, samePrice: true },
+  // Caliente
+  { cat: 'caliente', name: 'Chipirones', nameI18n: { en: 'Baby squid', de: 'Baby-Tintenfische', pt: 'Lulinhas', fr: 'Chipirons' }, description: 'Con ensalada o patatas', descriptionI18n: { en: 'With salad or potatoes', de: 'Mit Salat oder Kartoffeln', pt: 'Com salada ou batatas', fr: 'Avec salade ou pommes de terre' }, priceTapa: 5.5, priceMedia: 5.5, samePrice: true, allergens: ['molusco', 'gluten'] },
+  { cat: 'caliente', name: 'Atún macerado', nameI18n: { en: 'Marinated tuna', de: 'Marinierter Thunfisch', pt: 'Atum marinado', fr: 'Thon mariné' }, priceTapa: 5.2, priceMedia: 5.2, samePrice: true, allergens: ['gluten', 'soja', 'pescado', 'huevo', 'fruto-cascara'] },
+  { cat: 'caliente', name: 'Salvariego con roteña', nameI18n: { en: 'Weever fish, Rota style (tomato & pepper sauce)', de: 'Petermännchen nach Art von Rota (Tomaten-Paprika-Soße)', pt: 'Peixe-aranha à moda de Rota (molho de tomate e pimento)', fr: 'Vive à la mode de Rota (sauce tomate et poivron)' }, ...NO_PRICE, allergens: ['pescado'] },
+  { cat: 'caliente', name: 'Brioche de pulled pork', nameI18n: { en: 'Pulled pork brioche', de: 'Brioche mit Pulled Pork', pt: 'Brioche de pulled pork', fr: 'Brioche au pulled pork' }, priceTapa: 7.5, priceMedia: 7.5, samePrice: true, allergens: ['gluten'] },
+  // Hamburguesas
+  { cat: 'hamburguesas', name: 'Presa ibérica', nameI18n: { en: 'Iberian pork presa', de: 'Iberische Presa', pt: 'Presa ibérica', fr: 'Presa ibérique' }, description: 'Salsa de mayonesa, huevo duro, bacon y queso', descriptionI18n: { en: 'Sauce made with mayonnaise, hard-boiled egg, bacon & cheese', de: 'Soße aus Mayonnaise, gekochtem Ei, Bacon und Käse', pt: 'Molho de maionese, ovo cozido, bacon e queijo', fr: 'Sauce à la mayonnaise, œuf dur, bacon et fromage' }, ...NO_PRICE, allergens: ['gluten', 'huevo', 'lacteo'] },
+  // Arroces (siempre «Consultar»)
+  { cat: 'arroces', name: 'Arroz de carrillada y trufa', nameI18n: { en: 'Rice with braised pork cheek & truffle', de: 'Reis mit geschmorten Schweinebäckchen und Trüffel', pt: 'Arroz de bochecha de porco e trufa', fr: 'Riz à la joue de porc braisée et à la truffe' }, ...NO_PRICE },
+  { cat: 'arroces', name: 'Arroz de cola de toro y trufa', nameI18n: { en: 'Oxtail & truffle rice', de: 'Reis mit Ochsenschwanz und Trüffel', pt: 'Arroz de rabo de boi e trufa', fr: 'Riz à la queue de bœuf et à la truffe' }, ...NO_PRICE },
+  { cat: 'arroces', name: 'Arroz de pulpo', nameI18n: { en: 'Octopus rice', de: 'Reis mit Oktopus', pt: 'Arroz de polvo', fr: 'Riz au poulpe' }, ...NO_PRICE, allergens: ['molusco'] },
+  { cat: 'arroces', name: 'Arroz de calamares, chipirón y gambas', nameI18n: { en: 'Rice with squid, baby squid & prawns', de: 'Reis mit Kalmar, Baby-Tintenfisch und Garnelen', pt: 'Arroz de lulas, lulinhas e gambas', fr: 'Riz aux calmars, chipirons et gambas' }, ...NO_PRICE, allergens: ['molusco', 'crustaceo'] },
+  { cat: 'arroces', name: 'Arroz de calamares y gambas', nameI18n: { en: 'Rice with squid & prawns', de: 'Reis mit Kalmar und Garnelen', pt: 'Arroz de lulas e gambas', fr: 'Riz aux calmars et gambas' }, ...NO_PRICE, allergens: ['molusco', 'crustaceo'] },
+  { cat: 'arroces', name: 'Arroz negro con calamar', nameI18n: { en: 'Black rice with squid', de: 'Schwarzer Reis mit Tintenfisch', pt: 'Arroz negro com lula', fr: 'Riz noir au calmar' }, ...NO_PRICE, allergens: ['molusco'] },
+  { cat: 'arroces', name: 'Arroz de marisco', nameI18n: { en: 'Seafood rice', de: 'Reis mit Meeresfrüchten', pt: 'Arroz de marisco', fr: 'Riz aux fruits de mer' }, ...NO_PRICE, allergens: ['molusco', 'crustaceo'] },
+  // Fuera de carta
+  { cat: 'fuera-carta', name: 'Presa ibérica', nameI18n: { en: 'Iberian pork presa (shoulder cut)', de: 'Iberische Presa (Schulterstück vom Schwein)', pt: 'Presa de porco ibérico', fr: 'Presa de porc ibérique (épaule)' }, ...NO_PRICE },
+  { cat: 'fuera-carta', name: 'Presa macerada', nameI18n: { en: 'Marinated pork presa', de: 'Marinierte Presa vom Schwein', pt: 'Presa marinada', fr: 'Presa de porc marinée' }, priceTapa: 18, priceMedia: 18, samePrice: true },
+  { cat: 'fuera-carta', name: 'Chuletón de vaca', nameI18n: { en: 'Beef rib steak (chuletón)', de: 'Rinderkotelett (Chuletón)', pt: 'Costeleta de vaca', fr: 'Côte de bœuf' }, ...NO_PRICE },
+  { cat: 'fuera-carta', name: 'Cochinillo a baja temperatura con parmentier de patatas', nameI18n: { en: 'Slow-cooked suckling pig with potato parmentier', de: 'Spanferkel bei Niedrigtemperatur mit Kartoffelpüree', pt: 'Leitão a baixa temperatura com puré de batata', fr: 'Cochon de lait basse température, parmentier de pommes de terre' }, ...NO_PRICE },
+  { cat: 'fuera-carta', name: 'Solomillo de bellota al Pedro Jimenez', nameI18n: { en: 'Acorn-fed pork tenderloin with Pedro Ximénez sauce', de: 'Schweinefilet (Eichelmast) in Pedro-Ximénez-Soße', pt: 'Lombinho de porco de bolota com molho Pedro Ximénez', fr: 'Filet mignon de porc nourri aux glands, sauce Pedro Ximénez' }, ...NO_PRICE },
+  { cat: 'fuera-carta', name: 'Solomillo ibérico de bellota', nameI18n: { en: 'Acorn-fed Iberian pork tenderloin', de: 'Filet vom Ibérico-Schwein (Eichelmast)', pt: 'Lombinho de porco ibérico de bolota', fr: 'Filet mignon de porc ibérique nourri aux glands' }, ...NO_PRICE },
+  { cat: 'fuera-carta', name: 'Almejas de carril', nameI18n: { en: 'Carril clams (Galicia)', de: 'Venusmuscheln aus Carril (Galicien)', pt: 'Amêijoas de Carril (Galiza)', fr: 'Palourdes de Carril (Galice)' }, ...NO_PRICE, allergens: ['molusco'] },
+  { cat: 'fuera-carta', name: 'Mejillones baby en salsa', nameI18n: { en: 'Baby mussels in sauce', de: 'Kleine Miesmuscheln in Soße', pt: 'Mexilhões pequenos com molho', fr: 'Petites moules en sauce' }, ...NO_PRICE, allergens: ['molusco'] },
+]
+/** Nombres que pueden estar a la vez en dos secciones (la presa es burger y fuera de carta). */
+const PER_SECTION_NAMES = ['presa ibérica']
+
+const slugify = (s: string) =>
+  s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40)
+
+function applyV23(data: MenuData) {
+  const norm = (s?: string) => (s ?? '').trim().toLowerCase()
+  const cats = data.categories ?? []
+  for (const a of ARCHIVED_DISHES) {
+    const cat = cats.find((c) => c.id === a.cat)
+    if (!cat) continue
+    const key = norm(a.name)
+    if ((cat.items ?? []).some((i) => norm(i.name) === key)) continue
+    if (!PER_SECTION_NAMES.includes(key) && cats.some((c) => (c.items ?? []).some((i) => norm(i.name) === key))) continue
+    const { cat: _cat, ...rest } = a
+    const items = [...(cat.items ?? [])].sort(byOrder)
+    items.push({ ...rest, id: freeId(data, [`${a.cat}-${slugify(a.name)}`]), hidden: true, order: items.length })
+    cat.items = items.map((it, i) => ({ ...it, order: i }))
+  }
 }
 
 /** v22 (06/11/2026): el arroz a3 pasó a «Arroz negro con calamar» y seguía traducido como el de calamares y gambas. */
