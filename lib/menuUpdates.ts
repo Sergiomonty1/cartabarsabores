@@ -11,7 +11,7 @@ import type { MenuData, MenuItem, MenuVariant, Translations } from '@/types/menu
  * Cada cambio comprueba el nombre en español antes de tocar nada, para no pisar
  * cambios hechos a mano desde el admin.
  */
-export const CONTENT_VERSION = 24
+export const CONTENT_VERSION = 25
 
 /* ─── Traducciones revisadas (oct. 2026) ─── */
 
@@ -199,6 +199,7 @@ export function applyContentUpdates(input: MenuData): MenuData {
   if (from < 22) applyV22(data)
   if (from < 23) applyV23(data)
   if (from < 24) applyV24(data)
+  if (from < 25) applyV25(data)
   data.contentVersion = CONTENT_VERSION
   return data
 }
@@ -215,6 +216,35 @@ function moveAfter(items: MenuItem[], item: MenuItem, afterId: string | null) {
   const at = afterId ? items.findIndex((x) => x.id === afterId) : -1
   if (at === -1) items.push(item)
   else items.splice(at + 1, 0, item)
+}
+
+/** v25 (07/11/2026): merluza con cuscús y salsa de setas (10 €) en Caliente, junto al salmón. */
+function applyV25(data: MenuData) {
+  const cat = (data.categories ?? []).find((c) => c.id === 'caliente')
+  if (!cat) return
+  const norm = (s?: string) => (s ?? '').trim().toLowerCase()
+  const names = ['merluza', 'merluza con cuscús y salsa de setas']
+  if ((data.categories ?? []).some((c) => (c.items ?? []).some((i) => names.includes(norm(i.name))))) return
+  const items = [...(cat.items ?? [])].sort(byOrder)
+  const salmon = items.find((i) => i.id === 'c2') ?? items.find((i) => norm(i.name) === 'salmón')
+  insertAfter(items, salmon?.id ?? null, {
+    id: freeId(data, ['c17', 'caliente-merluza']),
+    name: 'Merluza',
+    nameI18n: { en: 'Hake', de: 'Seehecht', pt: 'Pescada', fr: 'Merlu' },
+    description: 'Con cuscús y salsa de setas',
+    descriptionI18n: {
+      en: 'With couscous & mushroom sauce',
+      de: 'Mit Couscous und Pilzsoße',
+      pt: 'Com cuscuz e molho de cogumelos',
+      fr: 'Avec couscous et sauce aux champignons',
+    },
+    priceTapa: 10,
+    priceMedia: 10,
+    samePrice: true,
+    allergens: ['pescado', 'gluten'],
+    order: 0,
+  })
+  cat.items = items.map((it, i) => ({ ...it, order: i }))
 }
 
 /** v24 (07/11/2026): chacina variada (lomo, queso y jamón) en Entrantes, sin precio. */
