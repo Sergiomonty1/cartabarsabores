@@ -11,7 +11,7 @@ import type { MenuData, MenuItem, MenuVariant, Translations } from '@/types/menu
  * Cada cambio comprueba el nombre en español antes de tocar nada, para no pisar
  * cambios hechos a mano desde el admin.
  */
-export const CONTENT_VERSION = 23
+export const CONTENT_VERSION = 24
 
 /* ─── Traducciones revisadas (oct. 2026) ─── */
 
@@ -198,6 +198,7 @@ export function applyContentUpdates(input: MenuData): MenuData {
   if (from < 21) applyV21(data)
   if (from < 22) applyV22(data)
   if (from < 23) applyV23(data)
+  if (from < 24) applyV24(data)
   data.contentVersion = CONTENT_VERSION
   return data
 }
@@ -214,6 +215,29 @@ function moveAfter(items: MenuItem[], item: MenuItem, afterId: string | null) {
   const at = afterId ? items.findIndex((x) => x.id === afterId) : -1
   if (at === -1) items.push(item)
   else items.splice(at + 1, 0, item)
+}
+
+/** v24 (07/11/2026): chacina variada (lomo, queso y jamón) en Entrantes, sin precio. */
+function applyV24(data: MenuData) {
+  const cat = (data.categories ?? []).find((c) => c.id === 'entrantes')
+  if (!cat) return
+  const norm = (s?: string) => (s ?? '').trim().toLowerCase()
+  if ((data.categories ?? []).some((c) => (c.items ?? []).some((i) => norm(i.name) === 'chacina variada'))) return
+  const items = [...(cat.items ?? [])].sort(byOrder)
+  const lastVisible = [...items].reverse().find((i) => !i.hidden)
+  insertAfter(items, lastVisible?.id ?? null, {
+    id: freeId(data, ['e11', 'entrantes-chacina-variada']),
+    name: 'Chacina variada',
+    nameI18n: { en: 'Assorted cured meats', de: 'Gemischte Aufschnittplatte', pt: 'Enchidos variados', fr: 'Assortiment de charcuterie' },
+    description: 'Lomo, queso y jamón',
+    descriptionI18n: { en: 'Cured pork loin, cheese & ham', de: 'Lomo, Käse und Schinken', pt: 'Lombo, queijo e presunto', fr: 'Lomo, fromage et jambon cru' },
+    priceTapa: 0,
+    priceMedia: 0,
+    samePrice: true,
+    allergens: ['lacteo'],
+    order: 0,
+  })
+  cat.items = items.map((it, i) => ({ ...it, order: i }))
 }
 
 /**
