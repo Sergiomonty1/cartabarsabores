@@ -11,7 +11,7 @@ import type { MenuData, MenuItem, MenuVariant, Translations } from '@/types/menu
  * Cada cambio comprueba el nombre en español antes de tocar nada, para no pisar
  * cambios hechos a mano desde el admin.
  */
-export const CONTENT_VERSION = 25
+export const CONTENT_VERSION = 26
 
 /* ─── Traducciones revisadas (oct. 2026) ─── */
 
@@ -200,6 +200,7 @@ export function applyContentUpdates(input: MenuData): MenuData {
   if (from < 23) applyV23(data)
   if (from < 24) applyV24(data)
   if (from < 25) applyV25(data)
+  if (from < 26) applyV26(data)
   data.contentVersion = CONTENT_VERSION
   return data
 }
@@ -216,6 +217,38 @@ function moveAfter(items: MenuItem[], item: MenuItem, afterId: string | null) {
   const at = afterId ? items.findIndex((x) => x.id === afterId) : -1
   if (at === -1) items.push(item)
   else items.splice(at + 1, 0, item)
+}
+
+/**
+ * v26 (07/11/2026): la chacina es un plato (media) a 18 € → «Plato de chacina variada».
+ * Y los chipirones a su amiga, renombrados en el admin a «fritos», traducidos igual.
+ */
+function applyV26(data: MenuData) {
+  const norm = (s?: string) => (s ?? '').trim().toLowerCase()
+  for (const cat of data.categories ?? []) {
+    for (const it of cat.items ?? []) {
+      const n = norm(it.name)
+      if (n === 'chacina variada' || n === 'plato de chacina variada') {
+        it.name = 'Plato de chacina variada'
+        it.nameI18n = {
+          en: 'Assorted cured meats platter',
+          de: 'Gemischte Aufschnittplatte',
+          pt: 'Prato de enchidos variados',
+          fr: 'Assiette de charcuterie variée',
+        }
+        it.priceTapa = 18
+        it.priceMedia = 18
+        it.samePrice = true
+      } else if (n === 'chipirones fritos a su amiga' && (!it.nameI18n?.en || it.nameI18n.en === 'Baby squid with migas (fried breadcrumbs)')) {
+        it.nameI18n = {
+          en: 'Fried baby squid with migas (fried breadcrumbs)',
+          de: 'Frittierte Baby-Tintenfische mit Migas (gebratenen Brotkrumen)',
+          pt: 'Lulinhas fritas com migas (pão frito esmigalhado)',
+          fr: 'Chipirons frits aux migas (mie de pain frite)',
+        }
+      }
+    }
+  }
 }
 
 /** v25 (07/11/2026): merluza con cuscús y salsa de setas (10 €) en Caliente, junto al salmón. */
