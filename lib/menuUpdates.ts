@@ -1,4 +1,4 @@
-import type { MenuData, MenuItem, MenuVariant, Translations } from '@/types/menu'
+import type { MenuCategory, MenuData, MenuItem, MenuVariant, Translations } from '@/types/menu'
 
 /**
  * Actualizaciones de contenido de la carta.
@@ -11,7 +11,7 @@ import type { MenuData, MenuItem, MenuVariant, Translations } from '@/types/menu
  * Cada cambio comprueba el nombre en español antes de tocar nada, para no pisar
  * cambios hechos a mano desde el admin.
  */
-export const CONTENT_VERSION = 28
+export const CONTENT_VERSION = 29
 
 /* ─── Traducciones revisadas (oct. 2026) ─── */
 
@@ -203,6 +203,7 @@ export function applyContentUpdates(input: MenuData): MenuData {
   if (from < 26) applyV26(data)
   if (from < 27) applyV27(data)
   if (from < 28) applyV28(data)
+  if (from < 29) applyV29(data)
   data.contentVersion = CONTENT_VERSION
   return data
 }
@@ -219,6 +220,112 @@ function moveAfter(items: MenuItem[], item: MenuItem, afterId: string | null) {
   const at = afterId ? items.findIndex((x) => x.id === afterId) : -1
   if (at === -1) items.push(item)
   else items.splice(at + 1, 0, item)
+}
+
+/**
+ * v29 (08/11/2026): nueva organización de la carta.
+ * Entrantes · Tostas · Arroces · Del mar · Carnes · Caliente · Hamburguesas · Fuera de carta · Postres.
+ * Se mueven también los platos ocultos (siguen ocultos). Fuera de carta queda para lo puntual.
+ * Duplicados: chipirones (uno solo, «a su amiga», con migas, ensalada o patatas) y el arroz de calamares.
+ */
+const V29_SECTIONS: { id: string; name: string; icon: string; nameI18n: Translations }[] = [
+  { id: 'del-mar', name: 'Del mar', icon: '🐟', nameI18n: { en: 'From the sea', de: 'Aus dem Meer', pt: 'Do mar', fr: 'De la mer' } },
+  { id: 'carnes', name: 'Carnes', icon: '🥩', nameI18n: { en: 'Meat', de: 'Fleisch', pt: 'Carnes', fr: 'Viandes' } },
+]
+const V29_ORDER = ['entrantes', 'tostas', 'arroces', 'del-mar', 'carnes', 'caliente', 'hamburguesas', 'fuera-carta', 'postres']
+/** Platos de cada sección nueva, en el orden en que se muestran. `from` limita de qué sección se coge. */
+const V29_MOVES: { to: string; names: string[]; from?: string }[] = [
+  {
+    to: 'del-mar',
+    names: [
+      'salmón', 'merluza', 'chipirones fritos a su amiga', 'chipirones a su amiga', 'pulpo a la plancha',
+      'gambas al ajillo', 'gambas a la sal', 'atún macerado', 'salvariego con roteña', 'almejas de carril',
+      'mejillones baby en salsa',
+    ],
+  },
+  {
+    to: 'carnes',
+    names: [
+      'solomillo en salsa', 'albóndigas de vaca', 'panceta asada', 'pluma ibérica de bellota', 'lomo bajo',
+      't-bone', 'chuletón de vaca', 'presa macerada', 'solomillo ibérico de bellota',
+      'solomillo de bellota al pedro jimenez', 'cochinillo a baja temperatura con parmentier de patatas',
+    ],
+  },
+  { to: 'carnes', names: ['presa ibérica'], from: 'fuera-carta' },
+]
+
+function applyV29(data: MenuData) {
+  const norm = (s?: string) => (s ?? '').trim().toLowerCase()
+  const cats = (data.categories ??= [])
+
+  // 1) Secciones nuevas
+  for (const sec of V29_SECTIONS) {
+    if (cats.some((c) => c.id === sec.id)) continue
+    cats.push({ id: sec.id, name: sec.name, icon: sec.icon, nameI18n: sec.nameI18n, order: 0, items: [] } as MenuCategory)
+  }
+  const byId = (id: string) => cats.find((c) => c.id === id)
+
+  // 2) Chipirones: uno solo. Se queda el «a su amiga» (el visible si lo hay) y se quitan los repetidos.
+  const chipiNames = ['chipirones fritos a su amiga', 'chipirones a su amiga', 'chipirones', 'chipirones con ensalada o patatas']
+  const chipis = cats.flatMap((c) => (c.items ?? []).filter((i) => chipiNames.includes(norm(i.name))).map((i) => ({ c, i })))
+  if (chipis.length) {
+    const rank = (x: { i: MenuItem }) => (x.i.hidden ? 10 : 0) + chipiNames.indexOf(norm(x.i.name))
+    const keep = [...chipis].sort((a, b) => rank(a) - rank(b))[0]
+    for (const x of chipis) if (x !== keep) x.c.items = x.c.items.filter((i) => i !== x.i)
+    const it = keep.i
+    if (!/a su amiga/i.test(it.name)) it.name = 'Chipirones fritos a su amiga'
+    it.nameI18n = { en: 'Fried baby squid', de: 'Frittierte Baby-Tintenfische', pt: 'Lulinhas fritas', fr: 'Chipirons frits' }
+    it.description = 'Con migas, ensalada o patatas'
+    it.descriptionI18n = {
+      en: 'With migas (fried breadcrumbs), salad or potatoes',
+      de: 'Mit Migas (gebratenen Brotkrumen), Salat oder Kartoffeln',
+      pt: 'Com migas, salada ou batatas',
+      fr: 'Avec migas (mie de pain frite), salade ou pommes de terre',
+    }
+  }
+
+  // 3) Arroz de calamares: uno solo
+  const arroces = byId('arroces')
+  if (arroces) {
+    const a = arroces.items.find((i) => norm(i.name) === 'arroz de calamares, chipirón y gambas')
+    const b = arroces.items.find((i) => norm(i.name) === 'arroz de calamares y gambas')
+    if (a && b) arroces.items = arroces.items.filter((i) => i !== (b.hidden || !a.hidden ? b : a))
+  }
+
+  // 4) Mover platos (visibles y ocultos) a su sección
+  for (const mv of V29_MOVES) {
+    const target = byId(mv.to)
+    if (!target) continue
+    for (const c of cats) {
+      if (c === target || (mv.from && c.id !== mv.from)) continue
+      const moving = (c.items ?? []).filter((i) => mv.names.includes(norm(i.name)))
+      if (!moving.length) continue
+      c.items = c.items.filter((i) => !moving.includes(i))
+      target.items = [...(target.items ?? []), ...moving]
+    }
+  }
+
+  // 5) Orden dentro de las secciones tocadas: visibles primero, en el orden previsto; ocultos después
+  const wanted = (id: string) => V29_MOVES.filter((m) => m.to === id).flatMap((m) => m.names)
+  for (const c of cats) {
+    if (!['del-mar', 'carnes', 'caliente', 'fuera-carta', 'arroces'].includes(c.id)) continue
+    const list = wanted(c.id)
+    const pos = (i: MenuItem) => {
+      const k = list.indexOf(norm(i.name))
+      return k === -1 ? 1000 + (i.order ?? 0) : k
+    }
+    c.items = [...(c.items ?? [])]
+      .sort((x, y) => Number(!!x.hidden) - Number(!!y.hidden) || pos(x) - pos(y))
+      .map((it, i) => ({ ...it, order: i }))
+  }
+  for (const c of cats) if (c.items) c.items = [...c.items].sort(byOrder).map((it, i) => ({ ...it, order: i }))
+
+  // 6) Orden de las secciones
+  const rankCat = (c: MenuCategory) => {
+    const k = V29_ORDER.indexOf(c.id)
+    return k === -1 ? 100 + (c.order ?? 0) : k
+  }
+  data.categories = [...cats].sort((x, y) => rankCat(x) - rankCat(y)).map((c, i) => ({ ...c, order: i }))
 }
 
 /** v28 (08/11/2026): el lomito de presa es chacina → a Entrantes. Arroces: pedidos hasta las 15:15. */
