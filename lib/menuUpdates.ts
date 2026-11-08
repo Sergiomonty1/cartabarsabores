@@ -11,7 +11,7 @@ import type { MenuCategory, MenuData, MenuItem, MenuVariant, Translations } from
  * Cada cambio comprueba el nombre en español antes de tocar nada, para no pisar
  * cambios hechos a mano desde el admin.
  */
-export const CONTENT_VERSION = 29
+export const CONTENT_VERSION = 30
 
 /* ─── Traducciones revisadas (oct. 2026) ─── */
 
@@ -204,6 +204,7 @@ export function applyContentUpdates(input: MenuData): MenuData {
   if (from < 27) applyV27(data)
   if (from < 28) applyV28(data)
   if (from < 29) applyV29(data)
+  if (from < 30) applyV30(data)
   data.contentVersion = CONTENT_VERSION
   return data
 }
@@ -220,6 +221,18 @@ function moveAfter(items: MenuItem[], item: MenuItem, afterId: string | null) {
   const at = afterId ? items.findIndex((x) => x.id === afterId) : -1
   if (at === -1) items.push(item)
   else items.splice(at + 1, 0, item)
+}
+
+/** v30 (08/11/2026): precios. Gambas al ajillo 5 € tapa / 10 € media; pluma ibérica de bellota 20 €. */
+function applyV30(data: MenuData) {
+  const norm = (s?: string) => (s ?? '').trim().toLowerCase()
+  for (const cat of data.categories ?? []) {
+    for (const it of cat.items ?? []) {
+      const n = norm(it.name)
+      if (n === 'gambas al ajillo') Object.assign(it, { priceTapa: 5, priceMedia: 10, samePrice: false })
+      else if (n === 'pluma ibérica de bellota') Object.assign(it, { priceTapa: 20, priceMedia: 20, samePrice: true })
+    }
+  }
 }
 
 /**
