@@ -11,7 +11,7 @@ import type { MenuCategory, MenuData, MenuItem, MenuVariant, Translations } from
  * Cada cambio comprueba el nombre en español antes de tocar nada, para no pisar
  * cambios hechos a mano desde el admin.
  */
-export const CONTENT_VERSION = 31
+export const CONTENT_VERSION = 32
 
 /* ─── Traducciones revisadas (oct. 2026) ─── */
 
@@ -206,6 +206,7 @@ export function applyContentUpdates(input: MenuData): MenuData {
   if (from < 29) applyV29(data)
   if (from < 30) applyV30(data)
   if (from < 31) applyV31(data)
+  if (from < 32) applyV32(data)
   data.contentVersion = CONTENT_VERSION
   return data
 }
@@ -222,6 +223,45 @@ function moveAfter(items: MenuItem[], item: MenuItem, afterId: string | null) {
   const at = afterId ? items.findIndex((x) => x.id === afterId) : -1
   if (at === -1) items.push(item)
   else items.splice(at + 1, 0, item)
+}
+
+/**
+ * v32 (08/11/2026): «Carnes» pasa a «Carnes a la brasa» (pluma, lomo bajo, T-bone, chuletón, presa…).
+ * Lo que no es brasa (solomillo en salsa, albóndigas, panceta, solomillo al PX, cochinillo) va a Caliente.
+ */
+function applyV32(data: MenuData) {
+  const norm = (s?: string) => (s ?? '').trim().toLowerCase()
+  const cats = data.categories ?? []
+  const carnes = cats.find((c) => c.id === 'carnes')
+  const caliente = cats.find((c) => c.id === 'caliente')
+  if (!carnes || !caliente) return
+  carnes.name = 'Carnes a la brasa'
+  carnes.icon = '🔥'
+  carnes.nameI18n = { en: 'Chargrilled meats', de: 'Fleisch vom Holzkohlegrill', pt: 'Carnes na brasa', fr: 'Viandes à la braise' }
+
+  const toCaliente = [
+    'solomillo en salsa', 'albóndigas de vaca', 'panceta asada',
+    'solomillo de bellota al pedro jimenez', 'cochinillo a baja temperatura con parmentier de patatas',
+  ]
+  const moving = carnes.items.filter((i) => toCaliente.includes(norm(i.name)))
+  carnes.items = carnes.items.filter((i) => !moving.includes(i))
+  caliente.items = [...caliente.items, ...moving]
+
+  const orderOf = (list: string[]) => (i: MenuItem) => {
+    const k = list.indexOf(norm(i.name))
+    return k === -1 ? 1000 + (i.order ?? 0) : k
+  }
+  const sortSec = (c: MenuCategory, list: string[]) => {
+    const pos = orderOf(list)
+    c.items = [...c.items]
+      .sort((x, y) => Number(!!x.hidden) - Number(!!y.hidden) || pos(x) - pos(y))
+      .map((it, i) => ({ ...it, order: i }))
+  }
+  sortSec(carnes, ['pluma ibérica de bellota', 'lomo bajo', 't-bone', 'chuletón de vaca', 'presa ibérica', 'presa macerada', 'solomillo ibérico de bellota'])
+  sortSec(caliente, [
+    'solomillo en salsa', 'albóndigas de vaca', 'panceta asada', 'fideos tostados con alioli de pera',
+    'brioche de cochinita pibil', 'patatas con huevo y trufa', 'sándwich cubano',
+  ])
 }
 
 /** v31 (08/11/2026): jamón y queso sueltos en Entrantes (junto al lomito), con etiqueta «Chacina». */
