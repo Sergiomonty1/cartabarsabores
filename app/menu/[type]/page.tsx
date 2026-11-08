@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation'
 import type { MenuData, MenuCategory, MenuItem, WineCategory } from '@/types/menu'
 import { menuService } from '@/lib/menuService'
 import { ALLERGENS, ALLERGEN_SRC, dishAllergens } from '@/lib/allergens'
-import { type Lang, LANGUAGES, LOCALES, isLang, t, tName, tAllergen, fmtEUR, detectBrowserLang } from '@/lib/translations'
+import { type Lang, LANGUAGES, LOCALES, isLang, t, tName, tTag, tAllergen, fmtEUR, detectBrowserLang } from '@/lib/translations'
 import { GoldenDivider, GradientOrbs, LogoMark } from '@/components/Brand'
 
 type Route = 'tapas' | 'medias' | 'alergenos' | 'vinos'
@@ -266,7 +266,14 @@ function DishRow({ item, priceMode, showAllergens, lang, delay, visible, perPers
       style={visible ? { animationDelay: `${delay}ms` } : undefined}
     >
       <div className="flex items-end gap-2">
-        <span className="min-w-0 max-w-[74%] text-[0.95rem] text-white/85 leading-snug group-hover:text-white transition-colors">{name}</span>
+        <span className="min-w-0 max-w-[74%] text-[0.95rem] text-white/85 leading-snug group-hover:text-white transition-colors">
+          {name}
+          {item.tag?.trim() && (
+            <span className="ml-2 inline-block align-[2px] rounded-full border border-gold/30 bg-gold/[0.07] px-1.5 py-px text-[9.5px] font-semibold uppercase tracking-[0.12em] text-gold-soft/85">
+              {tTag(lang, item.tag, item.tagI18n)}
+            </span>
+          )}
+        </span>
         <span className="flex-1 border-b border-dotted border-white/[0.12] min-w-[1rem] mb-[0.32rem] group-hover:border-gold/35 transition-colors" />
         {price > 0 ? (
           <span className="text-gold-soft text-sm font-semibold tracking-wide whitespace-nowrap tabular-nums leading-snug">
@@ -479,6 +486,11 @@ export default function MenuPage({ params }: { params: { type: string } }) {
   const [showLegend, setShowLegend] = useState(false)
   const [activeSection, setActiveSection] = useState('')
   const navRef = useRef<HTMLDivElement>(null)
+  /** Mientras dura el desplazamiento tras pulsar una sección, no se cambia la sección resaltada. */
+  const navLock = useRef(0)
+  /** Hueco al final para que las últimas secciones (Hamburguesas, Postres) puedan subir arriba del todo. */
+  const [endSpace, setEndSpace] = useState(0)
+  const endSpaceRef = useRef<HTMLDivElement>(null)
 
   /* Language: saved choice, otherwise the browser language */
   useEffect(() => {
@@ -568,12 +580,44 @@ export default function MenuPage({ params }: { params: { type: string } }) {
     const sections = Array.from(document.querySelectorAll<HTMLElement>('section[data-section]'))
     const obs = new IntersectionObserver(
       (entries) => {
+        if (Date.now() < navLock.current) return
         entries.forEach((e) => e.isIntersecting && setActiveSection(e.target.id))
       },
       { rootMargin: '-90px 0px -65% 0px' }
     )
     sections.forEach((s) => obs.observe(s))
     return () => obs.disconnect()
+  }, [menu, route, lang])
+
+  /* Si el usuario toca o mueve la rueda, vuelve a mandar el scroll */
+  useEffect(() => {
+    const release = () => { navLock.current = 0 }
+    window.addEventListener('touchstart', release, { passive: true })
+    window.addEventListener('wheel', release, { passive: true })
+    return () => {
+      window.removeEventListener('touchstart', release)
+      window.removeEventListener('wheel', release)
+    }
+  }, [])
+
+  /* Hueco final: lo justo para que la última sección pueda quedar debajo de la barra */
+  useEffect(() => {
+    if (!menu) return
+    const calc = () => {
+      const secs = document.querySelectorAll<HTMLElement>('section[data-section]')
+      const last = secs[secs.length - 1]
+      if (!last) return setEndSpace(0)
+      const current = endSpaceRef.current?.offsetHeight ?? 0
+      const docH = document.documentElement.scrollHeight - current
+      const lastTop = last.getBoundingClientRect().top + window.scrollY
+      setEndSpace(Math.max(0, Math.ceil(window.innerHeight - 64 - (docH - lastTop))))
+    }
+    const raf = requestAnimationFrame(calc)
+    window.addEventListener('resize', calc)
+    return () => {
+      cancelAnimationFrame(raf)
+      window.removeEventListener('resize', calc)
+    }
   }, [menu, route, lang])
 
   /* Keep the active pill centred in the nav */
@@ -693,7 +737,11 @@ export default function MenuPage({ params }: { params: { type: string } }) {
                   <button
                     key={n.id}
                     data-target={n.id}
-                    onClick={() => document.getElementById(n.id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+                    onClick={() => {
+                      navLock.current = Date.now() + 1500
+                      setActiveSection(n.id)
+                      document.getElementById(n.id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                    }}
                     className={`flex-shrink-0 px-3.5 py-1.5 rounded-full text-xs font-semibold tracking-wide transition-all duration-300 ${
                       active
                         ? 'bg-gradient-to-r from-gold-soft to-gold text-navy-900 shadow-md shadow-gold/25'
@@ -747,6 +795,7 @@ export default function MenuPage({ params }: { params: { type: string } }) {
             )}
           </footer>
         )}
+        <div ref={endSpaceRef} aria-hidden="true" style={{ height: endSpace }} />
       </main>
 
       <ScrollHint />

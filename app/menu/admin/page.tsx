@@ -430,6 +430,17 @@ function DishEditor({
         />
       </div>
 
+      <div>
+        <label className={labelCls}>Etiqueta (opcional)</label>
+        <input
+          value={item.tag ?? ''}
+          onChange={(e) => onChange({ tag: e.target.value, tagI18n: undefined })}
+          placeholder="Ej.: Chacina, Nuevo, Picante…"
+          className={inputCls}
+        />
+        <p className="mt-1 text-[11px] text-white/40">Sale en pequeño junto al nombre. Chacina, Nuevo, Picante, Vegetariano, Recomendado y De temporada se traducen solas.</p>
+      </div>
+
       <VisibleRow hidden={item.hidden} onChange={(hidden) => onChange({ hidden })} />
 
       <div className="grid grid-cols-2 gap-3">
@@ -764,6 +775,8 @@ export default function AdminPage() {
                 name: it.name.trim(),
                 nameI18n: cleanTranslations(it.nameI18n),
                 description: it.description?.trim() || undefined,
+                tag: it.tag?.trim() || undefined,
+                tagI18n: it.tag?.trim() ? it.tagI18n : undefined,
                 descriptionI18n: it.description?.trim() ? cleanTranslations(it.descriptionI18n) : undefined,
                 variants: it.variants?.length
                   ? it.variants

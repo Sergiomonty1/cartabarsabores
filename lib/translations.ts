@@ -210,6 +210,23 @@ export function tName(lang: Lang, base: string, i18n?: Translations): string {
   return translated && translated.trim() ? translated : base
 }
 
+/** Traducciones de las etiquetas de plato más habituales (si no se han escrito a mano). */
+const TAG_I18N: Record<string, Translations> = {
+  chacina: { en: 'Charcuterie', de: 'Aufschnitt', pt: 'Charcutaria', fr: 'Charcuterie' },
+  nuevo: { en: 'New', de: 'Neu', pt: 'Novo', fr: 'Nouveau' },
+  picante: { en: 'Spicy', de: 'Scharf', pt: 'Picante', fr: 'Épicé' },
+  vegetariano: { en: 'Vegetarian', de: 'Vegetarisch', pt: 'Vegetariano', fr: 'Végétarien' },
+  recomendado: { en: 'Recommended', de: 'Empfohlen', pt: 'Recomendado', fr: 'Recommandé' },
+  'de temporada': { en: 'Seasonal', de: 'Saisonal', pt: 'Da época', fr: 'De saison' },
+}
+
+/** Etiqueta del plato traducida: la escrita a mano o, si no hay, la habitual. */
+export function tTag(lang: Lang, tag: string, i18n?: Translations): string {
+  if (lang === 'es') return tag
+  const own = i18n?.[lang]?.trim()
+  return own || tName(lang, tag, TAG_I18N[tag.trim().toLowerCase()])
+}
+
 /** Etiqueta traducida de un alérgeno. */
 export function tAllergen(lang: Lang, key: string): string {
   return allergenLabels[key]?.[lang] ?? allergenLabels[key]?.es ?? key

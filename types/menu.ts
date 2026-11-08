@@ -27,6 +27,9 @@ export interface MenuItem {
   nameI18n?: Translations
   description?: string
   descriptionI18n?: Translations
+  /** Etiqueta corta junto al nombre (p. ej. «Chacina»). */
+  tag?: string
+  tagI18n?: Translations
   priceTapa: number
   priceMedia: number
   samePrice: boolean

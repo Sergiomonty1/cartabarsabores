@@ -11,7 +11,7 @@ import type { MenuCategory, MenuData, MenuItem, MenuVariant, Translations } from
  * Cada cambio comprueba el nombre en español antes de tocar nada, para no pisar
  * cambios hechos a mano desde el admin.
  */
-export const CONTENT_VERSION = 30
+export const CONTENT_VERSION = 31
 
 /* ─── Traducciones revisadas (oct. 2026) ─── */
 
@@ -205,6 +205,7 @@ export function applyContentUpdates(input: MenuData): MenuData {
   if (from < 28) applyV28(data)
   if (from < 29) applyV29(data)
   if (from < 30) applyV30(data)
+  if (from < 31) applyV31(data)
   data.contentVersion = CONTENT_VERSION
   return data
 }
@@ -221,6 +222,32 @@ function moveAfter(items: MenuItem[], item: MenuItem, afterId: string | null) {
   const at = afterId ? items.findIndex((x) => x.id === afterId) : -1
   if (at === -1) items.push(item)
   else items.splice(at + 1, 0, item)
+}
+
+/** v31 (08/11/2026): jamón y queso sueltos en Entrantes (junto al lomito), con etiqueta «Chacina». */
+function applyV31(data: MenuData) {
+  const norm = (s?: string) => (s ?? '').trim().toLowerCase()
+  const cats = data.categories ?? []
+  const has = (n: string) => cats.some((c) => (c.items ?? []).some((i) => norm(i.name) === n))
+  const entrantes = cats.find((c) => c.id === 'entrantes')
+  if (entrantes) {
+    const items = [...(entrantes.items ?? [])].sort(byOrder)
+    let after = items.find((i) => norm(i.name) === 'lomito de presa de bellota')?.id ?? [...items].reverse().find((i) => !i.hidden)?.id ?? null
+    const add = (name: string, nameI18n: Translations, id: string, allergens?: string[]) => {
+      if (has(norm(name))) return
+      const item: MenuItem = { id: freeId(data, [id]), name, nameI18n, priceTapa: 0, priceMedia: 0, samePrice: true, order: 0, ...(allergens ? { allergens } : {}) }
+      insertAfter(items, after, item)
+      after = item.id
+    }
+    add('Jamón', { en: 'Cured ham', de: 'Luftgetrockneter Schinken', pt: 'Presunto', fr: 'Jambon cru' }, 'entrantes-jamon')
+    add('Queso', { en: 'Cheese', de: 'Käse', pt: 'Queijo', fr: 'Fromage' }, 'entrantes-queso', ['lacteo'])
+    entrantes.items = items.map((it, i) => ({ ...it, order: i }))
+  }
+  for (const c of cats) {
+    for (const it of c.items ?? []) {
+      if (['lomito de presa de bellota', 'jamón', 'queso'].includes(norm(it.name)) && !it.tag?.trim()) it.tag = 'Chacina'
+    }
+  }
 }
 
 /** v30 (08/11/2026): precios. Gambas al ajillo 5 € tapa / 10 € media; pluma ibérica de bellota 20 €. */
