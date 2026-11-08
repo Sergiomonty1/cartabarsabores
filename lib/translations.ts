@@ -57,6 +57,7 @@ const ui: Record<Lang, Record<string, string>> = {
     backToTop: 'Volver arriba',
     close: 'Cerrar',
     minPeople: 'Mínimo {n} personas',
+    lastOrder: 'Pedidos hasta las {t}',
     perPerson: '/ pers.',
   },
   en: {
@@ -85,6 +86,7 @@ const ui: Record<Lang, Record<string, string>> = {
     backToTop: 'Back to top',
     close: 'Close',
     minPeople: 'Minimum {n} people',
+    lastOrder: 'Orders until {t}',
     perPerson: '/ person',
   },
   de: {
@@ -113,6 +115,7 @@ const ui: Record<Lang, Record<string, string>> = {
     backToTop: 'Nach oben',
     close: 'Schließen',
     minPeople: 'Mindestens {n} Personen',
+    lastOrder: 'Bestellungen bis {t} Uhr',
     perPerson: '/ Person',
   },
   pt: {
@@ -141,6 +144,7 @@ const ui: Record<Lang, Record<string, string>> = {
     backToTop: 'Voltar ao topo',
     close: 'Fechar',
     minPeople: 'Mínimo {n} pessoas',
+    lastOrder: 'Pedidos até às {t}',
     perPerson: '/ pessoa',
   },
   fr: {
@@ -169,6 +173,7 @@ const ui: Record<Lang, Record<string, string>> = {
     backToTop: 'Haut de page',
     close: 'Fermer',
     minPeople: 'Minimum {n} personnes',
+    lastOrder: "Commandes jusqu'à {t}",
     perPerson: '/ pers.',
   },
 }

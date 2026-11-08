@@ -290,12 +290,13 @@ function DishRow({ item, priceMode, showAllergens, lang, delay, visible, perPers
 }
 
 /* ─── Section heading ─── */
-function SectionHeading({ index, icon, title, note, people, description, visible }: {
+function SectionHeading({ index, icon, title, note, people, until, description, visible }: {
   index: number
   icon?: string
   title: string
   note?: string
   people?: string
+  until?: string
   description?: string
   visible: boolean
 }) {
@@ -307,7 +308,7 @@ function SectionHeading({ index, icon, title, note, people, description, visible
         <h2 className="text-[1.65rem] leading-none font-display font-semibold text-white tracking-tight">{title}</h2>
         <div className={`flex-1 h-px bg-gradient-to-r from-gold/35 to-transparent transition-transform duration-700 origin-left ${visible ? 'scale-x-100' : 'scale-x-0'}`} />
       </div>
-      {(note || people) && (
+      {(note || people || until) && (
         <div className="mt-2 ml-9 flex flex-wrap gap-1.5">
           {note && (
             <span className="inline-flex items-center gap-1.5 rounded-full border border-gold/25 bg-gold/[0.08] px-3 py-1 text-[11px] font-semibold tracking-wide text-gold-soft">
@@ -325,6 +326,15 @@ function SectionHeading({ index, icon, title, note, people, description, visible
                 <path strokeLinecap="round" strokeWidth={2} d="M3.5 19c.6-3 2.8-5 5.5-5s4.9 2 5.5 5M16 5.5a3 3 0 010 5.5M17.5 14c1.7.6 2.7 2.4 3 5" />
               </svg>
               {people}
+            </span>
+          )}
+          {until && (
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-gold/25 bg-gold/[0.08] px-3 py-1 text-[11px] font-semibold tracking-wide text-gold-soft">
+              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                <circle cx="12" cy="12" r="8.5" strokeWidth={2} />
+                <path strokeLinecap="round" strokeWidth={2} d="M12 7.5V12l3 2" />
+              </svg>
+              {until}
             </span>
           )}
         </div>
@@ -358,6 +368,7 @@ const CategorySection = React.memo(function CategorySection({
         title={tName(lang, cat.name, cat.nameI18n)}
         note={noteOf(lang, cat)}
         people={cat.minPeople && cat.minPeople > 1 ? t(lang, 'minPeople').replace('{n}', String(cat.minPeople)) : undefined}
+        until={cat.lastOrder?.trim() ? t(lang, 'lastOrder').replace('{t}', cat.lastOrder.trim()) : undefined}
         description={cat.description?.trim() ? tName(lang, cat.description, cat.descriptionI18n) : undefined}
         visible={visible}
       />

@@ -1242,6 +1242,16 @@ export default function AdminPage() {
                                 <span className="text-xs text-white/70">Precio por persona</span>
                                 <Switch checked={!!cat.pricePerPerson} label="Precio por persona" onChange={(v) => updateCat(cat.id, { pricePerPerson: v })} />
                               </div>
+                              <label className="col-span-2 flex items-center justify-between gap-2 rounded-xl bg-white/[0.03] border border-white/[0.06] px-3 py-2">
+                                <span className="text-xs text-white/70">Pedidos hasta las (hora)</span>
+                                <input
+                                  type="time"
+                                  value={cat.lastOrder ?? ''}
+                                  onChange={(e) => updateCat(cat.id, { lastOrder: e.target.value })}
+                                  className="w-24 rounded-lg bg-white/[0.06] border border-white/10 px-1 py-1 text-center text-sm text-white focus:outline-none focus:border-gold/60 [color-scheme:dark]"
+                                  aria-label="Pedidos hasta las (hora)"
+                                />
+                              </label>
                             </div>
                           </div>
 

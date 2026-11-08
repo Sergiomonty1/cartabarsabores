@@ -54,6 +54,8 @@ export interface MenuCategory {
   descriptionI18n?: Translations
   /** Mínimo de personas para pedir (se muestra como etiqueta). */
   minPeople?: number
+  /** Hora límite para pedir, «HH:MM» (se muestra como etiqueta: «Pedidos hasta las 15:15»). */
+  lastOrder?: string
   /** Si es true, los precios de la sección se muestran «por persona». */
   pricePerPerson?: boolean
   items: MenuItem[]
