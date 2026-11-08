@@ -11,7 +11,7 @@ import type { MenuCategory, MenuData, MenuItem, MenuVariant, Translations } from
  * Cada cambio comprueba el nombre en español antes de tocar nada, para no pisar
  * cambios hechos a mano desde el admin.
  */
-export const CONTENT_VERSION = 32
+export const CONTENT_VERSION = 33
 
 /* ─── Traducciones revisadas (oct. 2026) ─── */
 
@@ -207,6 +207,7 @@ export function applyContentUpdates(input: MenuData): MenuData {
   if (from < 30) applyV30(data)
   if (from < 31) applyV31(data)
   if (from < 32) applyV32(data)
+  if (from < 33) applyV33(data)
   data.contentVersion = CONTENT_VERSION
   return data
 }
@@ -223,6 +224,24 @@ function moveAfter(items: MenuItem[], item: MenuItem, afterId: string | null) {
   const at = afterId ? items.findIndex((x) => x.id === afterId) : -1
   if (at === -1) items.push(item)
   else items.splice(at + 1, 0, item)
+}
+
+/** v33 (08/11/2026): el solomillo de bellota al Pedro Ximénez también es a la brasa. */
+function applyV33(data: MenuData) {
+  const norm = (s?: string) => (s ?? '').trim().toLowerCase()
+  const cats = data.categories ?? []
+  const carnes = cats.find((c) => c.id === 'carnes')
+  if (!carnes) return
+  for (const c of cats) {
+    if (c === carnes) continue
+    const it = (c.items ?? []).find((i) => norm(i.name) === 'solomillo de bellota al pedro jimenez')
+    if (!it) continue
+    c.items = c.items.filter((i) => i !== it).sort(byOrder).map((x, i) => ({ ...x, order: i }))
+    const items = [...carnes.items].sort(byOrder)
+    const after = items.find((i) => norm(i.name) === 'solomillo ibérico de bellota')
+    insertAfter(items, after?.id ?? null, it)
+    carnes.items = items.map((x, i) => ({ ...x, order: i }))
+  }
 }
 
 /**
