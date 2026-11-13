@@ -11,7 +11,7 @@ import type { MenuCategory, MenuData, MenuItem, MenuVariant, Translations } from
  * Cada cambio comprueba el nombre en español antes de tocar nada, para no pisar
  * cambios hechos a mano desde el admin.
  */
-export const CONTENT_VERSION = 34
+export const CONTENT_VERSION = 35
 
 /* ─── Traducciones revisadas (oct. 2026) ─── */
 
@@ -209,6 +209,7 @@ export function applyContentUpdates(input: MenuData): MenuData {
   if (from < 32) applyV32(data)
   if (from < 33) applyV33(data)
   if (from < 34) applyV34(data)
+  if (from < 35) applyV35(data)
   data.contentVersion = CONTENT_VERSION
   return data
 }
@@ -225,6 +226,26 @@ function moveAfter(items: MenuItem[], item: MenuItem, afterId: string | null) {
   const at = afterId ? items.findIndex((x) => x.id === afterId) : -1
   if (at === -1) items.push(item)
   else items.splice(at + 1, 0, item)
+}
+
+/** v35 (13/11/2026): precios y pesos de las carnes a la brasa. */
+function applyV35(data: MenuData) {
+  const norm = (s?: string) => (s ?? '').trim().toLowerCase()
+  const same = (t: string): Translations => ({ en: t, de: t, pt: t, fr: t })
+  const big: Translations = { en: '1–1.2 kg', de: '1–1,2 kg', pt: '1–1,2 kg', fr: '1–1,2 kg' }
+  const set: Record<string, { price: number; description: string; descriptionI18n: Translations }> = {
+    'lomo bajo': { price: 25, description: '400 g', descriptionI18n: same('400 g') },
+    'pluma ibérica de bellota': { price: 20, description: '300 g', descriptionI18n: same('300 g') },
+    'chuletón de vaca': { price: 60, description: '1 kg – 1,2 kg', descriptionI18n: big },
+    't-bone': { price: 60, description: '1 kg – 1,2 kg', descriptionI18n: big },
+  }
+  for (const cat of data.categories ?? []) {
+    for (const it of cat.items ?? []) {
+      const v = set[norm(it.name)]
+      if (!v) continue
+      Object.assign(it, { priceTapa: v.price, priceMedia: v.price, samePrice: true, description: v.description, descriptionI18n: v.descriptionI18n })
+    }
+  }
 }
 
 /** v34 (13/11/2026): dos arroces nuevos, visibles: cola de toro y setas; choco y calamar de potera frito. */
