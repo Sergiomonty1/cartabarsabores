@@ -11,7 +11,7 @@ import type { MenuCategory, MenuData, MenuItem, MenuVariant, Translations } from
  * Cada cambio comprueba el nombre en español antes de tocar nada, para no pisar
  * cambios hechos a mano desde el admin.
  */
-export const CONTENT_VERSION = 33
+export const CONTENT_VERSION = 34
 
 /* ─── Traducciones revisadas (oct. 2026) ─── */
 
@@ -208,6 +208,7 @@ export function applyContentUpdates(input: MenuData): MenuData {
   if (from < 31) applyV31(data)
   if (from < 32) applyV32(data)
   if (from < 33) applyV33(data)
+  if (from < 34) applyV34(data)
   data.contentVersion = CONTENT_VERSION
   return data
 }
@@ -224,6 +225,36 @@ function moveAfter(items: MenuItem[], item: MenuItem, afterId: string | null) {
   const at = afterId ? items.findIndex((x) => x.id === afterId) : -1
   if (at === -1) items.push(item)
   else items.splice(at + 1, 0, item)
+}
+
+/** v34 (13/11/2026): dos arroces nuevos, visibles: cola de toro y setas; choco y calamar de potera frito. */
+function applyV34(data: MenuData) {
+  const norm = (s?: string) => (s ?? '').trim().toLowerCase()
+  const cats = data.categories ?? []
+  const arroces = cats.find((c) => c.id === 'arroces')
+  if (!arroces) return
+  const has = (n: string) => cats.some((c) => (c.items ?? []).some((i) => norm(i.name) === n))
+  const items = [...(arroces.items ?? [])].sort(byOrder)
+  let after = [...items].reverse().find((i) => !i.hidden)?.id ?? null
+  const add = (name: string, nameI18n: Translations, id: string, allergens?: string[]) => {
+    if (has(norm(name))) return
+    const item: MenuItem = { id: freeId(data, [id]), name, nameI18n, priceTapa: 0, priceMedia: 0, samePrice: true, order: 0, ...(allergens ? { allergens } : {}) }
+    insertAfter(items, after, item)
+    after = item.id
+  }
+  add('Arroz de cola de toro y setas', {
+    en: 'Oxtail & mushroom rice',
+    de: 'Reis mit Ochsenschwanz und Pilzen',
+    pt: 'Arroz de rabo de boi e cogumelos',
+    fr: 'Riz à la queue de bœuf et aux champignons',
+  }, 'arroces-cola-de-toro-y-setas')
+  add('Arroz de choco y calamar de potera frito', {
+    en: 'Rice with cuttlefish & fried line-caught squid',
+    de: 'Reis mit Sepia und frittiertem, an der Angel gefangenem Kalmar',
+    pt: 'Arroz de choco com lula frita pescada à linha',
+    fr: 'Riz à la seiche et calmar frit pêché à la ligne',
+  }, 'arroces-choco-y-calamar-de-potera', ['molusco', 'gluten'])
+  arroces.items = items.map((it, i) => ({ ...it, order: i }))
 }
 
 /** v33 (08/11/2026): el solomillo de bellota al Pedro Ximénez también es a la brasa. */
