@@ -11,7 +11,7 @@ import type { MenuCategory, MenuData, MenuItem, MenuVariant, Translations } from
  * Cada cambio comprueba el nombre en español antes de tocar nada, para no pisar
  * cambios hechos a mano desde el admin.
  */
-export const CONTENT_VERSION = 36
+export const CONTENT_VERSION = 37
 
 /* ─── Traducciones revisadas (oct. 2026) ─── */
 
@@ -211,6 +211,7 @@ export function applyContentUpdates(input: MenuData): MenuData {
   if (from < 34) applyV34(data)
   if (from < 35) applyV35(data)
   if (from < 36) applyV36(data)
+  if (from < 37) applyV37(data)
   data.contentVersion = CONTENT_VERSION
   return data
 }
@@ -227,6 +228,18 @@ function moveAfter(items: MenuItem[], item: MenuItem, afterId: string | null) {
   const at = afterId ? items.findIndex((x) => x.id === afterId) : -1
   if (at === -1) items.push(item)
   else items.splice(at + 1, 0, item)
+}
+
+/** v37 (13/11/2026): jamón (16 €), queso (12 €) y lomito (18 €) son platos únicos, mismo precio en tapas y medias. */
+function applyV37(data: MenuData) {
+  const norm = (s?: string) => (s ?? '').trim().toLowerCase()
+  const price: Record<string, number> = { 'jamón': 16, 'queso': 12, 'lomito de presa de bellota': 18 }
+  for (const cat of data.categories ?? []) {
+    for (const it of cat.items ?? []) {
+      const p = price[norm(it.name)]
+      if (p) Object.assign(it, { priceTapa: p, priceMedia: p, samePrice: true })
+    }
+  }
 }
 
 /** v36 (13/11/2026): chacinas. Medias de jamón 16 €, queso 12 € y lomito 18 €; chacina variada plato único 18 €. */
