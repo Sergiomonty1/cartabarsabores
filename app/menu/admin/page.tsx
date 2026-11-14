@@ -7,6 +7,7 @@ import { menuService } from '@/lib/menuService'
 import { ALLERGENS, ALLERGEN_SRC, dishAllergens } from '@/lib/allergens'
 import { I18N_LANGS, tAllergen } from '@/lib/translations'
 import { GradientOrbs, LogoMark } from '@/components/Brand'
+import GroupMenuCounter from '@/components/GroupMenuCounter'
 
 const ADMIN_PASSCODE = '2010'
 /** Contraseña para restablecer la copia guardada (botón oculto en Opciones avanzadas). */
@@ -705,6 +706,7 @@ export default function AdminPage() {
   const [saved, setSaved] = useState(false)
   const [saveError, setSaveError] = useState('')
   const [view, setView] = useState<'carta' | 'vinos'>('carta')
+  const [groupMenu, setGroupMenu] = useState(false)
   const [openCats, setOpenCats] = useState<string[]>([])
   const [trCats, setTrCats] = useState<string[]>([])
   const [editing, setEditing] = useState<Editing>(null)
@@ -1025,6 +1027,7 @@ export default function AdminPage() {
   return (
     <div className="min-h-screen bg-[#021530] text-white pb-40 relative">
       <GradientOrbs />
+      {groupMenu && <GroupMenuCounter onClose={() => setGroupMenu(false)} />}
       {pwAction === 'factory' && (
         <PasswordModal title="Guardar carta de fábrica" confirmLabel="Guardar" onClose={() => setPwAction(null)} onConfirm={confirmSaveFactory}>
           La carta que tienes guardada ahora pasará a ser la <span className="text-white">carta de fábrica</span>: la que se pone
@@ -1054,6 +1057,13 @@ export default function AdminPage() {
               {status.text}
             </p>
           </div>
+          <button
+            type="button"
+            onClick={() => setGroupMenu(true)}
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-white/85 px-3 py-2 rounded-xl border border-white/15 hover:bg-white/[0.06] transition"
+          >
+            <span aria-hidden="true">🧮</span> Menú
+          </button>
           <a
             href="/menu/medias"
             target="_blank"
