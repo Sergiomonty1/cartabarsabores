@@ -11,7 +11,7 @@ import type { MenuCategory, MenuData, MenuItem, MenuVariant, Translations } from
  * Cada cambio comprueba el nombre en español antes de tocar nada, para no pisar
  * cambios hechos a mano desde el admin.
  */
-export const CONTENT_VERSION = 38
+export const CONTENT_VERSION = 39
 
 /* ─── Traducciones revisadas (oct. 2026) ─── */
 
@@ -213,6 +213,7 @@ export function applyContentUpdates(input: MenuData): MenuData {
   if (from < 36) applyV36(data)
   if (from < 37) applyV37(data)
   if (from < 38) applyV38(data)
+  if (from < 39) applyV39(data)
   data.contentVersion = CONTENT_VERSION
   return data
 }
@@ -229,6 +230,29 @@ function moveAfter(items: MenuItem[], item: MenuItem, afterId: string | null) {
   const at = afterId ? items.findIndex((x) => x.id === afterId) : -1
   if (at === -1) items.push(item)
   else items.splice(at + 1, 0, item)
+}
+
+/** v39 (14/11/2026): el cachopo lleva salsa de tomate y queso curado rallado por encima. */
+function applyV39(data: MenuData) {
+  const norm = (s?: string) => (s ?? '').trim().toLowerCase()
+  for (const cat of data.categories ?? []) {
+    for (const it of cat.items ?? []) {
+      if (norm(it.name) !== 'cachopo de black angus') continue
+      it.nameI18n = {
+        en: 'Black Angus cachopo (breaded beef steak)',
+        de: 'Cachopo vom Black Angus (paniertes Rindersteak)',
+        pt: 'Cachopo de Black Angus (bife de vaca panado)',
+        fr: 'Cachopo de Black Angus (steak de bœuf pané)',
+      }
+      it.description = 'Con salsa de tomate y queso curado rallado por encima · unos 600 g'
+      it.descriptionI18n = {
+        en: 'With tomato sauce and grated cured cheese on top · about 600 g',
+        de: 'Mit Tomatensoße und geriebenem Hartkäse darüber · ca. 600 g',
+        pt: 'Com molho de tomate e queijo curado ralado por cima · cerca de 600 g',
+        fr: 'Sauce tomate et fromage affiné râpé sur le dessus · environ 600 g',
+      }
+    }
+  }
 }
 
 /**
