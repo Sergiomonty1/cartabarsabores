@@ -3,14 +3,12 @@
 import React, { useEffect, useMemo, useState } from 'react'
 
 /**
- * Contador para menús de grupo: personas, platos y salsas del solomillo (en el plato o aparte).
- * Se usa yendo mesa por mesa y sumando. Se guarda en este móvil para no perder la cuenta.
+ * Contador para menús de grupo. Se usa yendo mesa por mesa y sumando.
+ * - Los solomillos se cuentan solos al sumar su salsa (en el plato o aparte) o «sin salsa».
+ * - «Solomillo especial» para apuntar los que van con algo diferente (con una nota).
+ * - La merluza se suma aparte.
+ * Se guarda en este móvil para no perder la cuenta.
  */
-
-const DISHES = [
-  { id: 'solomillo', name: 'Solomillo' },
-  { id: 'merluza', name: 'Merluza' },
-] as const
 
 const SAUCES = [
   { id: 'sin', name: 'Sin salsa', side: false },
@@ -20,18 +18,26 @@ const SAUCES = [
   { id: 'mojo', name: 'Mojo picón', side: true },
 ] as const
 
-type Counts = Record<string, number>
-type State = { people: number; counts: Counts }
+type Special = { id: string; note: string; n: number }
+type State = { people: number; counts: Record<string, number>; specials: Special[] }
 
 const STORAGE_KEY = 'sabores-menu-grupo-v1'
-const EMPTY: State = { people: 0, counts: {} }
+const EMPTY: State = { people: 0, counts: {}, specials: [] }
 
 function load(): State {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (!raw) return EMPTY
     const s = JSON.parse(raw)
-    return { people: Number(s.people) || 0, counts: s.counts && typeof s.counts === 'object' ? s.counts : {} }
+    const counts = s.counts && typeof s.counts === 'object' ? { ...s.counts } : {}
+    delete counts.solomillo // versión anterior: el solomillo se sumaba a mano
+    return {
+      people: Number(s.people) || 0,
+      counts,
+      specials: Array.isArray(s.specials)
+        ? s.specials.map((x: any, i: number) => ({ id: String(x.id ?? i), note: String(x.note ?? ''), n: Number(x.n) || 0 }))
+        : [],
+    }
   } catch {
     return EMPTY
   }
@@ -48,12 +54,9 @@ function Stepper({
   size?: 'lg' | 'sm'
   label: string
 }) {
-  const btn =
-    size === 'lg'
-      ? 'w-12 h-12 text-2xl rounded-2xl'
-      : 'w-9 h-9 text-lg rounded-xl'
+  const btn = size === 'lg' ? 'w-12 h-12 text-2xl rounded-2xl' : 'w-9 h-9 text-lg rounded-xl'
   return (
-    <div className="flex items-center gap-2" role="group" aria-label={label}>
+    <div className="flex items-center gap-2 flex-shrink-0" role="group" aria-label={label}>
       <button
         type="button"
         onClick={() => onChange(Math.max(0, value - 1))}
@@ -93,23 +96,23 @@ function Card({ title, aside, children }: { title: string; aside?: React.ReactNo
   )
 }
 
-function Badge({ tone, children }: { tone: 'ok' | 'warn' | 'bad' | 'muted'; children: React.ReactNode }) {
+function Badge({ tone, children }: { tone: 'ok' | 'warn' | 'bad' | 'muted' | 'gold'; children: React.ReactNode }) {
   const cls = {
     ok: 'text-emerald-300 bg-emerald-400/10 border-emerald-300/25',
     warn: 'text-amber-200 bg-amber-300/10 border-amber-200/25',
     bad: 'text-red-300 bg-red-400/10 border-red-300/25',
     muted: 'text-white/50 bg-white/[0.04] border-white/10',
+    gold: 'text-gold-soft bg-gold/10 border-gold/30',
   }[tone]
-  return <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full border whitespace-nowrap ${cls}`}>{children}</span>
+  return <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full border whitespace-nowrap tabular-nums ${cls}`}>{children}</span>
 }
 
 export default function GroupMenuCounter({ onClose }: { onClose: () => void }) {
   const [state, setState] = useState<State>(EMPTY)
+  const [ready, setReady] = useState(false)
   const [history, setHistory] = useState<State[]>([])
   const [confirmReset, setConfirmReset] = useState(false)
   const [copied, setCopied] = useState(false)
-
-  const [ready, setReady] = useState(false)
 
   useEffect(() => {
     setState(load())
@@ -135,26 +138,33 @@ export default function GroupMenuCounter({ onClose }: { onClose: () => void }) {
     setState(next)
     setConfirmReset(false)
   }
-  const setCount = (key: string, v: number) => update({ ...state, counts: { ...state.counts, [key]: v } })
   const c = (key: string) => state.counts[key] ?? 0
+  const setCount = (key: string, v: number) => update({ ...state, counts: { ...state.counts, [key]: v } })
+  const setSpecial = (id: string, patch: Partial<Special>) =>
+    update({ ...state, specials: state.specials.map((s) => (s.id === id ? { ...s, ...patch } : s)) })
+  const addSpecial = () => update({ ...state, specials: [...state.specials, { id: String(Date.now()), note: '', n: 1 }] })
+  const removeSpecial = (id: string) => update({ ...state, specials: state.specials.filter((s) => s.id !== id) })
 
-  const ordered = DISHES.reduce((n, d) => n + c(d.id), 0)
+  const sauceTotal = (s: (typeof SAUCES)[number]) => c(`s:${s.id}`) + (s.side ? c(`a:${s.id}`) : 0)
+  const specialsTotal = state.specials.reduce((n, s) => n + s.n, 0)
+  const solomillos = SAUCES.reduce((n, s) => n + sauceTotal(s), 0) + specialsTotal
+  const merluzas = c('merluza')
+  const ordered = solomillos + merluzas
   const missingPeople = state.people - ordered
-  const solomillos = c('solomillo')
-  const sauceTotal = SAUCES.reduce((n, s) => n + c(`s:${s.id}`) + (s.side ? c(`a:${s.id}`) : 0), 0)
-  const missingSauces = solomillos - sauceTotal
 
   const summary = useMemo(() => {
-    const lines: string[] = []
-    lines.push(`MENÚ · ${state.people} personas`)
-    for (const d of DISHES) if (c(d.id)) lines.push(`${d.name}: ${c(d.id)}`)
-    const sauceLines = SAUCES.filter((s) => c(`s:${s.id}`) + (s.side ? c(`a:${s.id}`) : 0) > 0).map((s) => {
-      const on = c(`s:${s.id}`)
-      const side = s.side ? c(`a:${s.id}`) : 0
-      const total = on + side
-      return `  · ${s.name}: ${total}${side ? ` (${side} aparte)` : ''}`
-    })
-    if (sauceLines.length) lines.push('Salsas del solomillo:', ...sauceLines)
+    const lines: string[] = [`MENÚ · ${state.people} personas`]
+    if (solomillos) {
+      lines.push(`Solomillo: ${solomillos}`)
+      for (const s of SAUCES) {
+        const total = sauceTotal(s)
+        if (!total) continue
+        const side = s.side ? c(`a:${s.id}`) : 0
+        lines.push(`  · ${s.name}: ${total}${side ? ` (${side === total ? 'aparte' : `${side} aparte`})` : ''}`)
+      }
+      for (const sp of state.specials) if (sp.n) lines.push(`  · ${sp.note.trim() || 'Especial'}: ${sp.n}`)
+    }
+    if (merluzas) lines.push(`Merluza: ${merluzas}`)
     return lines.join('\n')
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state])
@@ -241,47 +251,23 @@ export default function GroupMenuCounter({ onClose }: { onClose: () => void }) {
                 />
               </div>
               <p className="mt-1.5 text-xs text-white/55 tabular-nums">
-                Pedidos {ordered} de {state.people}
+                Pedidos {ordered} de {state.people} · {solomillos} solomillo{solomillos === 1 ? '' : 's'} · {merluzas} merluza
+                {merluzas === 1 ? '' : 's'}
               </p>
             </div>
           )}
         </Card>
 
-        {/* Platos */}
-        <Card title="Platos">
-          <div className="divide-y divide-white/[0.06]">
-            {DISHES.map((d) => (
-              <div key={d.id} className="flex items-center justify-between gap-3 py-2.5 first:pt-0 last:pb-0">
-                <span className="text-lg text-white/90">{d.name}</span>
-                <Stepper label={d.name} value={c(d.id)} onChange={(v) => setCount(d.id, v)} />
-              </div>
-            ))}
-          </div>
-        </Card>
-
-        {/* Salsas */}
-        <Card
-          title="Salsas del solomillo"
-          aside={
-            solomillos > 0 || sauceTotal > 0 ? (
-              missingSauces > 0 ? (
-                <Badge tone="warn">Faltan {missingSauces}</Badge>
-              ) : missingSauces < 0 ? (
-                <Badge tone="bad">Sobran {-missingSauces}</Badge>
-              ) : (
-                <Badge tone="ok">Cuadra ✓</Badge>
-              )
-            ) : undefined
-          }
-        >
+        {/* Solomillo: se cuenta solo con las salsas */}
+        <Card title="Solomillo" aside={<Badge tone="gold">Total {solomillos}</Badge>}>
           <div className="divide-y divide-white/[0.06]">
             {SAUCES.map((s) => (
-              <div key={s.id} className="py-3 first:pt-0 last:pb-0">
+              <div key={s.id} className="py-3 first:pt-0">
                 <div className="flex items-center justify-between gap-3">
-                  <span className="text-base text-white/90">
+                  <span className="text-base text-white/90 min-w-0">
                     {s.name}
                     {s.side && c(`a:${s.id}`) > 0 && (
-                      <span className="ml-2 text-xs text-white/45 tabular-nums">total {c(`s:${s.id}`) + c(`a:${s.id}`)}</span>
+                      <span className="ml-2 text-xs text-white/45 tabular-nums">total {sauceTotal(s)}</span>
                     )}
                   </span>
                   <Stepper label={s.side ? `${s.name} en el plato` : s.name} value={c(`s:${s.id}`)} onChange={(v) => setCount(`s:${s.id}`, v)} />
@@ -294,10 +280,54 @@ export default function GroupMenuCounter({ onClose }: { onClose: () => void }) {
                 )}
               </div>
             ))}
+
+            {/* Especiales: con algo diferente */}
+            <div className="pt-3">
+              <p className="text-base text-white/90">Especial / con algo diferente</p>
+              <p className="text-[11px] text-white/40 mt-0.5">Apunta qué lleva: «poco hecho», «sin sal», «salsa de setas aparte»…</p>
+              <div className="mt-2 space-y-2">
+                {state.specials.map((sp) => (
+                  <div key={sp.id} className="rounded-xl border border-white/[0.08] bg-white/[0.02] p-2.5">
+                    <div className="flex items-center gap-2">
+                      <input
+                        value={sp.note}
+                        onChange={(e) => setState((st) => ({ ...st, specials: st.specials.map((x) => (x.id === sp.id ? { ...x, note: e.target.value } : x)) }))}
+                        placeholder="¿Qué lleva diferente?"
+                        aria-label="Nota del solomillo especial"
+                        className="flex-1 min-w-0 rounded-lg bg-white/[0.06] border border-white/10 px-2.5 py-2 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-gold/60"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeSpecial(sp.id)}
+                        aria-label="Quitar este especial"
+                        className="w-9 h-9 rounded-lg border border-white/10 text-white/50 active:scale-95 transition flex-shrink-0"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                    <div className="mt-2 flex justify-end">
+                      <Stepper size="sm" label={`Especial ${sp.note || ''}`.trim()} value={sp.n} onChange={(v) => setSpecial(sp.id, { n: v })} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <button
+                type="button"
+                onClick={addSpecial}
+                className="mt-2 w-full py-2.5 rounded-xl border border-dashed border-gold/35 text-sm font-semibold text-gold-soft active:scale-[0.99] transition"
+              >
+                + Añadir solomillo especial
+              </button>
+            </div>
           </div>
-          <p className="mt-3 text-[11px] text-white/40 leading-relaxed">
-            Cada solomillo cuenta una vez: con su salsa en el plato, con la salsa aparte o sin salsa.
-          </p>
+        </Card>
+
+        {/* Merluza */}
+        <Card title="Merluza">
+          <div className="flex items-center justify-between gap-3">
+            <span className="text-lg text-white/90">Merluza</span>
+            <Stepper label="Merluza" value={merluzas} onChange={(v) => setCount('merluza', v)} />
+          </div>
         </Card>
 
         {/* Resumen */}
