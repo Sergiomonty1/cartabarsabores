@@ -11,7 +11,7 @@ import type { MenuCategory, MenuData, MenuItem, MenuVariant, Translations } from
  * Cada cambio comprueba el nombre en español antes de tocar nada, para no pisar
  * cambios hechos a mano desde el admin.
  */
-export const CONTENT_VERSION = 37
+export const CONTENT_VERSION = 38
 
 /* ─── Traducciones revisadas (oct. 2026) ─── */
 
@@ -212,6 +212,7 @@ export function applyContentUpdates(input: MenuData): MenuData {
   if (from < 35) applyV35(data)
   if (from < 36) applyV36(data)
   if (from < 37) applyV37(data)
+  if (from < 38) applyV38(data)
   data.contentVersion = CONTENT_VERSION
   return data
 }
@@ -228,6 +229,73 @@ function moveAfter(items: MenuItem[], item: MenuItem, afterId: string | null) {
   const at = afterId ? items.findIndex((x) => x.id === afterId) : -1
   if (at === -1) items.push(item)
   else items.splice(at + 1, 0, item)
+}
+
+/**
+ * v38 (14/11/2026): nuggets (3,50 €) en Entrantes; cachopo de black angus (25 €, ~600 g) en Fuera de carta;
+ * chipirones con sus acompañamientos como opciones activables (migas oculta: ahora con ensalada o patatas).
+ */
+function applyV38(data: MenuData) {
+  const norm = (s?: string) => (s ?? '').trim().toLowerCase()
+  const cats = data.categories ?? []
+  const has = (n: string) => cats.some((c) => (c.items ?? []).some((i) => norm(i.name) === n))
+
+  // Nuggets, detrás de las croquetas
+  const entrantes = cats.find((c) => c.id === 'entrantes')
+  if (entrantes && !has('nuggets de pollo') && !has('nuggets')) {
+    const items = [...entrantes.items].sort(byOrder)
+    const croq = items.find((i) => norm(i.name) === 'croquetas')
+    insertAfter(items, croq?.id ?? [...items].reverse().find((i) => !i.hidden)?.id ?? null, {
+      id: freeId(data, ['entrantes-nuggets']),
+      name: 'Nuggets de pollo',
+      nameI18n: { en: 'Chicken nuggets', de: 'Chicken Nuggets', pt: 'Nuggets de frango', fr: 'Nuggets de poulet' },
+      priceTapa: 3.5,
+      priceMedia: 3.5,
+      samePrice: true,
+      allergens: ['gluten'],
+      order: 0,
+    })
+    entrantes.items = items.map((it, i) => ({ ...it, order: i }))
+  }
+
+  // Cachopo en Fuera de carta
+  const fuera = cats.find((c) => c.id === 'fuera-carta')
+  if (fuera && !has('cachopo de black angus')) {
+    const items = [...fuera.items].sort(byOrder)
+    insertAfter(items, [...items].reverse().find((i) => !i.hidden)?.id ?? null, {
+      id: freeId(data, ['fuera-carta-cachopo']),
+      name: 'Cachopo de black angus',
+      nameI18n: {
+        en: 'Black Angus cachopo (breaded steak stuffed with ham & cheese)',
+        de: 'Cachopo vom Black Angus (paniertes Steak, gefüllt mit Schinken und Käse)',
+        pt: 'Cachopo de Black Angus (bife panado recheado com presunto e queijo)',
+        fr: 'Cachopo de Black Angus (steak pané farci au jambon et au fromage)',
+      },
+      description: 'Unos 600 g',
+      descriptionI18n: { en: 'About 600 g', de: 'Ca. 600 g', pt: 'Cerca de 600 g', fr: 'Environ 600 g' },
+      priceTapa: 25,
+      priceMedia: 25,
+      samePrice: true,
+      allergens: ['gluten', 'huevo', 'lacteo'],
+      order: 0,
+    })
+    fuera.items = items.map((it, i) => ({ ...it, order: i }))
+  }
+
+  // Chipirones: acompañamientos activables desde el admin
+  for (const c of cats) {
+    for (const it of c.items ?? []) {
+      if (!/^chipirones( fritos)? a su amiga$/.test(norm(it.name))) continue
+      if (it.variants?.length) continue
+      it.description = undefined
+      it.descriptionI18n = undefined
+      it.variants = [
+        { id: 'migas', name: 'Migas', nameI18n: { en: 'Migas (fried breadcrumbs)', de: 'Migas (gebratene Brotkrumen)', pt: 'Migas', fr: 'Migas (mie de pain frite)' }, hidden: true, allergens: ['gluten'] },
+        { id: 'ensalada', name: 'Ensalada', nameI18n: { en: 'Salad', de: 'Salat', pt: 'Salada', fr: 'Salade' } },
+        { id: 'patatas', name: 'Patatas', nameI18n: { en: 'Potatoes', de: 'Kartoffeln', pt: 'Batatas', fr: 'Pommes de terre' } },
+      ]
+    }
+  }
 }
 
 /** v37 (13/11/2026): jamón (16 €), queso (12 €) y lomito (18 €) son platos únicos, mismo precio en tapas y medias. */
