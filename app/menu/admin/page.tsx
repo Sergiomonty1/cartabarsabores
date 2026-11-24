@@ -744,6 +744,7 @@ export default function AdminPage() {
   const [groupMenu, setGroupMenu] = useState(false)
   const [openCats, setOpenCats] = useState<string[]>([])
   const [trCats, setTrCats] = useState<string[]>([])
+  const [openHidden, setOpenHidden] = useState<string[]>([])
   const [editing, setEditing] = useState<Editing>(null)
   const [advanced, setAdvanced] = useState(false)
   const [pwAction, setPwAction] = useState<'reset' | 'factory' | null>(null)
@@ -900,6 +901,23 @@ export default function AdminPage() {
     }))
     setEditing({ kind: 'dish', catId, itemId: id })
   }
+
+  /** Sube o baja un plato entre los visibles; los ocultos quedan detrás, en su orden. */
+  const moveVisibleItem = (catId: string, itemId: string, dir: -1 | 1) =>
+    patchMenu((m) => ({
+      ...m,
+      categories: m.categories.map((c) => {
+        if (c.id !== catId) return c
+        const sorted = [...c.items].sort(byOrder)
+        const vis = sorted.filter((i) => !i.hidden)
+        const hid = sorted.filter((i) => i.hidden)
+        const k = vis.findIndex((i) => i.id === itemId)
+        const j = k + dir
+        if (k < 0 || j < 0 || j >= vis.length) return c
+        ;[vis[k], vis[j]] = [vis[j], vis[k]]
+        return { ...c, items: [...vis, ...hid].map((it, i) => ({ ...it, order: i })) }
+      }),
+    }))
 
   const moveItem = (catId: string, itemId: string, dir: -1 | 1) =>
     patchMenu((m) => ({
@@ -1245,7 +1263,7 @@ export default function AdminPage() {
                           className="flex items-center gap-1.5 pl-2 pr-1 py-2 text-white/45 hover:text-white transition"
                           aria-expanded={open}
                         >
-                          <span className="text-xs tabular-nums">{cat.items.length}</span>
+                          <span className="text-xs tabular-nums">{cat.items.filter((it) => !it.hidden).length}<span className="text-white/30">/{cat.items.length}</span></span>
                           <Chevron open={open} />
                         </button>
                       </div>
@@ -1338,95 +1356,165 @@ export default function AdminPage() {
                             </div>
                           )}
 
-                          <div className="divide-y divide-white/[0.05]">
-                            {items.map((item, ii) => {
-                              const isEditing = editing?.kind === 'dish' && editing.catId === cat.id && editing.itemId === item.id
-                              const nTr = translatedCount(item.nameI18n)
-                              return (
-                                <div key={item.id} className={`px-4 transition-colors ${isEditing ? 'bg-gold/[0.05] py-3' : 'hover:bg-white/[0.02]'}`}>
-                                  {isEditing ? (
-                                    <DishEditor
-                                      item={item}
-                                      onChange={(patch) => updateItem(cat.id, item.id, patch)}
-                                      onDelete={() => {
-                                        if (!item.name.trim() || confirm(`¿Eliminar «${item.name}»?`)) {
-                                          removeItem(cat.id, item.id)
-                                          setEditing(null)
-                                        }
-                                      }}
-                                      onDone={closeEditor}
-                                    />
-                                  ) : (
-                                    <div className="flex items-center gap-2">
-                                      <button
-                                        type="button"
-                                        onClick={() => {
-                                          closeEditor()
-                                          setEditing({ kind: 'dish', catId: cat.id, itemId: item.id })
-                                        }}
-                                        className={`flex-1 min-w-0 flex items-center gap-3 py-3 text-left transition-opacity ${item.hidden ? 'opacity-45' : ''}`}
-                                      >
-                                        <span className="flex-1 min-w-0">
-                                          <span className="block text-sm text-white/90 leading-snug">{item.name || <em className="text-white/30">Sin nombre</em>}</span>
-                                          {!!item.description?.trim() && (
-                                            <span className="block text-xs text-white/45 mt-0.5 leading-snug">{item.description}</span>
-                                          )}
-                                          {!!item.variants?.length && (
-                                            <span className="block text-xs text-white/45 mt-0.5 leading-snug">
-                                              {item.variants.filter((v) => !v.hidden).map((v) => v.name).join(' · ') || 'Sin sabores visibles'}
-                                              {item.variants.some((v) => v.hidden) && (
-                                                <span className="text-white/30"> · {item.variants.filter((v) => v.hidden).length} oculto{item.variants.filter((v) => v.hidden).length > 1 ? 's' : ''}</span>
-                                              )}
-                                            </span>
-                                          )}
-                                          <span className="flex flex-wrap items-center gap-1 mt-1.5">
-                                            {item.hidden && (
-                                              <span className="text-[9px] font-bold uppercase tracking-wider text-white/70 bg-white/10 rounded px-1.5 py-0.5 mr-0.5">Oculto</span>
-                                            )}
-                                            {dishAllergens(item).map((a) =>
-                                              ALLERGEN_SRC[a] ? (
-                                                <Image key={a} src={ALLERGEN_SRC[a]} alt={tAllergen('es', a)} title={tAllergen('es', a)} width={15} height={15} className="rounded-full" />
-                                              ) : null
-                                            )}
-                                            {nTr < 4 && (
-                                              <span className="text-[9px] font-bold uppercase tracking-wider text-amber-200/80 bg-amber-300/10 rounded px-1.5 py-0.5 ml-0.5">
-                                                {nTr === 0 ? 'Sin traducir' : `${nTr}/4 idiomas`}
-                                              </span>
-                                            )}
-                                          </span>
-                                        </span>
-                                        <span className="text-right tabular-nums flex-shrink-0">
-                                          {item.samePrice || item.priceTapa === item.priceMedia ? (
-                                            <span className={`block text-sm font-semibold ${item.priceTapa ? 'text-gold-soft' : 'text-white/35 italic font-normal'}`}>
-                                              {eur(item.priceTapa) || 'Consultar'}
-                                            </span>
-                                          ) : (
-                                            <>
-                                              <span className="block text-sm font-semibold text-gold-soft">
-                                                <span className="text-[10px] text-white/35 font-normal mr-1">T</span>
-                                                {eur(item.priceTapa) || '—'}
-                                              </span>
-                                              <span className="block text-sm font-semibold text-gold-soft/80">
-                                                <span className="text-[10px] text-white/35 font-normal mr-1">M</span>
-                                                {eur(item.priceMedia) || '—'}
-                                              </span>
-                                            </>
-                                          )}
-                                        </span>
-                                      </button>
-                                      <EyeButton hidden={item.hidden} onToggle={() => updateItem(cat.id, item.id, { hidden: !item.hidden })} />
-                                      <MoveButtons
-                                        first={ii === 0}
-                                        last={ii === items.length - 1}
-                                        onUp={() => moveItem(cat.id, item.id, -1)}
-                                        onDown={() => moveItem(cat.id, item.id, 1)}
-                                      />
-                                    </div>
+                          {(() => {
+                            const visibleItems = items.filter((it) => !it.hidden)
+                            const hiddenItems = items.filter((it) => it.hidden)
+                            const editingHidden = editing?.kind === 'dish' && editing.catId === cat.id && hiddenItems.some((it) => it.id === editing.itemId)
+                            const hiddenOpen = openHidden.includes(cat.id) || editingHidden
+                            const editor = (item: MenuItem) => (
+                              <DishEditor
+                                item={item}
+                                onChange={(patch) => updateItem(cat.id, item.id, patch)}
+                                onDelete={() => {
+                                  if (!item.name.trim() || confirm(`¿Eliminar «${item.name}»?`)) {
+                                    removeItem(cat.id, item.id)
+                                    setEditing(null)
+                                  }
+                                }}
+                                onDone={closeEditor}
+                              />
+                            )
+                            return (
+                              <>
+                                <div className="divide-y divide-white/[0.05]">
+                                  {visibleItems.length === 0 && (
+                                    <p className="px-4 py-3 text-xs text-white/40 italic">No hay platos visibles en esta sección.</p>
                                   )}
+                                  {visibleItems.map((item, ii) => {
+                                    const isEditing = editing?.kind === 'dish' && editing.catId === cat.id && editing.itemId === item.id
+                                    const nTr = translatedCount(item.nameI18n)
+                                    return (
+                                      <div key={item.id} className={`px-4 transition-colors ${isEditing ? 'bg-gold/[0.05] py-3' : 'hover:bg-white/[0.02]'}`}>
+                                        {isEditing ? (
+                                          editor(item)
+                                        ) : (
+                                          <div className="flex items-center gap-2">
+                                            <button
+                                              type="button"
+                                              onClick={() => {
+                                                closeEditor()
+                                                setEditing({ kind: 'dish', catId: cat.id, itemId: item.id })
+                                              }}
+                                              className="flex-1 min-w-0 flex items-center gap-3 py-3 text-left"
+                                            >
+                                              <span className="flex-1 min-w-0">
+                                                <span className="block text-sm text-white/90 leading-snug">{item.name || <em className="text-white/30">Sin nombre</em>}</span>
+                                                {!!item.description?.trim() && (
+                                                  <span className="block text-xs text-white/45 mt-0.5 leading-snug">{item.description}</span>
+                                                )}
+                                                {!!item.variants?.length && (
+                                                  <span className="block text-xs text-white/45 mt-0.5 leading-snug">
+                                                    {item.variants.filter((v) => !v.hidden).map((v) => v.name).join(' · ') || 'Sin sabores visibles'}
+                                                    {item.variants.some((v) => v.hidden) && (
+                                                      <span className="text-white/30"> · {item.variants.filter((v) => v.hidden).length} oculto{item.variants.filter((v) => v.hidden).length > 1 ? 's' : ''}</span>
+                                                    )}
+                                                  </span>
+                                                )}
+                                                {(dishAllergens(item).length > 0 || nTr < 4) && (
+                                                  <span className="flex flex-wrap items-center gap-1 mt-1.5">
+                                                    {dishAllergens(item).map((a) =>
+                                                      ALLERGEN_SRC[a] ? (
+                                                        <Image key={a} src={ALLERGEN_SRC[a]} alt={tAllergen('es', a)} title={tAllergen('es', a)} width={15} height={15} className="rounded-full" />
+                                                      ) : null
+                                                    )}
+                                                    {nTr < 4 && (
+                                                      <span className="text-[9px] font-bold uppercase tracking-wider text-amber-200/80 bg-amber-300/10 rounded px-1.5 py-0.5 ml-0.5">
+                                                        {nTr === 0 ? 'Sin traducir' : `${nTr}/4 idiomas`}
+                                                      </span>
+                                                    )}
+                                                  </span>
+                                                )}
+                                              </span>
+                                              <span className="text-right tabular-nums flex-shrink-0">
+                                                {item.samePrice || item.priceTapa === item.priceMedia ? (
+                                                  <span className={`block text-sm font-semibold ${item.priceTapa ? 'text-gold-soft' : 'text-white/35 italic font-normal'}`}>
+                                                    {eur(item.priceTapa) || 'Consultar'}
+                                                  </span>
+                                                ) : (
+                                                  <>
+                                                    <span className="block text-sm font-semibold text-gold-soft">
+                                                      <span className="text-[10px] text-white/35 font-normal mr-1">T</span>
+                                                      {eur(item.priceTapa) || '—'}
+                                                    </span>
+                                                    <span className="block text-sm font-semibold text-gold-soft/80">
+                                                      <span className="text-[10px] text-white/35 font-normal mr-1">M</span>
+                                                      {eur(item.priceMedia) || '—'}
+                                                    </span>
+                                                  </>
+                                                )}
+                                              </span>
+                                            </button>
+                                            <EyeButton hidden={false} onToggle={() => updateItem(cat.id, item.id, { hidden: true })} />
+                                            <MoveButtons
+                                              first={ii === 0}
+                                              last={ii === visibleItems.length - 1}
+                                              onUp={() => moveVisibleItem(cat.id, item.id, -1)}
+                                              onDown={() => moveVisibleItem(cat.id, item.id, 1)}
+                                            />
+                                          </div>
+                                        )}
+                                      </div>
+                                    )
+                                  })}
                                 </div>
-                              )
-                            })}
-                          </div>
+
+                                {hiddenItems.length > 0 && (
+                                  <div className="border-t border-white/[0.05]">
+                                    <button
+                                      type="button"
+                                      onClick={() => setOpenHidden((o) => toggleIn(o, cat.id))}
+                                      aria-expanded={hiddenOpen}
+                                      className="w-full flex items-center gap-2 px-4 py-2.5 text-left text-xs text-white/50 hover:text-white/80 hover:bg-white/[0.02] transition"
+                                    >
+                                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3l18 18M10.58 10.58a2 2 0 002.83 2.83M9.88 5.09A9.77 9.77 0 0112 4.86c4.48 0 8.27 2.94 9.54 7a10.05 10.05 0 01-2.64 4.26M6.23 6.23A10.02 10.02 0 002.46 11.86c1.27 4.06 5.06 7 9.54 7 1.6 0 3.12-.38 4.46-1.04" />
+                                      </svg>
+                                      <span className="flex-1">
+                                        {hiddenItems.length} plato{hiddenItems.length === 1 ? '' : 's'} oculto{hiddenItems.length === 1 ? '' : 's'}
+                                      </span>
+                                      <Chevron open={hiddenOpen} />
+                                    </button>
+                                    {hiddenOpen && (
+                                      <div className="pb-1.5 animate-fade-in">
+                                        {hiddenItems.map((item) => {
+                                          const isEditing = editing?.kind === 'dish' && editing.catId === cat.id && editing.itemId === item.id
+                                          return isEditing ? (
+                                            <div key={item.id} className="px-4 py-3 bg-gold/[0.05]">
+                                              {editor(item)}
+                                            </div>
+                                          ) : (
+                                            <div key={item.id} className="flex items-center gap-2 pl-4 pr-2 hover:bg-white/[0.02] transition-colors">
+                                              <button
+                                                type="button"
+                                                onClick={() => {
+                                                  closeEditor()
+                                                  setEditing({ kind: 'dish', catId: cat.id, itemId: item.id })
+                                                }}
+                                                className="flex-1 min-w-0 py-2 text-left text-[13px] text-white/45 hover:text-white/75 truncate transition"
+                                              >
+                                                {item.name || <em>Sin nombre</em>}
+                                              </button>
+                                              <button
+                                                type="button"
+                                                onClick={() => updateItem(cat.id, item.id, { hidden: false })}
+                                                className="flex-shrink-0 inline-flex items-center gap-1 rounded-full border border-gold/30 bg-gold/[0.07] px-2.5 py-1 text-[11px] font-semibold text-gold-soft active:scale-95 transition"
+                                              >
+                                                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.46 12C3.73 7.94 7.52 5 12 5s8.27 2.94 9.54 7c-1.27 4.06-5.06 7-9.54 7s-8.27-2.94-9.54-7z" />
+                                                  <circle cx="12" cy="12" r="3" strokeWidth={2} />
+                                                </svg>
+                                                Mostrar
+                                              </button>
+                                            </div>
+                                          )
+                                        })}
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+                              </>
+                            )
+                          })()}
 
                           <button
                             type="button"
