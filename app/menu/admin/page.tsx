@@ -97,6 +97,41 @@ function Switch({ checked, onChange, label }: { checked: boolean; onChange: (v: 
   )
 }
 
+/** Interruptor de visibilidad de una sección, siempre visible en su cabecera. */
+function SectionVisibility({ hidden, empty, onToggle }: { hidden?: boolean; empty?: boolean; onToggle: () => void }) {
+  const state = hidden ? 'hidden' : empty ? 'empty' : 'visible'
+  const cls = {
+    visible: 'border-emerald-300/30 bg-emerald-400/[0.08] text-emerald-200',
+    hidden: 'border-amber-300/45 bg-amber-400/[0.12] text-amber-200',
+    empty: 'border-white/15 bg-white/[0.04] text-white/55',
+  }[state]
+  const label = { visible: 'Visible', hidden: 'Oculta', empty: 'Sin platos' }[state]
+  const title = {
+    visible: 'Se ve en la carta. Pulsa para ocultar la sección.',
+    hidden: 'No se ve en la carta. Pulsa para mostrar la sección.',
+    empty: 'No sale en la carta porque todos sus platos están ocultos. Pulsa para ocultar la sección.',
+  }[state]
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      title={title}
+      aria-label={title}
+      aria-pressed={!hidden}
+      className={`flex-shrink-0 inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1.5 text-[11px] font-semibold transition active:scale-95 ${cls}`}
+    >
+      {hidden ? (
+        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3l18 18M10.58 10.58a2 2 0 002.83 2.83M9.88 5.09A9.77 9.77 0 0112 4.86c4.48 0 8.27 2.94 9.54 7a10.05 10.05 0 01-2.64 4.26M6.23 6.23A10.02 10.02 0 002.46 11.86c1.27 4.06 5.06 7 9.54 7 1.6 0 3.12-.38 4.46-1.04" />
+        </svg>
+      ) : (
+        <span className={`w-2 h-2 rounded-full ${empty ? 'bg-white/40' : 'bg-emerald-300'}`} aria-hidden="true" />
+      )}
+      {label}
+    </button>
+  )
+}
+
 function SmallBtn({
   children,
   onClick,
@@ -1181,7 +1216,7 @@ export default function AdminPage() {
                   const open = openCats.includes(cat.id)
                   const items = [...cat.items].sort(byOrder)
                   return (
-                    <section key={cat.id} className="rounded-2xl border border-white/[0.08] bg-white/[0.025] overflow-hidden">
+                    <section key={cat.id} className={`rounded-2xl border overflow-hidden transition-colors ${cat.hidden ? 'border-dashed border-amber-300/30 bg-white/[0.012]' : 'border-white/[0.08] bg-white/[0.025]'}`}>
                       <div className="flex items-center gap-2 px-3 py-2.5">
                         <input
                           value={cat.icon || ''}
@@ -1193,8 +1228,13 @@ export default function AdminPage() {
                         <input
                           value={cat.name}
                           onChange={(e) => updateCat(cat.id, { name: e.target.value })}
-                          className="flex-1 min-w-0 bg-transparent font-display text-[1.35rem] font-semibold text-white focus:outline-none border-b border-transparent focus:border-gold/50 transition"
+                          className={`flex-1 min-w-0 bg-transparent font-display text-[1.35rem] font-semibold focus:outline-none border-b border-transparent focus:border-gold/50 transition ${cat.hidden ? 'text-white/40' : 'text-white'}`}
                           aria-label="Nombre de la sección"
+                        />
+                        <SectionVisibility
+                          hidden={cat.hidden}
+                          empty={!cat.hidden && cat.items.length > 0 && cat.items.every((it) => it.hidden)}
+                          onToggle={() => updateCat(cat.id, { hidden: !cat.hidden })}
                         />
                         <button
                           type="button"
@@ -1205,14 +1245,16 @@ export default function AdminPage() {
                           className="flex items-center gap-1.5 pl-2 pr-1 py-2 text-white/45 hover:text-white transition"
                           aria-expanded={open}
                         >
-                          {cat.hidden && (
-                            <span className="text-[9px] font-bold uppercase tracking-wider text-white/70 bg-white/10 rounded px-1.5 py-0.5">Oculta</span>
-                          )}
                           <span className="text-xs tabular-nums">{cat.items.length}</span>
                           <Chevron open={open} />
                         </button>
                       </div>
 
+                      {cat.hidden && (
+                        <p className="mx-3 mb-2.5 -mt-0.5 rounded-lg bg-amber-400/[0.07] border border-amber-300/20 px-3 py-1.5 text-[11px] text-amber-100/80">
+                          Sección oculta: no sale en la carta, aunque sus platos estén visibles.
+                        </p>
+                      )}
                       {open && (
                         <div className="animate-fade-in">
                           <div className="flex flex-wrap items-center gap-1 px-2 pb-2 border-b border-white/[0.06]">
@@ -1220,9 +1262,6 @@ export default function AdminPage() {
                             <SmallBtn onClick={() => moveCategory(cat.id, 1)} disabled={ci === cats.length - 1}>↓ Bajar</SmallBtn>
                             <SmallBtn onClick={() => setTrCats((o) => toggleIn(o, cat.id))}>
                               🌍 Traducir <span className="text-white/35">{translatedCount(cat.nameI18n)}/4</span>
-                            </SmallBtn>
-                            <SmallBtn onClick={() => updateCat(cat.id, { hidden: !cat.hidden })}>
-                              {cat.hidden ? '👁 Mostrar' : 'Ocultar'}
                             </SmallBtn>
                             <div className="flex-1" />
                             <SmallBtn danger onClick={() => removeCategory(cat)}>Eliminar</SmallBtn>
@@ -1422,14 +1461,19 @@ export default function AdminPage() {
                   const open = openCats.includes(cat.id)
                   const items = [...cat.items].sort(byOrder)
                   return (
-                    <section key={cat.id} className="rounded-2xl border border-white/[0.08] bg-white/[0.025] overflow-hidden">
+                    <section key={cat.id} className={`rounded-2xl border overflow-hidden transition-colors ${cat.hidden ? 'border-dashed border-amber-300/30 bg-white/[0.012]' : 'border-white/[0.08] bg-white/[0.025]'}`}>
                       <div className="flex items-center gap-2 px-3 py-2.5">
                         <span className="w-10 h-10 rounded-xl bg-white/[0.04] flex items-center justify-center text-xl">🍷</span>
                         <input
                           value={cat.name}
                           onChange={(e) => updateWineCat(cat.id, { name: e.target.value })}
-                          className="flex-1 min-w-0 bg-transparent font-display text-[1.35rem] font-semibold text-white focus:outline-none border-b border-transparent focus:border-gold/50 transition"
+                          className={`flex-1 min-w-0 bg-transparent font-display text-[1.35rem] font-semibold focus:outline-none border-b border-transparent focus:border-gold/50 transition ${cat.hidden ? 'text-white/40' : 'text-white'}`}
                           aria-label="Denominación"
+                        />
+                        <SectionVisibility
+                          hidden={cat.hidden}
+                          empty={!cat.hidden && cat.items.length > 0 && cat.items.every((it) => it.hidden)}
+                          onToggle={() => updateWineCat(cat.id, { hidden: !cat.hidden })}
                         />
                         <button
                           type="button"
@@ -1440,14 +1484,16 @@ export default function AdminPage() {
                           className="flex items-center gap-1.5 pl-2 pr-1 py-2 text-white/45 hover:text-white transition"
                           aria-expanded={open}
                         >
-                          {cat.hidden && (
-                            <span className="text-[9px] font-bold uppercase tracking-wider text-white/70 bg-white/10 rounded px-1.5 py-0.5">Oculta</span>
-                          )}
                           <span className="text-xs tabular-nums">{cat.items.length}</span>
                           <Chevron open={open} />
                         </button>
                       </div>
 
+                      {cat.hidden && (
+                        <p className="mx-3 mb-2.5 -mt-0.5 rounded-lg bg-amber-400/[0.07] border border-amber-300/20 px-3 py-1.5 text-[11px] text-amber-100/80">
+                          Sección oculta: no sale en la carta, aunque sus platos estén visibles.
+                        </p>
+                      )}
                       {open && (
                         <div className="animate-fade-in">
                           <div className="flex flex-wrap items-center gap-1 px-2 pb-2 border-b border-white/[0.06]">
@@ -1455,9 +1501,6 @@ export default function AdminPage() {
                             <SmallBtn onClick={() => moveWineCategory(cat.id, 1)} disabled={ci === wineCats.length - 1}>↓ Bajar</SmallBtn>
                             <SmallBtn onClick={() => setTrCats((o) => toggleIn(o, cat.id))}>
                               🌍 Traducir <span className="text-white/35">{translatedCount(cat.nameI18n)}/4</span>
-                            </SmallBtn>
-                            <SmallBtn onClick={() => updateWineCat(cat.id, { hidden: !cat.hidden })}>
-                              {cat.hidden ? '👁 Mostrar' : 'Ocultar'}
                             </SmallBtn>
                             <div className="flex-1" />
                             <SmallBtn danger onClick={() => removeWineCategory(cat)}>Eliminar</SmallBtn>

@@ -11,7 +11,7 @@ import type { MenuCategory, MenuData, MenuItem, MenuVariant, Translations } from
  * Cada cambio comprueba el nombre en español antes de tocar nada, para no pisar
  * cambios hechos a mano desde el admin.
  */
-export const CONTENT_VERSION = 39
+export const CONTENT_VERSION = 40
 
 /* ─── Traducciones revisadas (oct. 2026) ─── */
 
@@ -214,6 +214,7 @@ export function applyContentUpdates(input: MenuData): MenuData {
   if (from < 37) applyV37(data)
   if (from < 38) applyV38(data)
   if (from < 39) applyV39(data)
+  if (from < 40) applyV40(data)
   data.contentVersion = CONTENT_VERSION
   return data
 }
@@ -230,6 +231,65 @@ function moveAfter(items: MenuItem[], item: MenuItem, afterId: string | null) {
   const at = afterId ? items.findIndex((x) => x.id === afterId) : -1
   if (at === -1) items.push(item)
   else items.splice(at + 1, 0, item)
+}
+
+/**
+ * v40 (24/11/2026): traducciones de lo renombrado en el admin (anchoas y arroz con foie, arroz de calamares,
+ * taco de abanico con su descripción) y vuelven, ocultos, los platos antiguos que ya no estaban.
+ */
+function applyV40(data: MenuData) {
+  const norm = (s?: string) => (s ?? '').trim().toLowerCase()
+  const cats = data.categories ?? []
+
+  // 1) Traducciones
+  const names: Record<string, Translations> = {
+    'anchoas, queso crema y foie': { en: 'Anchovies, cream cheese & foie gras', de: 'Sardellen, Frischkäse und Foie gras', pt: 'Anchovas, queijo creme e foie gras', fr: 'Anchois, fromage frais et foie gras' },
+    'arroz de carrillada y foie': { en: 'Rice with braised pork cheek & foie gras', de: 'Reis mit geschmorten Schweinebäckchen und Foie gras', pt: 'Arroz de bochecha de porco e foie gras', fr: 'Riz à la joue de porc braisée et au foie gras' },
+    'arroz de calamares': { en: 'Squid rice', de: 'Reis mit Kalmar', pt: 'Arroz de lulas', fr: 'Riz aux calmars' },
+  }
+  for (const c of cats) {
+    for (const it of c.items ?? []) {
+      const n = norm(it.name)
+      if (names[n]) it.nameI18n = { ...names[n] }
+      if (n === 'taco de abanico ibérico' && /barbacoa/i.test(it.description ?? '')) {
+        it.description = it.description!.replace(/canonigos/i, 'canónigos')
+        it.descriptionI18n = {
+          en: "With barbecue sauce, lamb's lettuce & cheddar cheese",
+          de: 'Mit Barbecuesoße, Feldsalat und Cheddar',
+          pt: 'Com molho barbecue, alface-de-cordeiro e queijo cheddar',
+          fr: 'Avec sauce barbecue, mâche et cheddar',
+        }
+      }
+    }
+  }
+
+  // 2) Platos antiguos, ocultos (solo si ya no están en la carta)
+  const has = (n: string) => cats.some((c) => (c.items ?? []).some((i) => norm(i.name) === n))
+  const old: { cat: string; item: Omit<MenuItem, 'id' | 'order' | 'hidden'>; id: string }[] = [
+    {
+      cat: 'tostas', id: 'tostas-anchoas-trufa',
+      item: { name: 'Anchoas, queso crema y trufa', nameI18n: { en: 'Anchovies, cream cheese & truffle', de: 'Sardellen, Frischkäse und Trüffel', pt: 'Anchovas, queijo creme e trufa', fr: 'Anchois, fromage frais et truffe' }, priceTapa: 9, priceMedia: 9, samePrice: true, allergens: ['gluten', 'lacteo', 'pescado'] },
+    },
+    {
+      cat: 'arroces', id: 'arroces-carrillada-trufa',
+      item: { name: 'Arroz de carrillada y trufa', nameI18n: { en: 'Rice with braised pork cheek & truffle', de: 'Reis mit geschmorten Schweinebäckchen und Trüffel', pt: 'Arroz de bochecha de porco e trufa', fr: 'Riz à la joue de porc braisée et à la truffe' }, priceTapa: 0, priceMedia: 0, samePrice: true },
+    },
+    {
+      cat: 'arroces', id: 'arroces-calamares-chipiron-gambas',
+      item: { name: 'Arroz de calamares, chipirón y gambas', nameI18n: { en: 'Rice with squid, baby squid & prawns', de: 'Reis mit Kalmar, Baby-Tintenfisch und Garnelen', pt: 'Arroz de lulas, lulinhas e gambas', fr: 'Riz aux calmars, chipirons et gambas' }, priceTapa: 0, priceMedia: 0, samePrice: true, allergens: ['molusco', 'crustaceo'] },
+    },
+    {
+      cat: 'del-mar', id: 'del-mar-salmon-pipirrana',
+      item: { name: 'Salmón con pipirrana', nameI18n: { en: 'Salmon with pipirrana (Andalusian chopped salad)', de: 'Lachs mit Pipirrana (andalusischer Gemüsesalat)', pt: 'Salmão com pipirrana (salada andaluza picada)', fr: 'Saumon et pipirrana (salade andalouse)' }, priceTapa: 11, priceMedia: 11, samePrice: true, allergens: ['pescado', 'sulfitos'] },
+    },
+  ]
+  for (const o of old) {
+    const cat = cats.find((c) => c.id === o.cat)
+    if (!cat || has(norm(o.item.name))) continue
+    const items = [...(cat.items ?? [])].sort(byOrder)
+    items.push({ ...o.item, id: freeId(data, [o.id]), hidden: true, order: items.length })
+    cat.items = items.map((it, i) => ({ ...it, order: i }))
+  }
 }
 
 /** v39 (14/11/2026): el cachopo lleva salsa de tomate y queso curado rallado por encima. */
