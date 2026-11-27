@@ -9,6 +9,7 @@ import { menuService } from '@/lib/menuService'
 import { ALLERGENS, ALLERGEN_SRC, dishAllergens } from '@/lib/allergens'
 import { type Lang, LANGUAGES, LOCALES, isLang, t, tName, tTag, tAllergen, fmtEUR, detectBrowserLang } from '@/lib/translations'
 import { GoldenDivider, GradientOrbs, LogoMark } from '@/components/Brand'
+import { InstallAppButton } from '@/components/AppInstall'
 
 type Route = 'tapas' | 'medias' | 'alergenos' | 'vinos'
 
@@ -19,6 +20,8 @@ const noteOf = (lang: Lang, cat: MenuCategory) => (cat.note?.trim() ? tName(lang
 
 /* Kept between tab changes so switching Tapas/Medias/Vinos is instant (no reload, no flash) */
 let cachedMenu: MenuData | null = null
+/** Copia de la última carta recibida, para abrirla sin internet (app instalada). */
+const MENU_CACHE_KEY = 'carta-cache-v1'
 let cachedLang: Lang | null = null
 
 /* ─── Reveal on scroll ─── */
@@ -518,6 +521,18 @@ export default function MenuPage({ params }: { params: { type: string } }) {
   /* Carta en tiempo real: los cambios del admin llegan al instante, sin recargar.
      Si Firestore no responde en 7 s, se muestra la carta de fábrica. */
   useEffect(() => {
+    // Sin conexión (o mientras llega la de verdad): la última carta que se vio en este móvil
+    if (!cachedMenu) {
+      try {
+        const saved = localStorage.getItem(MENU_CACHE_KEY)
+        if (saved) {
+          cachedMenu = JSON.parse(saved) as MenuData
+          setMenu(cachedMenu)
+        }
+      } catch {
+        /* copia ilegible: se ignora */
+      }
+    }
     let received = false
     const fallback = setTimeout(() => {
       if (!received && !cachedMenu) setMenu(menuService.getDefaultMenu())
@@ -528,6 +543,11 @@ export default function MenuPage({ params }: { params: { type: string } }) {
         clearTimeout(fallback)
         cachedMenu = fresh
         setMenu(fresh)
+        try {
+          localStorage.setItem(MENU_CACHE_KEY, JSON.stringify(fresh))
+        } catch {
+          /* sin almacenamiento: no pasa nada */
+        }
       },
       () => {
         if (!cachedMenu) setMenu(menuService.getDefaultMenu())
@@ -788,6 +808,7 @@ export default function MenuPage({ params }: { params: { type: string } }) {
             <p className="mt-3 font-display text-2xl text-white/80">{barName}</p>
             <p className="mt-4 text-xs text-white/50 max-w-xs mx-auto leading-relaxed">{t(lang, 'allergyNotice')}</p>
             <p className="mt-1.5 text-[11px] text-white/35">{t(lang, 'vatIncluded')}</p>
+            <InstallAppButton className="mt-6" />
             {menu.updatedAt && (
               <p className="mt-5 text-[10px] text-white/25 tracking-[0.2em] uppercase">
                 {t(lang, 'updated')} · {new Date(menu.updatedAt).toLocaleDateString(LOCALES[lang], { day: 'numeric', month: 'short', year: 'numeric' })}

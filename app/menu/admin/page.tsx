@@ -8,6 +8,7 @@ import { ALLERGENS, ALLERGEN_SRC, dishAllergens } from '@/lib/allergens'
 import { I18N_LANGS, tAllergen } from '@/lib/translations'
 import { GradientOrbs, LogoMark } from '@/components/Brand'
 import GroupMenuCounter from '@/components/GroupMenuCounter'
+import { InstallAppButton } from '@/components/AppInstall'
 
 const ADMIN_PASSCODE = '2010'
 /** Contraseña para restablecer la copia guardada (botón oculto en Opciones avanzadas). */
@@ -1110,6 +1111,7 @@ export default function AdminPage() {
               {status.text}
             </p>
           </div>
+          <InstallAppButton compact />
           <button
             type="button"
             onClick={() => setGroupMenu(true)}

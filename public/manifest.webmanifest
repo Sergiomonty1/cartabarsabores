@@ -1,0 +1,23 @@
+{
+  "name": "Sabores — Carta",
+  "short_name": "Sabores",
+  "description": "Carta de tapas, medias raciones, vinos y alérgenos en 5 idiomas.",
+  "lang": "es",
+  "id": "/menu/tapas",
+  "start_url": "/menu/tapas",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#021530",
+  "theme_color": "#021530",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Medias raciones", "url": "/menu/medias", "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Vinos", "url": "/menu/vinos", "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Admin", "url": "/menu/admin", "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }] }
+  ]
+}
