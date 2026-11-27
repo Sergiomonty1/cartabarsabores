@@ -29,6 +29,8 @@ export interface MenuItem {
   descriptionI18n?: Translations
   /** Etiqueta corta junto al nombre (p. ej. «Chacina»). */
   tag?: string
+  /** Grupo dentro de la sección (id de MenuCategory.groups). Solo se usa en el admin. */
+  group?: string
   tagI18n?: Translations
   priceTapa: number
   priceMedia: number
@@ -39,6 +41,12 @@ export interface MenuItem {
   hidden?: boolean
   /** Sabores / variedades que se listan bajo el nombre (mismo precio). */
   variants?: MenuVariant[]
+}
+
+/** Grupo de platos dentro de una sección, solo para el admin. */
+export interface MenuGroup {
+  id: string
+  name: string
 }
 
 export interface MenuCategory {
@@ -59,6 +67,8 @@ export interface MenuCategory {
   minPeople?: number
   /** Hora límite para pedir, «HH:MM» (se muestra como etiqueta: «Pedidos hasta las 15:15»). */
   lastOrder?: string
+  /** Grupos para ordenar los platos en el admin (p. ej. arroces «De carne» / «De marisco»). No salen en la carta. */
+  groups?: MenuGroup[]
   /** Si es true, los precios de la sección se muestran «por persona». */
   pricePerPerson?: boolean
   items: MenuItem[]

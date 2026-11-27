@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import Image from 'next/image'
-import type { MenuData, MenuCategory, MenuItem, MenuVariant, WineCategory, WineItem, Translations } from '@/types/menu'
+import type { MenuData, MenuCategory, MenuGroup, MenuItem, MenuVariant, WineCategory, WineItem, Translations } from '@/types/menu'
 import { menuService } from '@/lib/menuService'
 import { ALLERGENS, ALLERGEN_SRC, dishAllergens } from '@/lib/allergens'
 import { I18N_LANGS, tAllergen } from '@/lib/translations'
@@ -427,11 +427,13 @@ function VariantsEditor({ value, onChange }: { value?: MenuVariant[]; onChange: 
 
 function DishEditor({
   item,
+  groups,
   onChange,
   onDelete,
   onDone,
 }: {
   item: MenuItem
+  groups?: MenuGroup[]
   onChange: (patch: Partial<MenuItem>) => void
   onDelete: () => void
   onDone: () => void
@@ -455,6 +457,30 @@ function DishEditor({
           className={inputCls}
         />
       </div>
+
+      {!!groups?.length && (
+        <div>
+          <label className={labelCls}>Grupo (solo en el admin)</label>
+          <div className="flex flex-wrap gap-1.5">
+            {groups.map((g) => {
+              const on = item.group === g.id
+              return (
+                <button
+                  key={g.id}
+                  type="button"
+                  onClick={() => onChange({ group: g.id })}
+                  aria-pressed={on}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition ${
+                    on ? 'bg-gold text-[#021530] border-gold' : 'border-white/15 text-white/70 hover:bg-white/[0.06]'
+                  }`}
+                >
+                  {g.name || 'Sin nombre'}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      )}
 
       <div>
         <label className={labelCls}>Descripción (opcional)</label>
@@ -747,6 +773,7 @@ export default function AdminPage() {
   const [openCats, setOpenCats] = useState<string[]>([])
   const [trCats, setTrCats] = useState<string[]>([])
   const [openHidden, setOpenHidden] = useState<string[]>([])
+  const [confirmGroup, setConfirmGroup] = useState('')
   const [editing, setEditing] = useState<Editing>(null)
   const [advanced, setAdvanced] = useState(false)
   const [pwAction, setPwAction] = useState<'reset' | 'factory' | null>(null)
@@ -891,35 +918,81 @@ export default function AdminPage() {
       categories: m.categories.map((c) => (c.id === catId ? { ...c, items: c.items.filter((it) => it.id !== itemId) } : c)),
     }))
 
-  const addItem = (catId: string) => {
+  /** Grupo válido de un plato (o null si no tiene o el grupo ya no existe). */
+  const groupOf = (c: MenuCategory, it: MenuItem) => (it.group && c.groups?.some((g) => g.id === it.group) ? it.group : null)
+
+  /** Con grupos, el orden de la sección sigue el de los grupos (y así sale también en la carta). */
+  const withGroupOrder = (c: MenuCategory): MenuCategory => {
+    if (!c.groups?.length) return c
+    const rank = (it: MenuItem) => {
+      const k = c.groups!.findIndex((g) => g.id === groupOf(c, it))
+      return k === -1 ? c.groups!.length : k
+    }
+    const items = [...c.items].sort((a, b) => rank(a) - rank(b) || a.order - b.order).map((it, i) => ({ ...it, order: i }))
+    return { ...c, items }
+  }
+  const patchCat = (catId: string, fn: (c: MenuCategory) => MenuCategory) =>
+    patchMenu((m) => ({ ...m, categories: m.categories.map((c) => (c.id === catId ? fn(c) : c)) }))
+
+  const addItem = (catId: string, group?: string) => {
     const id = uid(catId)
-    patchMenu((m) => ({
-      ...m,
-      categories: m.categories.map((c) => {
-        if (c.id !== catId) return c
-        const order = c.items.length ? Math.max(...c.items.map((it) => it.order)) + 1 : 0
-        return { ...c, items: [...c.items, { id, name: '', priceTapa: 0, priceMedia: 0, samePrice: true, order, allergens: [] }] }
-      }),
-    }))
+    patchCat(catId, (c) => {
+      const order = c.items.length ? Math.max(...c.items.map((it) => it.order)) + 1 : 0
+      const item: MenuItem = { id, name: '', priceTapa: 0, priceMedia: 0, samePrice: true, order, allergens: [], ...(group ? { group } : {}) }
+      return withGroupOrder({ ...c, items: [...c.items, item] })
+    })
     setEditing({ kind: 'dish', catId, itemId: id })
   }
 
-  /** Sube o baja un plato entre los visibles; los ocultos quedan detrás, en su orden. */
+  const setItemGroup = (catId: string, itemId: string, group?: string) =>
+    patchCat(catId, (c) => {
+      // al cambiar de grupo, el plato pasa al final de su nuevo grupo
+      const last = c.items.length ? Math.max(...c.items.map((it) => it.order)) + 1 : 0
+      return withGroupOrder({ ...c, items: c.items.map((it) => (it.id === itemId ? { ...it, group: group || undefined, order: last } : it)) })
+    })
+
+  /** Sube o baja un plato entre los visibles (de su grupo, si hay grupos); los ocultos quedan detrás. */
   const moveVisibleItem = (catId: string, itemId: string, dir: -1 | 1) =>
-    patchMenu((m) => ({
-      ...m,
-      categories: m.categories.map((c) => {
-        if (c.id !== catId) return c
-        const sorted = [...c.items].sort(byOrder)
-        const vis = sorted.filter((i) => !i.hidden)
-        const hid = sorted.filter((i) => i.hidden)
-        const k = vis.findIndex((i) => i.id === itemId)
-        const j = k + dir
-        if (k < 0 || j < 0 || j >= vis.length) return c
-        ;[vis[k], vis[j]] = [vis[j], vis[k]]
-        return { ...c, items: [...vis, ...hid].map((it, i) => ({ ...it, order: i })) }
-      }),
-    }))
+    patchCat(catId, (c) => {
+      const sorted = [...c.items].sort(byOrder)
+      const me = sorted.find((i) => i.id === itemId)
+      if (!me) return c
+      const peers = sorted.filter((i) => !i.hidden && (!c.groups?.length || groupOf(c, i) === groupOf(c, me)))
+      const k = peers.findIndex((i) => i.id === itemId)
+      const other = peers[k + dir]
+      if (!other) return c
+      const swapped = sorted.map((i) => (i.id === me.id ? { ...i, order: other.order } : i.id === other.id ? { ...i, order: me.order } : i))
+      if (c.groups?.length) return withGroupOrder({ ...c, items: swapped })
+      const re = [...swapped].sort(byOrder)
+      return { ...c, items: [...re.filter((i) => !i.hidden), ...re.filter((i) => i.hidden)].map((it, i) => ({ ...it, order: i })) }
+    })
+
+  /* grupos de la sección (solo admin) */
+  const addGroup = (catId: string) =>
+    patchCat(catId, (c) => {
+      const groups = c.groups ?? []
+      const g: MenuGroup = { id: uid('grupo'), name: groups.length ? 'Nuevo grupo' : 'Grupo 1' }
+      // el primer grupo se lleva todos los platos, para no dejar ninguno suelto
+      const items = groups.length ? c.items : c.items.map((it) => ({ ...it, group: g.id }))
+      return withGroupOrder({ ...c, groups: [...groups, g], items })
+    })
+  const renameGroup = (catId: string, groupId: string, name: string) =>
+    patchCat(catId, (c) => ({ ...c, groups: (c.groups ?? []).map((g) => (g.id === groupId ? { ...g, name } : g)) }))
+  const moveGroup = (catId: string, groupId: string, dir: -1 | 1) =>
+    patchCat(catId, (c) => {
+      const groups = [...(c.groups ?? [])]
+      const k = groups.findIndex((g) => g.id === groupId)
+      const j = k + dir
+      if (k < 0 || j < 0 || j >= groups.length) return c
+      ;[groups[k], groups[j]] = [groups[j], groups[k]]
+      return withGroupOrder({ ...c, groups })
+    })
+  const removeGroup = (catId: string, groupId: string) =>
+    patchCat(catId, (c) => {
+      const groups = (c.groups ?? []).filter((g) => g.id !== groupId)
+      const items = c.items.map((it) => (it.group === groupId ? { ...it, group: undefined } : it))
+      return withGroupOrder({ ...c, groups: groups.length ? groups : undefined, items: groups.length ? items : items.map((it) => ({ ...it, group: undefined })) })
+    })
 
   const moveItem = (catId: string, itemId: string, dir: -1 | 1) =>
     patchMenu((m) => ({
@@ -1284,6 +1357,7 @@ export default function AdminPage() {
                             <SmallBtn onClick={() => setTrCats((o) => toggleIn(o, cat.id))}>
                               🌍 Traducir <span className="text-white/35">{translatedCount(cat.nameI18n)}/4</span>
                             </SmallBtn>
+                            <SmallBtn onClick={() => addGroup(cat.id)}>{cat.groups?.length ? '＋ Grupo' : '🗂 Agrupar'}</SmallBtn>
                             <div className="flex-1" />
                             <SmallBtn danger onClick={() => removeCategory(cat)}>Eliminar</SmallBtn>
                           </div>
@@ -1360,14 +1434,16 @@ export default function AdminPage() {
                           )}
 
                           {(() => {
-                            const visibleItems = items.filter((it) => !it.hidden)
-                            const hiddenItems = items.filter((it) => it.hidden)
+                            const renderList = (list: MenuItem[], listKey: string, emptyText: string) => {
+                            const visibleItems = list.filter((it) => !it.hidden)
+                            const hiddenItems = list.filter((it) => it.hidden)
                             const editingHidden = editing?.kind === 'dish' && editing.catId === cat.id && hiddenItems.some((it) => it.id === editing.itemId)
-                            const hiddenOpen = openHidden.includes(cat.id) || editingHidden
+                            const hiddenOpen = openHidden.includes(listKey) || editingHidden
                             const editor = (item: MenuItem) => (
                               <DishEditor
                                 item={item}
-                                onChange={(patch) => updateItem(cat.id, item.id, patch)}
+                                groups={cat.groups}
+                                onChange={(patch) => ('group' in patch ? setItemGroup(cat.id, item.id, patch.group) : updateItem(cat.id, item.id, patch))}
                                 onDelete={() => {
                                   if (!item.name.trim() || confirm(`¿Eliminar «${item.name}»?`)) {
                                     removeItem(cat.id, item.id)
@@ -1381,7 +1457,7 @@ export default function AdminPage() {
                               <>
                                 <div className="divide-y divide-white/[0.05]">
                                   {visibleItems.length === 0 && (
-                                    <p className="px-4 py-3 text-xs text-white/40 italic">No hay platos visibles en esta sección.</p>
+                                    <p className="px-4 py-3 text-xs text-white/40 italic">{emptyText}</p>
                                   )}
                                   {visibleItems.map((item, ii) => {
                                     const isEditing = editing?.kind === 'dish' && editing.catId === cat.id && editing.itemId === item.id
@@ -1465,7 +1541,7 @@ export default function AdminPage() {
                                   <div className="border-t border-white/[0.05]">
                                     <button
                                       type="button"
-                                      onClick={() => setOpenHidden((o) => toggleIn(o, cat.id))}
+                                      onClick={() => setOpenHidden((o) => toggleIn(o, listKey))}
                                       aria-expanded={hiddenOpen}
                                       className="w-full flex items-center gap-2 px-4 py-2.5 text-left text-xs text-white/50 hover:text-white/80 hover:bg-white/[0.02] transition"
                                     >
@@ -1517,18 +1593,89 @@ export default function AdminPage() {
                                 )}
                               </>
                             )
-                          })()}
+                                                      }
 
-                          <button
-                            type="button"
-                            onClick={() => {
-                              closeEditor()
-                              addItem(cat.id)
-                            }}
-                            className="w-full px-4 py-3 text-sm text-gold/70 hover:text-gold hover:bg-white/[0.02] transition text-left border-t border-white/[0.05]"
-                          >
-                            + Añadir plato
-                          </button>
+                            if (!cat.groups?.length) {
+                              return (
+                                <>
+                                  {renderList(items, cat.id, 'No hay platos visibles en esta sección.')}
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      closeEditor()
+                                      addItem(cat.id)
+                                    }}
+                                    className="w-full px-4 py-3 text-sm text-gold/70 hover:text-gold hover:bg-white/[0.02] transition text-left border-t border-white/[0.05]"
+                                  >
+                                    + Añadir plato
+                                  </button>
+                                </>
+                              )
+                            }
+
+                            const groups = cat.groups
+                            const loose = items.filter((it) => !groupOf(cat, it))
+                            return (
+                              <>
+                                {groups.map((g, gi) => {
+                                  const list = items.filter((it) => groupOf(cat, it) === g.id)
+                                  const key = `${cat.id}:${g.id}`
+                                  return (
+                                    <div key={g.id} className="border-t border-white/[0.07]">
+                                      <div className="flex items-center gap-1.5 pl-4 pr-2 py-2 bg-white/[0.035]">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-gold/70 flex-shrink-0" aria-hidden="true" />
+                                        <input
+                                          value={g.name}
+                                          onChange={(e) => renameGroup(cat.id, g.id, e.target.value)}
+                                          placeholder="Nombre del grupo"
+                                          aria-label="Nombre del grupo"
+                                          className="flex-1 min-w-0 bg-transparent text-[13px] font-semibold uppercase tracking-[0.12em] text-gold-soft focus:outline-none border-b border-transparent focus:border-gold/40"
+                                        />
+                                        <span className="text-[11px] text-white/40 tabular-nums flex-shrink-0">
+                                          {list.filter((it) => !it.hidden).length}/{list.length}
+                                        </span>
+                                        <MoveButtons first={gi === 0} last={gi === groups.length - 1} onUp={() => moveGroup(cat.id, g.id, -1)} onDown={() => moveGroup(cat.id, g.id, 1)} />
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            if (confirmGroup !== key) return setConfirmGroup(key)
+                                            setConfirmGroup('')
+                                            removeGroup(cat.id, g.id)
+                                          }}
+                                          title="Borrar el grupo (los platos se quedan en la sección)"
+                                          className={`flex-shrink-0 rounded-lg px-2 py-1 text-[11px] font-semibold transition ${
+                                            confirmGroup === key ? 'bg-red-500/15 text-red-200 border border-red-300/40' : 'text-white/35 hover:text-red-300'
+                                          }`}
+                                        >
+                                          {confirmGroup === key ? '¿Borrar?' : '✕'}
+                                        </button>
+                                      </div>
+                                      {renderList(list, key, 'Sin platos visibles en este grupo.')}
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          closeEditor()
+                                          addItem(cat.id, g.id)
+                                        }}
+                                        className="w-full px-4 py-2.5 text-[13px] text-gold/65 hover:text-gold hover:bg-white/[0.02] transition text-left border-t border-white/[0.04]"
+                                      >
+                                        + Añadir plato {g.name.trim() ? `en «${g.name.trim()}»` : ''}
+                                      </button>
+                                    </div>
+                                  )
+                                })}
+                                {loose.length > 0 && (
+                                  <div className="border-t border-white/[0.07]">
+                                    <p className="pl-4 pr-2 py-2 bg-white/[0.02] text-[13px] font-semibold uppercase tracking-[0.12em] text-white/40">Sin grupo</p>
+                                    {renderList(loose, `${cat.id}:sin-grupo`, 'Sin platos visibles.')}
+                                  </div>
+                                )}
+                                <p className="px-4 py-2 text-[11px] text-white/35 border-t border-white/[0.05]">
+                                  Los grupos solo se ven aquí, en el admin. En la carta los platos salen seguidos, en este orden.
+                                </p>
+                              </>
+                            )
+                          })()}
                         </div>
                       )}
                     </section>

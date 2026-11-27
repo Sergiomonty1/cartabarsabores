@@ -11,7 +11,7 @@ import type { MenuCategory, MenuData, MenuItem, MenuVariant, Translations } from
  * Cada cambio comprueba el nombre en español antes de tocar nada, para no pisar
  * cambios hechos a mano desde el admin.
  */
-export const CONTENT_VERSION = 40
+export const CONTENT_VERSION = 41
 
 /* ─── Traducciones revisadas (oct. 2026) ─── */
 
@@ -215,6 +215,7 @@ export function applyContentUpdates(input: MenuData): MenuData {
   if (from < 38) applyV38(data)
   if (from < 39) applyV39(data)
   if (from < 40) applyV40(data)
+  if (from < 41) applyV41(data)
   data.contentVersion = CONTENT_VERSION
   return data
 }
@@ -231,6 +232,27 @@ function moveAfter(items: MenuItem[], item: MenuItem, afterId: string | null) {
   const at = afterId ? items.findIndex((x) => x.id === afterId) : -1
   if (at === -1) items.push(item)
   else items.splice(at + 1, 0, item)
+}
+
+/** v41 (27/11/2026): arroces agrupados en el admin («De carne» / «De marisco») según sus ingredientes. */
+function applyV41(data: MenuData) {
+  const arroces = (data.categories ?? []).find((c) => c.id === 'arroces')
+  if (!arroces || arroces.groups?.length) return
+  arroces.groups = [
+    { id: 'arroces-carne', name: 'De carne' },
+    { id: 'arroces-marisco', name: 'De marisco' },
+  ]
+  const mar = /calamar|chipir|choco|sepia|pulpo|marisco|gamba|langost|mejill|almeja|negro|bacalao|pescado|rape/i
+  const carne = /carrillada|cola de toro|rabo|presa|secreto|costilla|pollo|conejo|pato|ib[eé]ric|foie|setas/i
+  for (const it of arroces.items ?? []) {
+    const n = it.name ?? ''
+    if (mar.test(n)) it.group = 'arroces-marisco'
+    else if (carne.test(n)) it.group = 'arroces-carne'
+  }
+  const rank = (g?: string) => (g === 'arroces-carne' ? 0 : g === 'arroces-marisco' ? 1 : 2)
+  arroces.items = [...arroces.items]
+    .sort((a, b) => rank(a.group) - rank(b.group) || (a.order ?? 0) - (b.order ?? 0))
+    .map((it, i) => ({ ...it, order: i }))
 }
 
 /**
