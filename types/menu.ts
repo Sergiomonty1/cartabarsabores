@@ -31,6 +31,8 @@ export interface MenuItem {
   tag?: string
   /** Grupo dentro de la sección (id de MenuCategory.groups). Solo se usa en el admin. */
   group?: string
+  /** Plato que se monta eligiendo ingredientes (p. ej. el arroz del día). Su nombre se genera solo. */
+  builder?: DishBuilder
   tagI18n?: Translations
   priceTapa: number
   priceMedia: number
@@ -41,6 +43,23 @@ export interface MenuItem {
   hidden?: boolean
   /** Sabores / variedades que se listan bajo el nombre (mismo precio). */
   variants?: MenuVariant[]
+}
+
+/** Ingrediente para montar un plato (arroz del día). */
+export interface BuilderIngredient {
+  id: string
+  /** Nombre en español, como se lee en la carta: «Carrillada», «Cola de toro»… */
+  name: string
+  /** Cómo se dice dentro del nombre del plato en cada idioma («braised pork cheek»…). */
+  nameI18n?: Translations
+  allergens?: string[]
+  /** «Negro» (tinta): no es un ingrediente más, cambia el plato a «Arroz negro con…». */
+  style?: boolean
+}
+
+export interface DishBuilder {
+  options: BuilderIngredient[]
+  selected: string[]
 }
 
 /** Grupo de platos dentro de una sección, solo para el admin. */

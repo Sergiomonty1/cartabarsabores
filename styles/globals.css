@@ -24,6 +24,12 @@
   --sky-soft: #b3ddf6;
 }
 
+/* La carta ya tiene su propio tema oscuro: se lo decimos al navegador para que su
+   «modo oscuro» (Chrome / Samsung Internet) no la oscurezca más */
+@media (prefers-color-scheme: dark) {
+  :root { color-scheme: dark; }
+}
+
 html {
   scroll-behavior: smooth;
   /* <html> es el ÚNICO contenedor de scroll de la página. `overflow-x: hidden`

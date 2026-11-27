@@ -2,13 +2,14 @@
 
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import Image from 'next/image'
-import type { MenuData, MenuCategory, MenuGroup, MenuItem, MenuVariant, WineCategory, WineItem, Translations } from '@/types/menu'
+import type { DishBuilder, MenuData, MenuCategory, MenuGroup, MenuItem, MenuVariant, WineCategory, WineItem, Translations } from '@/types/menu'
 import { menuService } from '@/lib/menuService'
 import { ALLERGENS, ALLERGEN_SRC, dishAllergens } from '@/lib/allergens'
 import { I18N_LANGS, tAllergen } from '@/lib/translations'
 import { GradientOrbs, LogoMark } from '@/components/Brand'
 import GroupMenuCounter from '@/components/GroupMenuCounter'
 import { InstallAppButton, useIsInstalledApp } from '@/components/AppInstall'
+import { buildDish } from '@/lib/riceBuilder'
 
 const ADMIN_PASSCODE = '2010'
 /** Contraseña para restablecer la copia guardada (botón oculto en Opciones avanzadas). */
@@ -130,6 +131,147 @@ function SectionVisibility({ hidden, empty, onToggle }: { hidden?: boolean; empt
       )}
       {label}
     </button>
+  )
+}
+
+/** Arroz del día: se monta pulsando ingredientes; el nombre (y sus traducciones) se escribe solo. */
+function DishBuilderCard({ item, onChange }: { item: MenuItem; onChange: (patch: Partial<MenuItem>) => void }) {
+  const b = item.builder!
+  const [editMode, setEditMode] = useState(false)
+  const [newName, setNewName] = useState('')
+  const [trId, setTrId] = useState<string | null>(null)
+  const [confirmDel, setConfirmDel] = useState<string | null>(null)
+
+  const apply = (builder: DishBuilder) => {
+    const d = buildDish(builder)
+    onChange({ builder, name: d.name, nameI18n: d.nameI18n, allergens: d.allergens })
+  }
+  const toggle = (id: string) =>
+    apply({ ...b, selected: b.selected.includes(id) ? b.selected.filter((x) => x !== id) : [...b.selected, id] })
+  const remove = (id: string) => {
+    if (confirmDel !== id) return setConfirmDel(id)
+    setConfirmDel(null)
+    if (trId === id) setTrId(null)
+    apply({ options: b.options.filter((o) => o.id !== id), selected: b.selected.filter((x) => x !== id) })
+  }
+  const add = () => {
+    const name = newName.trim()
+    if (!name) return
+    const id = `${name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-')}-${Date.now().toString(36)}`
+    apply({ options: [...b.options, { id, name: name.charAt(0).toUpperCase() + name.slice(1) }], selected: [...b.selected, id] })
+    setNewName('')
+  }
+  const missingTr = (o: (typeof b.options)[number]) => !o.style && ['en', 'de', 'pt', 'fr'].some((l) => !o.nameI18n?.[l as 'en']?.trim())
+  const trOption = b.options.find((o) => o.id === trId)
+
+  return (
+    <div className="px-4 py-3.5 bg-gold/[0.035] border-b border-white/[0.05]">
+      <div className="flex items-center gap-2">
+        <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-gold/80 flex-1">Arroz del día</span>
+        <EyeButton hidden={item.hidden} onToggle={() => onChange({ hidden: !item.hidden })} />
+      </div>
+      <p className={`mt-1 font-display text-[1.35rem] leading-tight ${item.hidden ? 'text-white/40' : 'text-white'}`}>
+        {b.selected.length ? item.name : <span className="text-white/35 italic text-base">Elige los ingredientes</span>}
+      </p>
+      {!!b.selected.length && <p className="text-[11px] text-white/40 mt-0.5 italic">{item.nameI18n?.en}</p>}
+      {item.hidden && <p className="text-[11px] text-amber-200/80 mt-1">Oculto: no sale en la carta. Pulsa el ojo para mostrarlo.</p>}
+
+      <div className="mt-3 flex flex-wrap gap-1.5">
+        {b.options.map((o) => {
+          const on = b.selected.includes(o.id)
+          const n = b.selected.indexOf(o.id) + 1
+          return (
+            <span key={o.id} className="inline-flex items-center">
+              <button
+                type="button"
+                onClick={() => toggle(o.id)}
+                aria-pressed={on}
+                className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[13px] font-semibold transition active:scale-95 ${
+                  on ? 'bg-gold text-[#021530] border-gold' : 'border-white/15 bg-white/[0.03] text-white/75 hover:bg-white/[0.07]'
+                } ${editMode ? 'rounded-r-none' : ''}`}
+              >
+                {on && <span className="text-[10px] w-4 h-4 rounded-full bg-[#021530]/15 inline-flex items-center justify-center tabular-nums">{n}</span>}
+                {o.name}
+                {missingTr(o) && <span className="w-1.5 h-1.5 rounded-full bg-amber-300" title="Sin traducir" />}
+              </button>
+              {editMode && (
+                <>
+                  {!o.style && (
+                    <button
+                      type="button"
+                      onClick={() => setTrId(trId === o.id ? null : o.id)}
+                      title="Traducir"
+                      className={`border-y border-white/15 px-2 py-1.5 text-[12px] ${trId === o.id ? 'bg-white/15' : 'bg-white/[0.03]'}`}
+                    >
+                      🌍
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => remove(o.id)}
+                    title="Borrar ingrediente"
+                    className={`rounded-r-full border border-l-0 px-2.5 py-1.5 text-[12px] font-semibold transition ${
+                      confirmDel === o.id ? 'bg-red-500/20 border-red-300/50 text-red-200' : 'border-white/15 bg-white/[0.03] text-white/45 hover:text-red-300'
+                    }`}
+                  >
+                    {confirmDel === o.id ? '¿Borrar?' : '✕'}
+                  </button>
+                </>
+              )}
+            </span>
+          )
+        })}
+      </div>
+
+      {editMode && trOption && (
+        <div className="mt-3 rounded-xl border border-white/10 bg-white/[0.03] p-3">
+          <p className="text-[11px] text-white/55 mb-2">
+            Cómo se dice «{trOption.name}» dentro del nombre del plato (ej.: «braised pork cheek»):
+          </p>
+          <TranslationFields
+            value={trOption.nameI18n}
+            onChange={(nameI18n) => apply({ ...b, options: b.options.map((o) => (o.id === trOption.id ? { ...o, nameI18n } : o)) })}
+          />
+        </div>
+      )}
+
+      {editMode && (
+        <div className="mt-3 flex gap-2">
+          <input
+            value={newName}
+            onChange={(e) => setNewName(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && add()}
+            placeholder="Nuevo ingrediente (ej.: Alcachofas)"
+            className={`${inputCls} py-2`}
+          />
+          <button
+            type="button"
+            onClick={add}
+            disabled={!newName.trim()}
+            className="flex-shrink-0 rounded-xl border border-gold/40 bg-gold/[0.12] px-3 text-sm font-semibold text-gold-soft disabled:opacity-30 active:scale-95 transition"
+          >
+            Añadir
+          </button>
+        </div>
+      )}
+
+      <div className="mt-3 flex items-center justify-between gap-2">
+        <p className="text-[11px] text-white/40">El orden en que los pulsas es el orden del nombre.</p>
+        <button
+          type="button"
+          onClick={() => {
+            setEditMode((v) => !v)
+            setConfirmDel(null)
+          }}
+          className="flex-shrink-0 text-xs font-semibold text-gold-soft/90 px-2.5 py-1.5 rounded-lg border border-gold/25 hover:bg-gold/10 transition"
+        >
+          {editMode ? 'Listo' : '✏️ Ingredientes'}
+        </button>
+      </div>
+      {editMode && b.options.some(missingTr) && (
+        <p className="mt-2 text-[11px] text-amber-200/75">Los que tienen punto naranja no están traducidos: pulsa 🌍 para hacerlo (si no, salen en español).</p>
+      )}
+    </div>
   )
 }
 
@@ -1435,8 +1577,9 @@ export default function AdminPage() {
 
                           {(() => {
                             const renderList = (list: MenuItem[], listKey: string, emptyText: string) => {
-                            const visibleItems = list.filter((it) => !it.hidden)
-                            const hiddenItems = list.filter((it) => it.hidden)
+                            const builders = list.filter((it) => it.builder)
+                            const visibleItems = list.filter((it) => !it.hidden && !it.builder)
+                            const hiddenItems = list.filter((it) => it.hidden && !it.builder)
                             const editingHidden = editing?.kind === 'dish' && editing.catId === cat.id && hiddenItems.some((it) => it.id === editing.itemId)
                             const hiddenOpen = openHidden.includes(listKey) || editingHidden
                             const editor = (item: MenuItem) => (
@@ -1455,8 +1598,11 @@ export default function AdminPage() {
                             )
                             return (
                               <>
+                                {builders.map((item) => (
+                                  <DishBuilderCard key={item.id} item={item} onChange={(patch) => updateItem(cat.id, item.id, patch)} />
+                                ))}
                                 <div className="divide-y divide-white/[0.05]">
-                                  {visibleItems.length === 0 && (
+                                  {visibleItems.length === 0 && !builders.length && (
                                     <p className="px-4 py-3 text-xs text-white/40 italic">{emptyText}</p>
                                   )}
                                   {visibleItems.map((item, ii) => {

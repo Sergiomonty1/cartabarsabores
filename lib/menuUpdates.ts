@@ -1,3 +1,4 @@
+import { buildDish, MEAT_RICE_INGREDIENTS, SEAFOOD_RICE_INGREDIENTS } from '@/lib/riceBuilder'
 import type { MenuCategory, MenuData, MenuItem, MenuVariant, Translations } from '@/types/menu'
 
 /**
@@ -11,7 +12,7 @@ import type { MenuCategory, MenuData, MenuItem, MenuVariant, Translations } from
  * Cada cambio comprueba el nombre en español antes de tocar nada, para no pisar
  * cambios hechos a mano desde el admin.
  */
-export const CONTENT_VERSION = 41
+export const CONTENT_VERSION = 42
 
 /* ─── Traducciones revisadas (oct. 2026) ─── */
 
@@ -216,6 +217,7 @@ export function applyContentUpdates(input: MenuData): MenuData {
   if (from < 39) applyV39(data)
   if (from < 40) applyV40(data)
   if (from < 41) applyV41(data)
+  if (from < 42) applyV42(data)
   data.contentVersion = CONTENT_VERSION
   return data
 }
@@ -232,6 +234,45 @@ function moveAfter(items: MenuItem[], item: MenuItem, afterId: string | null) {
   const at = afterId ? items.findIndex((x) => x.id === afterId) : -1
   if (at === -1) items.push(item)
   else items.splice(at + 1, 0, item)
+}
+
+/**
+ * v42 (27/11/2026): arroz del día. Fuera los arroces sueltos; en cada grupo (De carne / De marisco)
+ * queda un único arroz que se monta eligiendo ingredientes en el admin. Arranca con el que estaba visible.
+ */
+function applyV42(data: MenuData) {
+  const arroces = (data.categories ?? []).find((c) => c.id === 'arroces')
+  if (!arroces) return
+  if (!arroces.groups?.length) {
+    arroces.groups = [
+      { id: 'arroces-carne', name: 'De carne' },
+      { id: 'arroces-marisco', name: 'De marisco' },
+    ]
+  }
+  const sorted = [...(arroces.items ?? [])].sort(byOrder)
+  const pick = (group: string, options: typeof MEAT_RICE_INGREDIENTS, fallback: string[]) => {
+    const live = sorted.find((it) => !it.hidden && it.group === group && !it.builder)
+    const text = (live?.name ?? '').toLowerCase()
+    const keys: Record<string, RegExp> = {
+      carrillada: /carrillada/, 'cola-de-toro': /cola de toro|rabo/, trufa: /trufa/, foie: /foie/, setas: /setas/,
+      presa: /presa/, costillas: /costilla/, pollo: /pollo/, conejo: /conejo/,
+      negro: /negro|tinta/, calamar: /calamar(?!.*potera)|calamares/, 'calamar-potera': /potera/, choco: /choco|sepia/,
+      chipiron: /chipir/, pulpo: /pulpo/, gambas: /gamba/, langostinos: /langostino/, mejillones: /mejill/, almejas: /almeja/,
+    }
+    const found = live ? options.filter((o) => keys[o.id]?.test(text)).map((o) => o.id) : []
+    return { selected: found.length ? found : fallback, visible: !!live }
+  }
+  const meat = pick('arroces-carne', MEAT_RICE_INGREDIENTS, ['carrillada', 'trufa'])
+  const sea = pick('arroces-marisco', SEAFOOD_RICE_INGREDIENTS, ['calamar'])
+  const make = (id: string, group: string, options: typeof MEAT_RICE_INGREDIENTS, p: { selected: string[]; visible: boolean }, order: number): MenuItem => {
+    const builder = { options: options.map((o) => ({ ...o, nameI18n: { ...o.nameI18n } })), selected: p.selected }
+    const d = buildDish(builder)
+    return { id, name: d.name, nameI18n: d.nameI18n, allergens: d.allergens, priceTapa: 0, priceMedia: 0, samePrice: true, order, group, hidden: !p.visible, builder }
+  }
+  arroces.items = [
+    ...(sorted.find((i) => i.builder && i.group === 'arroces-carne') ? [sorted.find((i) => i.builder && i.group === 'arroces-carne')!] : [make('arroz-del-dia-carne', 'arroces-carne', MEAT_RICE_INGREDIENTS, meat, 0)]),
+    ...(sorted.find((i) => i.builder && i.group === 'arroces-marisco') ? [sorted.find((i) => i.builder && i.group === 'arroces-marisco')!] : [make('arroz-del-dia-marisco', 'arroces-marisco', SEAFOOD_RICE_INGREDIENTS, sea, 1)]),
+  ].map((it, i) => ({ ...it, order: i }))
 }
 
 /** v41 (27/11/2026): arroces agrupados en el admin («De carne» / «De marisco») según sus ingredientes. */
