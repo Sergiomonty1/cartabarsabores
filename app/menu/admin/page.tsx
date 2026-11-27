@@ -8,7 +8,7 @@ import { ALLERGENS, ALLERGEN_SRC, dishAllergens } from '@/lib/allergens'
 import { I18N_LANGS, tAllergen } from '@/lib/translations'
 import { GradientOrbs, LogoMark } from '@/components/Brand'
 import GroupMenuCounter from '@/components/GroupMenuCounter'
-import { InstallAppButton } from '@/components/AppInstall'
+import { InstallAppButton, useIsInstalledApp } from '@/components/AppInstall'
 
 const ADMIN_PASSCODE = '2010'
 /** Contraseña para restablecer la copia guardada (botón oculto en Opciones avanzadas). */
@@ -743,6 +743,7 @@ export default function AdminPage() {
   const [saveError, setSaveError] = useState('')
   const [view, setView] = useState<'carta' | 'vinos'>('carta')
   const [groupMenu, setGroupMenu] = useState(false)
+  const inApp = useIsInstalledApp()
   const [openCats, setOpenCats] = useState<string[]>([])
   const [trCats, setTrCats] = useState<string[]>([])
   const [openHidden, setOpenHidden] = useState<string[]>([])
@@ -1120,12 +1121,12 @@ export default function AdminPage() {
             <span aria-hidden="true">🧮</span> Menú
           </button>
           <a
-            href="/menu/medias"
-            target="_blank"
-            rel="noreferrer"
+            href="/menu/tapas"
+            target={inApp ? undefined : '_blank'}
+            rel={inApp ? undefined : 'noreferrer'}
             className="inline-flex items-center text-xs font-semibold text-gold-soft/90 hover:text-gold px-3 py-2 rounded-xl border border-gold/25 hover:bg-gold/10 transition"
           >
-            Ver carta ↗
+            Ver carta {inApp ? '›' : '↗'}
           </a>
         </div>
       </header>

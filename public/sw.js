@@ -2,8 +2,8 @@
    - Páginas: primero la red (para ver siempre lo último) y, sin conexión, la última copia guardada.
    - Archivos de la web (_next/static, iconos, alérgenos, fuentes): se guardan y se sirven al instante.
    - Firestore no se toca: los datos en vivo siguen llegando como siempre. */
-const VERSION = 'sabores-v1'
-const PAGES = ['/menu/tapas', '/menu/medias', '/menu/vinos', '/menu/alergenos']
+const VERSION = 'sabores-v2'
+const PAGES = ['/menu/admin', '/menu/tapas', '/menu/medias', '/menu/vinos', '/menu/alergenos']
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -90,7 +90,7 @@ self.addEventListener('fetch', (event) => {
   if (url.origin !== self.location.origin) return
 
   if (req.mode === 'navigate') {
-    event.respondWith(networkFirst(req, '/menu/tapas'))
+    event.respondWith(networkFirst(req, url.pathname.startsWith('/menu/admin') ? '/menu/admin' : '/menu/tapas'))
     return
   }
   if (isStatic(url)) {

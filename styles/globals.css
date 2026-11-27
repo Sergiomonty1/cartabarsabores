@@ -11,6 +11,8 @@
 }
 
 :root {
+  /* La carta ya es oscura: evita que el modo oscuro automático del móvil la reoscurezca */
+  color-scheme: dark;
   /* Refined deep-blue palette */
   --navy-900: #021530;
   --navy-800: #04244f;

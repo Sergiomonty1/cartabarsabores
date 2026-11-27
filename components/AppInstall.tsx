@@ -108,3 +108,29 @@ export function InstallAppButton({ className = '', compact = false }: { classNam
     </span>
   )
 }
+
+/** Dentro de la app instalada (que abre el admin), botón para volver al admin desde la carta. */
+export function BackToAdmin() {
+  const [inApp, setInApp] = useState(false)
+  useEffect(() => setInApp(isStandalone()), [])
+  if (!inApp) return null
+  return (
+    <a
+      href="/menu/admin"
+      className="fixed left-3 z-50 inline-flex items-center gap-1.5 rounded-full border border-gold/35 bg-[#04244f]/95 px-3.5 py-2 text-xs font-semibold text-gold-soft shadow-lg shadow-black/30 active:scale-95 transition"
+      style={{ top: 'calc(env(safe-area-inset-top, 0px) + 12px)' }}
+    >
+      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M15 19l-7-7 7-7" />
+      </svg>
+      Admin
+    </a>
+  )
+}
+
+/** true cuando la web está abierta como app instalada (no en el navegador). */
+export function useIsInstalledApp() {
+  const [inApp, setInApp] = useState(false)
+  useEffect(() => setInApp(isStandalone()), [])
+  return inApp
+}

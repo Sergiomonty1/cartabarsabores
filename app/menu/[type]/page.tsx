@@ -9,7 +9,7 @@ import { menuService } from '@/lib/menuService'
 import { ALLERGENS, ALLERGEN_SRC, dishAllergens } from '@/lib/allergens'
 import { type Lang, LANGUAGES, LOCALES, isLang, t, tName, tTag, tAllergen, fmtEUR, detectBrowserLang } from '@/lib/translations'
 import { GoldenDivider, GradientOrbs, LogoMark } from '@/components/Brand'
-import { InstallAppButton } from '@/components/AppInstall'
+import { BackToAdmin } from '@/components/AppInstall'
 
 type Route = 'tapas' | 'medias' | 'alergenos' | 'vinos'
 
@@ -808,7 +808,6 @@ export default function MenuPage({ params }: { params: { type: string } }) {
             <p className="mt-3 font-display text-2xl text-white/80">{barName}</p>
             <p className="mt-4 text-xs text-white/50 max-w-xs mx-auto leading-relaxed">{t(lang, 'allergyNotice')}</p>
             <p className="mt-1.5 text-[11px] text-white/35">{t(lang, 'vatIncluded')}</p>
-            <InstallAppButton className="mt-6" />
             {menu.updatedAt && (
               <p className="mt-5 text-[10px] text-white/25 tracking-[0.2em] uppercase">
                 {t(lang, 'updated')} · {new Date(menu.updatedAt).toLocaleDateString(LOCALES[lang], { day: 'numeric', month: 'short', year: 'numeric' })}
@@ -820,6 +819,7 @@ export default function MenuPage({ params }: { params: { type: string } }) {
       </main>
 
       <ScrollHint />
+      <BackToAdmin />
     </div>
   )
 }
