@@ -12,7 +12,7 @@ import type { MenuCategory, MenuData, MenuItem, MenuVariant, Translations } from
  * Cada cambio comprueba el nombre en español antes de tocar nada, para no pisar
  * cambios hechos a mano desde el admin.
  */
-export const CONTENT_VERSION = 42
+export const CONTENT_VERSION = 43
 
 /* ─── Traducciones revisadas (oct. 2026) ─── */
 
@@ -218,6 +218,7 @@ export function applyContentUpdates(input: MenuData): MenuData {
   if (from < 40) applyV40(data)
   if (from < 41) applyV41(data)
   if (from < 42) applyV42(data)
+  if (from < 43) applyV43(data)
   data.contentVersion = CONTENT_VERSION
   return data
 }
@@ -234,6 +235,39 @@ function moveAfter(items: MenuItem[], item: MenuItem, afterId: string | null) {
   const at = afterId ? items.findIndex((x) => x.id === afterId) : -1
   if (at === -1) items.push(item)
   else items.splice(at + 1, 0, item)
+}
+
+/**
+ * v43 (28/11/2026): arroz del día. Ingredientes repetidos (p. ej. «Gambas» creada otra vez) se unen al que ya
+ * estaba traducido, y los ingredientes nuevos con nombre conocido toman su traducción y alérgenos.
+ */
+function applyV43(data: MenuData) {
+  const known = [...MEAT_RICE_INGREDIENTS, ...SEAFOOD_RICE_INGREDIENTS]
+  const norm = (s?: string) => (s ?? '').trim().toLowerCase()
+  for (const cat of data.categories ?? []) {
+    for (const it of cat.items ?? []) {
+      const b = it.builder
+      if (!b) continue
+      const options: typeof b.options = []
+      const alias = new Map<string, string>()
+      for (const o of b.options) {
+        const same = options.find((x) => norm(x.name) === norm(o.name))
+        if (same) {
+          alias.set(o.id, same.id)
+          continue
+        }
+        const k = known.find((x) => norm(x.name) === norm(o.name))
+        const fill = k && (!o.nameI18n?.en?.trim() || !o.allergens?.length)
+        options.push(fill ? { ...o, nameI18n: o.nameI18n?.en?.trim() ? o.nameI18n : { ...k!.nameI18n }, allergens: o.allergens?.length ? o.allergens : k!.allergens } : o)
+      }
+      const selected = Array.from(new Set(b.selected.map((id) => alias.get(id) ?? id))).filter((id) => options.some((o) => o.id === id))
+      it.builder = { options, selected }
+      const d = buildDish(it.builder)
+      it.name = d.name
+      it.nameI18n = d.nameI18n
+      it.allergens = d.allergens
+    }
+  }
 }
 
 /**

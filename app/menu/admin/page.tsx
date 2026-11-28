@@ -157,6 +157,12 @@ function DishBuilderCard({ item, onChange }: { item: MenuItem; onChange: (patch:
   const add = () => {
     const name = newName.trim()
     if (!name) return
+    const existing = b.options.find((o) => o.name.trim().toLowerCase() === name.toLowerCase())
+    if (existing) {
+      if (!b.selected.includes(existing.id)) apply({ ...b, selected: [...b.selected, existing.id] })
+      setNewName('')
+      return
+    }
     const id = `${name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-')}-${Date.now().toString(36)}`
     apply({ options: [...b.options, { id, name: name.charAt(0).toUpperCase() + name.slice(1) }], selected: [...b.selected, id] })
     setNewName('')
